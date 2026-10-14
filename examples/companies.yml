@@ -1,0 +1,6 @@
+# Copy to the root of your private repo as companies.yml
+# Company slugs per ATS, as they appear in each career page URL.
+inhire: []
+greenhouse: []
+lever: []
+ashby: []

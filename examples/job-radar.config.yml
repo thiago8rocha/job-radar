@@ -1,0 +1,35 @@
+# Copy to the root of your private repo as job-radar.config.yml
+locale: en                   # all generated content is in English
+
+search:
+  include: ["QA", "Quality Assurance", "Quality Engineer", "SDET", "Test Automation"]
+  ambiguous_requires: []     # words an ambiguous title must also contain to pass
+  exclude: ["Intern", "Trainee", "Junior", "Mid-level"]
+  seniority: [senior, specialist, staff, lead]
+  max_age_days: 15
+
+eligibility:
+  accept_regions: [worldwide, latam, americas, brazil]
+  # no timezone filter: the required hours are converted to Brasília time in the issue
+  reject: ["US only", "EU only", "must reside in"]
+
+work_model: [remote]
+
+sources:
+  himalayas: { enabled: true }
+  greenhouse: { enabled: true }
+  lever: { enabled: true }
+  ashby: { enabled: true }
+  inhire: { enabled: true }
+  gupy: { enabled: false }
+  remoteok: { enabled: false }
+  google_jobs: { enabled: false, api_key_secret: SERPAPI_KEY }
+
+discovery:
+  enabled: false             # depends on SerpAPI
+  queries: []
+
+issues:
+  max_per_run: 25            # guard against flooding the board
+  project_number: 1          # number of your GitHub Project (see its URL)
+  # project_owner: your-login  # only when the Project belongs to someone else than the repo owner
