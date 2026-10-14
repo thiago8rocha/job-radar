@@ -387,8 +387,6 @@ Delivery comes in 4 phases, plus an optional AI phase. Each one ends with someth
 - [ ] InHire: link resolved. The page only uses the jobId and accepts any text in place of the slug; the slug is generated from the title with slugify (lower, strict) just to keep the link readable
 - [ ] AI: check in GitHub Billing that paid usage of GitHub Models is turned off
 
-**Taking this to Claude Code.** Export this document as Markdown and open Claude Code in the empty public repo. In the first session, ask for three things: create `AGENTS.md`, `CLAUDE.md` and `CLAUDE.local.md` as in the Conventions section; save this document translated to English at `docs/DESIGN.md`, using the English names table; and only then start phase 1. This keeps it from trying to build everything at once.
-
 ## Sources consulted
 
 - [Himalayas Remote Jobs API (Apify)](https://apify.com/himalayas/remote-jobs)
