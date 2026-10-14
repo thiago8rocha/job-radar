@@ -44,3 +44,6 @@ Thumbs.db
 
 # Local agent instructions
 CLAUDE.local.md
+
+# Personal data (the spreadsheet to import)
+*.xlsx
