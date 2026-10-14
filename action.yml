@@ -1,0 +1,32 @@
+name: job-radar
+description: Collects job postings, opens one GitHub issue per job and tracks each hiring process
+author: thiago8rocha
+branding:
+  icon: radio
+  color: blue
+
+inputs:
+  command:
+    description: "One of: setup, sync-status, intake, import (collect and metrics arrive in later phases)"
+    required: true
+  github-token:
+    description: Token with Issues and Projects access to the private repo (a fine-grained PAT; the default GITHUB_TOKEN cannot write to user Projects)
+    required: true
+  config-path:
+    description: Path to the config file in the private repo
+    required: false
+    default: job-radar.config.yml
+  xlsx-path:
+    description: Spreadsheet to import (import only)
+    required: false
+  dry-run:
+    description: "Report what would happen without writing (import only)"
+    required: false
+    default: "false"
+  serpapi-key:
+    description: SerpAPI key for Google Jobs and company discovery (used from phase 3)
+    required: false
+
+runs:
+  using: node20
+  main: dist/index.cjs

@@ -1,0 +1,52 @@
+name: Job
+description: A job found by hand (recruiter, referral, anything the collector missed)
+title: "[Company] Role"
+labels: ["manual", "status:new"]
+body:
+  - type: input
+    id: company
+    attributes:
+      label: Company
+    validations:
+      required: true
+  - type: input
+    id: role
+    attributes:
+      label: Role
+    validations:
+      required: true
+  - type: input
+    id: link
+    attributes:
+      label: Application link
+      description: Direct link to the company's application page, without tracking parameters
+      placeholder: https://
+    validations:
+      required: true
+  - type: dropdown
+    id: contract
+    attributes:
+      label: Contract
+      multiple: true
+      options: [CLT, PJ, Cooperado, Contractor]
+  - type: input
+    id: compensation
+    attributes:
+      label: Compensation
+      description: As stated, e.g. "R$ 15.000" or "USD 6,000"
+  - type: dropdown
+    id: currency
+    attributes:
+      label: Currency
+      options: [BRL, USD, EUR]
+  - type: dropdown
+    id: contact
+    attributes:
+      label: Contact
+      description: How this job reached you
+      options: [Application, Recruiter, Referral]
+  - type: textarea
+    id: notes
+    attributes:
+      label: Notes
+      description: Becomes the first comment on the issue

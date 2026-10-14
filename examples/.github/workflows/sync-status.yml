@@ -1,0 +1,25 @@
+# Keeps one status:* label per issue and mirrors it into the Project "Status" field.
+name: sync-status
+on:
+  issues:
+    types: [labeled]
+
+# One run per issue at a time, so quick label changes are applied in order.
+concurrency:
+  group: sync-status-${{ github.event.issue.number }}
+  cancel-in-progress: false
+
+permissions:
+  issues: write
+  contents: read
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    if: startsWith(github.event.label.name, 'status:')
+    steps:
+      - uses: actions/checkout@v4          # reads job-radar.config.yml
+      - uses: thiago8rocha/job-radar@v1
+        with:
+          command: sync-status
+          github-token: ${{ secrets.JOB_RADAR_TOKEN }}

@@ -40,7 +40,7 @@ The private repo contains no collector code, so it never diverges from the publi
 
 ```text
 job-radar/
-├─ action.yml              # Action entry point: command = collect | sync-status | metrics | setup | import
+├─ action.yml              # Action entry point: command = collect | sync-status | intake | metrics | setup | import
 ├─ src/
 │  ├─ adapters/            # one file per source
 │  ├─ pipeline/            # normalize, filter, dedup
@@ -235,7 +235,7 @@ Separating where you saw a job from where you applied fixes a bias in the spread
 
 **Supporting labels:** `scope:brazil` / `scope:international`, `work:remote` / `work:hybrid`, and `manual` for jobs entered by hand.
 
-**Jobs outside the collector.** An issue form (`.github/ISSUE_TEMPLATE/job.yml`) covers recruiters, referrals and anything found by hand. It has structured fields for company, role, link, contract, compensation, currency and contact channel. An Action reads the form and fills in labels and Project fields, just like the collector.
+**Jobs outside the collector.** An issue form (`.github/ISSUE_TEMPLATE/job.yml`) covers recruiters, referrals and anything found by hand. It has structured fields for company, role, link, contract, compensation, currency and contact channel. The `intake` command runs on `issues: [opened]` for issues labeled `manual`: it rewrites the title and body to the collector's format and fills in labels and Project fields, just like the collector. Notes become the first comment.
 
 **Closing the issue:** closed without a final `status:*` = discarded without applying. Closed with `status:rejected`, `status:withdrawn` or `status:hired` = history.
 

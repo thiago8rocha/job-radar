@@ -1,0 +1,20 @@
+# Normalizes jobs entered through the issue form and fills in labels and Project fields.
+name: intake
+on:
+  issues:
+    types: [opened]
+
+permissions:
+  issues: write
+  contents: read
+
+jobs:
+  intake:
+    runs-on: ubuntu-latest
+    if: contains(github.event.issue.labels.*.name, 'manual')
+    steps:
+      - uses: actions/checkout@v4          # reads job-radar.config.yml
+      - uses: thiago8rocha/job-radar@v1
+        with:
+          command: intake
+          github-token: ${{ secrets.JOB_RADAR_TOKEN }}
