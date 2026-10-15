@@ -53,10 +53,12 @@ export const configSchema = z.object({
     .object({
       max_per_run: z.number().int().positive().default(25),
       project_number: z.number().int().positive().default(1),
+      /** Close the issue when its status becomes rejected, withdrawn or hired, and reopen it when it goes back. */
+      close_on_final_status: z.boolean().default(true),
       /** Login that owns the Project. Defaults to the owner of the repository. */
       project_owner: z.string().optional(),
     })
-    .default({ max_per_run: 25, project_number: 1 }),
+    .default({ max_per_run: 25, project_number: 1, close_on_final_status: true }),
 
   ai: z
     .object({

@@ -112,7 +112,7 @@ export async function runImport(ctx: Context, rows: ImportRow[], options: Import
         ...ctx.repo,
         issue_number: issue.number,
         state: 'closed',
-        state_reason: row.status === 'hired' ? 'completed' : 'not_planned',
+        state_reason: 'completed', // the process ran its course; "not planned" is for jobs discarded without applying
       });
     }
     result.created++;

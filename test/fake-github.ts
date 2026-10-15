@@ -45,6 +45,8 @@ interface Overrides {
   labelsOnIssue?: string[];
   existingIssues?: Array<{ title?: string; body: string | null; pull_request?: unknown }>;
   existingLabels?: string[];
+  /** Current state of the issue `issues.get` returns. */
+  issueState?: 'open' | 'closed';
 }
 
 /** Minimal in-memory stand-in for the parts of Octokit job-radar uses. */
@@ -63,6 +65,7 @@ export function fakeContext(overrides: Overrides = {}) {
     listLabelsOnIssue: vi.fn(async (_params: unknown) => ({
       data: (overrides.labelsOnIssue ?? []).map((name) => ({ name })),
     })),
+    get: vi.fn(async (_params: unknown) => ({ data: { state: overrides.issueState ?? 'open' } })),
     listForRepo: vi.fn(),
     listLabelsForRepo: vi.fn(),
   };

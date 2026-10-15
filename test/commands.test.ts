@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { intake } from '../src/commands/intake.js';
 import { setup } from '../src/commands/setup.js';
 import { syncStatus } from '../src/commands/sync-status.js';
+import { parseConfig } from '../src/config/load.js';
 import { BASE_FIELDS, fakeContext } from './fake-github.js';
 
 describe('setup', () => {
@@ -74,6 +75,34 @@ describe('syncStatus', () => {
     const { ctx, fieldWrites } = fakeContext({ labelsOnIssue: ['status:applied'], appliedOn: '2026-09-01' });
     await syncStatus(ctx, event('status:applied'));
     expect(fieldWrites()).toEqual([['F_status', { singleSelectOptionId: 'O_Applied' }]]);
+  });
+
+  it('closes the issue as completed when the process ends, and only then', async () => {
+    for (const label of ['status:rejected', 'status:withdrawn', 'status:hired']) {
+      const { ctx, issues } = fakeContext({ labelsOnIssue: [label] });
+      await syncStatus(ctx, event(label));
+      expect(issues.update).toHaveBeenCalledWith(expect.objectContaining({ issue_number: 7, state: 'closed', state_reason: 'completed' }));
+    }
+    const active = fakeContext({ labelsOnIssue: ['status:screening'] });
+    await syncStatus(active.ctx, event('status:screening'));
+    expect(active.issues.update).not.toHaveBeenCalled();
+
+    const closedAlready = fakeContext({ labelsOnIssue: ['status:rejected'], issueState: 'closed' });
+    await syncStatus(closedAlready.ctx, event('status:rejected'));
+    expect(closedAlready.issues.update).not.toHaveBeenCalled();
+  });
+
+  it('reopens a closed issue that goes back to an active status', async () => {
+    const { ctx, issues } = fakeContext({ labelsOnIssue: ['status:applied'], issueState: 'closed' });
+    await syncStatus(ctx, event('status:applied'));
+    expect(issues.update).toHaveBeenCalledWith(expect.objectContaining({ issue_number: 7, state: 'open' }));
+  });
+
+  it('leaves the issue state alone when close_on_final_status is off', async () => {
+    const { ctx, issues } = fakeContext({ labelsOnIssue: ['status:rejected'] });
+    ctx.config = parseConfig('issues: { close_on_final_status: false }');
+    await syncStatus(ctx, event('status:rejected'));
+    expect(issues.update).not.toHaveBeenCalled();
   });
 
   it('does nothing for other labels or superseded events', async () => {

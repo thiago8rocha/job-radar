@@ -89,7 +89,7 @@ describe('runImport', () => {
 
     // only the rejected row (issue #102) is closed
     const closed = issues.update.mock.calls.map((call) => call[0] as { issue_number: number; state_reason: string });
-    expect(closed).toEqual([expect.objectContaining({ issue_number: 102, state_reason: 'not_planned' })]);
+    expect(closed).toEqual([expect.objectContaining({ issue_number: 102, state_reason: 'completed' })]);
     expect(issues.createComment).toHaveBeenCalledWith(expect.objectContaining({ issue_number: 101, body: 'Gostei da conversa' }));
 
     const writes = fieldWrites();
