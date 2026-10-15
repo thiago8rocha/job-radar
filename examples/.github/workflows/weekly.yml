@@ -1,0 +1,36 @@
+# Once a week: closes "New" jobs whose posting disappeared, and rewrites the pinned Metrics issue
+# and the calculated Project fields.
+name: weekly
+on:
+  schedule:
+    - cron: "0 12 * * 1"     # Mondays, 9 a.m. in Brasília
+  workflow_dispatch:
+    inputs:
+      dry-run:
+        description: "Report what would change, without writing anything"
+        type: boolean
+        default: false
+
+concurrency:
+  group: weekly
+  cancel-in-progress: false
+
+permissions:
+  issues: write
+  contents: read
+
+jobs:
+  weekly:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4          # reads job-radar.config.yml and companies.yml
+      - uses: thiago8rocha/job-radar@v1
+        with:
+          command: revalidate
+          github-token: ${{ secrets.JOB_RADAR_TOKEN }}
+          dry-run: ${{ inputs.dry-run || false }}
+      - uses: thiago8rocha/job-radar@v1
+        with:
+          command: metrics
+          github-token: ${{ secrets.JOB_RADAR_TOKEN }}
+          dry-run: ${{ inputs.dry-run || false }}

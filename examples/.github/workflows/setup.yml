@@ -1,0 +1,18 @@
+# Run once (and again after upgrading job-radar): creates the labels and the Project fields.
+name: setup
+on:
+  workflow_dispatch:
+
+permissions:
+  issues: write
+  contents: read
+
+jobs:
+  setup:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4          # reads job-radar.config.yml
+      - uses: thiago8rocha/job-radar@v1
+        with:
+          command: setup
+          github-token: ${{ secrets.JOB_RADAR_TOKEN }}
