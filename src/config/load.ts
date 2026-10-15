@@ -30,6 +30,17 @@ export function parseCompanies(text: string, source = 'companies.yml'): Companie
   return parseWith(companiesSchema, source, text);
 }
 
+/** Reads `companies.yml`; a missing file means no per-company sources. */
+export async function loadCompanies(path: string): Promise<Companies> {
+  let text: string;
+  try {
+    text = await readFile(path, 'utf8');
+  } catch {
+    return parseCompanies('', path);
+  }
+  return parseCompanies(text, path);
+}
+
 export async function loadConfig(path: string): Promise<Config> {
   let text: string;
   try {

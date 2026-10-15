@@ -3,7 +3,9 @@ locale: en                   # all generated content is in English
 
 search:
   include: ["QA", "Quality Assurance", "Quality Engineer", "SDET", "Test Automation"]
-  ambiguous_requires: []     # words an ambiguous title must also contain to pass
+  ambiguous: []              # include terms too generic on their own, e.g. "Quality Analyst"
+  ambiguous_requires: []     # words a title matched only by an ambiguous term must also have
+  highlight: ["Playwright", "Cypress", "Selenium", "CI/CD"]  # listed in the issue when the description mentions them
   exclude: ["Intern", "Trainee", "Junior", "Mid-level"]
   seniority: [senior, specialist, staff, lead]
   max_age_days: 15

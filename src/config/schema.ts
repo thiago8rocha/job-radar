@@ -11,12 +11,25 @@ export const configSchema = z.object({
   search: z
     .object({
       include: z.array(z.string()).default([]),
+      /** Include terms too generic on their own (e.g. "Analista de Qualidade"). */
+      ambiguous: z.array(z.string()).default([]),
+      /** Words a title matched only by an ambiguous term must also have, in the title or description. */
       ambiguous_requires: z.array(z.string()).default([]),
+      /** Terms (stack, tools) listed in the issue excerpt when the description mentions them. */
+      highlight: z.array(z.string()).default([]),
       exclude: z.array(z.string()).default([]),
       seniority: z.array(z.string()).default([]),
       max_age_days: z.number().int().positive().default(15),
     })
-    .default({ include: [], ambiguous_requires: [], exclude: [], seniority: [], max_age_days: 15 }),
+    .default({
+      include: [],
+      ambiguous: [],
+      ambiguous_requires: [],
+      highlight: [],
+      exclude: [],
+      seniority: [],
+      max_age_days: 15,
+    }),
 
   eligibility: z
     .object({
@@ -64,11 +77,24 @@ export const configSchema = z.object({
 
 export type Config = z.infer<typeof configSchema>;
 
+/** A company slug, optionally with the display name to use in issue titles. */
+const company = z.union([z.string(), z.object({ slug: z.string(), name: z.string().optional() })]);
+
 export const companiesSchema = z.object({
-  inhire: z.array(z.string()).default([]),
-  greenhouse: z.array(z.string()).default([]),
-  lever: z.array(z.string()).default([]),
-  ashby: z.array(z.string()).default([]),
+  inhire: z.array(company).default([]),
+  greenhouse: z.array(company).default([]),
+  lever: z.array(company).default([]),
+  ashby: z.array(company).default([]),
 });
 
 export type Companies = z.infer<typeof companiesSchema>;
+
+export interface CompanyRef {
+  slug: string;
+  /** Display name when the config gives one; adapters fall back to what the source returns. */
+  name?: string;
+}
+
+export function companyRefs(entries: Companies[keyof Companies] | undefined): CompanyRef[] {
+  return (entries ?? []).map((entry) => (typeof entry === 'string' ? { slug: entry } : entry));
+}

@@ -1,5 +1,10 @@
 # Copy to the root of your private repo as companies.yml
-# Company slugs per ATS, as they appear in each career page URL.
+# Company slugs per ATS, as they appear in each career page URL:
+#   inhire:     https://<slug>.inhire.app/vagas
+#   greenhouse: https://boards.greenhouse.io/<slug>
+#   lever:      https://jobs.lever.co/<slug>
+#   ashby:      https://jobs.ashbyhq.com/<slug>
+# An entry can also be { slug: ramp, name: Ramp } to choose the name used in issue titles.
 inhire: []
 greenhouse: []
 lever: []
