@@ -1,5 +1,6 @@
 import { readFile } from 'node:fs/promises';
-import { loadConfig } from './config/load.js';
+import { loadCompanies, loadConfig } from './config/load.js';
+import { collect } from './commands/collect.js';
 import { consoleLogger, type Context, type Logger } from './commands/context.js';
 import { intake, type OpenedEvent } from './commands/intake.js';
 import { setup } from './commands/setup.js';
@@ -21,6 +22,10 @@ export interface RunOptions {
   eventPath?: string;
   /** Spreadsheet for `import`. */
   xlsxPath?: string;
+  /** `companies.yml` for `collect`. */
+  companiesPath?: string;
+  /** `state/seen.json` for `collect`. */
+  statePath?: string;
   dryRun?: boolean;
   log?: Logger;
 }
@@ -32,7 +37,7 @@ async function readEvent<T>(path: string | undefined, command: Command): Promise
 
 export async function run(options: RunOptions): Promise<void> {
   const log = options.log ?? consoleLogger;
-  if (options.command === 'collect' || options.command === 'metrics') {
+  if (options.command === 'metrics') {
     throw new Error(`"${options.command}" is not available yet (planned for a later phase)`);
   }
 
@@ -50,6 +55,11 @@ export async function run(options: RunOptions): Promise<void> {
       return syncStatus(ctx, await readEvent<LabeledEvent>(options.eventPath, options.command));
     case 'intake':
       return intake(ctx, await readEvent<OpenedEvent>(options.eventPath, options.command));
+    case 'collect': {
+      const companies = await loadCompanies(options.companiesPath ?? 'companies.yml');
+      await collect(ctx, { dryRun: options.dryRun, companies, statePath: options.statePath });
+      return;
+    }
     case 'import': {
       if (!options.xlsxPath) throw new Error('"import" needs the spreadsheet path (--xlsx)');
       const { rows, warnings } = await parseXlsx(options.xlsxPath);

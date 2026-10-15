@@ -7,10 +7,10 @@ branding:
 
 inputs:
   command:
-    description: "One of: setup, sync-status, intake, import (collect and metrics arrive in later phases)"
+    description: "One of: setup, sync-status, intake, import, collect (metrics arrives in a later phase)"
     required: true
   github-token:
-    description: Token with Issues and Projects access to the private repo (a fine-grained PAT; the default GITHUB_TOKEN cannot write to user Projects)
+    description: Token with Issues and Projects access to the private repo (a classic PAT with the repo and project scopes; the default GITHUB_TOKEN cannot write to user Projects)
     required: true
   config-path:
     description: Path to the config file in the private repo
@@ -19,8 +19,16 @@ inputs:
   xlsx-path:
     description: Spreadsheet to import (import only)
     required: false
+  companies-path:
+    description: Path to the companies file in the private repo (collect only)
+    required: false
+    default: companies.yml
+  state-path:
+    description: Path to the seen-jobs state file, committed by your workflow (collect only)
+    required: false
+    default: state/seen.json
   dry-run:
-    description: "Report what would happen without writing (import only)"
+    description: "Report what would happen without writing (import and collect)"
     required: false
     default: "false"
   serpapi-key:

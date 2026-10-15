@@ -9,8 +9,10 @@ Options:
   --repo <owner/name>   Private repo with the issues (default: $GITHUB_REPOSITORY)
   --config <path>       Config file (default: job-radar.config.yml)
   --xlsx <path>         Spreadsheet to import (import only)
+  --companies <path>    Companies file (default: companies.yml; collect only)
+  --state <path>        State file (default: state/seen.json; collect only)
   --event <path>        GitHub event payload (event-driven commands)
-  --dry-run             Report what would happen without writing (import only)
+  --dry-run             Report what would happen without writing (import and collect)
   -h, --help            Show this help
 
 The token is read from $GITHUB_TOKEN (or $GH_TOKEN).`;
@@ -22,6 +24,8 @@ async function main(): Promise<void> {
       repo: { type: 'string' },
       config: { type: 'string' },
       xlsx: { type: 'string' },
+      companies: { type: 'string' },
+      state: { type: 'string' },
       event: { type: 'string' },
       'dry-run': { type: 'boolean' },
       help: { type: 'boolean', short: 'h' },
@@ -46,6 +50,8 @@ async function main(): Promise<void> {
     configPath: values.config ?? 'job-radar.config.yml',
     eventPath: values.event,
     xlsxPath: values.xlsx,
+    companiesPath: values.companies,
+    statePath: values.state,
     dryRun: values['dry-run'],
   });
 }

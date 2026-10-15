@@ -28,6 +28,8 @@ async function main(): Promise<void> {
       configPath: input('config-path') ?? 'job-radar.config.yml',
       eventPath: process.env.GITHUB_EVENT_PATH,
       xlsxPath: input('xlsx-path'),
+      companiesPath: input('companies-path'),
+      statePath: input('state-path'),
       dryRun: input('dry-run') === 'true',
       log: { info: record(''), warn: record('::warning::') },
     });

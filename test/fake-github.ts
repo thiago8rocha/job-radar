@@ -43,7 +43,8 @@ interface Overrides {
   /** Value returned for the `Applied on` field of an item. */
   appliedOn?: string;
   labelsOnIssue?: string[];
-  existingIssues?: Array<{ body: string | null; pull_request?: unknown }>;
+  existingIssues?: Array<{ title?: string; body: string | null; pull_request?: unknown }>;
+  existingLabels?: string[];
 }
 
 /** Minimal in-memory stand-in for the parts of Octokit job-radar uses. */
@@ -63,6 +64,7 @@ export function fakeContext(overrides: Overrides = {}) {
       data: (overrides.labelsOnIssue ?? []).map((name) => ({ name })),
     })),
     listForRepo: vi.fn(),
+    listLabelsForRepo: vi.fn(),
   };
 
   const graphql = vi.fn(async (query: string, variables: Record<string, any> = {}) => {
@@ -84,7 +86,11 @@ export function fakeContext(overrides: Overrides = {}) {
   const octokit = {
     rest: { issues },
     graphql,
-    paginate: vi.fn(async (_method: unknown, _params: unknown) => overrides.existingIssues ?? []),
+    paginate: vi.fn(async (method: unknown, _params: unknown) =>
+      method === issues.listLabelsForRepo
+        ? (overrides.existingLabels ?? []).map((name) => ({ name }))
+        : (overrides.existingIssues ?? []).map((issue) => ({ title: '', ...issue })),
+    ),
   };
 
   const log = { info: vi.fn(), warn: vi.fn() };

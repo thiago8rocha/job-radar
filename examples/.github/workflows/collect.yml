@@ -1,0 +1,44 @@
+# Collects new jobs every business day and opens one issue per job.
+name: collect
+on:
+  schedule:
+    - cron: "0 11 * * 1-5"   # 8 a.m. in Brasília
+  workflow_dispatch:
+    inputs:
+      dry-run:
+        description: "List what would be created, without writing anything"
+        type: boolean
+        default: false
+
+# Runs never overlap, so two of them cannot create the same issue.
+concurrency:
+  group: collect
+  cancel-in-progress: false
+
+permissions:
+  contents: write            # to commit state/seen.json
+  issues: write
+
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4          # reads the config, companies.yml and state/seen.json
+      - uses: thiago8rocha/job-radar@v1
+        with:
+          command: collect
+          github-token: ${{ secrets.JOB_RADAR_TOKEN }}
+          dry-run: ${{ inputs.dry-run || false }}
+          serpapi-key: ${{ secrets.SERPAPI_KEY }}   # optional, used from phase 3
+      # state/seen.json is what keeps already-created jobs from coming back; committing it also
+      # counts as activity, so GitHub does not pause the schedule after 60 days.
+      - name: Commit state
+        if: ${{ always() && !inputs.dry-run }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add state/seen.json
+          if ! git diff --cached --quiet; then
+            git commit -m "chore(state): update seen jobs"
+            git push
+          fi
