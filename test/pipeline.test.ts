@@ -119,7 +119,9 @@ describe('filter', () => {
 
   it('keeps only the configured work model', () => {
     expect(check({ workModel: 'hybrid' }).reason).toBe('work model: hybrid');
-    expect(check({ workModel: undefined, locations: ['Brazil'], description: 'Fully onsite' }).reason).toBe('work model: not stated');
+    expect(check({ workModel: undefined, locations: ['Brazil'], description: 'Fully onsite' }).reason).toBe('work model: onsite');
+    expect(check({ workModel: undefined, locations: ['Brazil'], description: 'Based in our office' }).reason).toBe('work model: not stated');
+    expect(check({ workModel: 'remote', title: 'Senior QA Engineer (Hybrid)' }).reason).toBe('work model: hybrid');
     expect(inferWorkModel(job({ workModel: undefined, description: 'This role is remote.' }))).toBe('remote');
   });
 

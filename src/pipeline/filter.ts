@@ -2,6 +2,7 @@ import type { Config } from '../config/schema.js';
 import type { Job, WorkModel } from '../domain/job.js';
 import { containsTerm, normalizeText } from '../util/text.js';
 import { checkEligibility } from './eligibility.js';
+import { detectWorkModel } from './work-model.js';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -28,11 +29,9 @@ export function detectSeniority(job: Pick<Job, 'title' | 'seniority'>): string[]
   return [...found];
 }
 
-/** Work model the source states, or "remote" when the text of an unlabeled job says so. */
-export function inferWorkModel(job: Pick<Job, 'workModel' | 'locations' | 'description'>): WorkModel | undefined {
-  if (job.workModel) return job.workModel;
-  const text = normalizeText(`${job.locations.join(' ')} ${job.description.slice(0, 2000)}`);
-  return /\b(remote|remoto|home office)\b/.test(text) ? 'remote' : undefined;
+/** Work model of the job, reconciling the source's field with the title, locations and description. */
+export function inferWorkModel(job: Pick<Job, 'workModel' | 'title' | 'locations' | 'description'>): WorkModel | undefined {
+  return detectWorkModel(job);
 }
 
 export interface JobFilter {
