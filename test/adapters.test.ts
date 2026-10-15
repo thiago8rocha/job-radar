@@ -15,7 +15,7 @@ import { createHttpClient } from '../src/util/http.js';
 const fixture = (name: string): any => JSON.parse(readFileSync(new URL(`./fixtures/${name}`, import.meta.url), 'utf8'));
 
 const server = setupServer();
-beforeAll(() => server.listen({ onUnhandledFrame: 'error' }));
+beforeAll(() => server.listen({ onUnhandledRequest: 'error' }));
 afterEach(() => server.resetHandlers());
 afterAll(() => server.close());
 
