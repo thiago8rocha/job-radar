@@ -1,0 +1,40 @@
+{
+  "tenantName": "Luby",
+  "about": "<h2>O lugar onde o talento pode prosperar e crescer continuamente!</h2><p>Somos uma consultoria<strong> global</strong> com mais de 20 anos de experiência,<strong> acelerando</strong> negócios de alto impacto e entregando soluções digitais completas para mais de 520 clientes em diversos setores.</p><p>Com forte atuação em Web, Mobile, Backend/APIs, Data Science, Games, Metaverso, Web3, Cloud e QA, somos referência em Banking, Pagamentos, Embedded Finance, BaaS, CaaS, modernização de legado, IA, drones e visão computacional, ajudando empresas a prosperarem no setor financeiro e em fintechs.</p><p>Na Luby, somos <strong>impulsionados pela inovação</strong> e pelo foco em criar soluções digitais que geram resultados reais. Valorizamos a colaboração, proporcionando autonomia para você crescer, explorar e desafiar o comum. Se você é <strong>apaixonado por tecnologia</strong> e deseja fazer a diferença, <strong>a Luby é o lugar para se conectar, aprender e deixar seu legado.</strong></p>",
+  "background": [
+    "https://files.inhire.app/pages/career/banner_luby.png"
+  ],
+  "logo": "https://files.inhire.app/pages/career/logo_luby.png",
+  "activeJobBoards": [
+    "indeedATSIntegration",
+    "linkedin",
+    "netVagas",
+    "talent",
+    "jobBoardPool"
+  ],
+  "careerPageId": "default",
+  "careerPageIds": [
+    "default"
+  ],
+  "contractType": [
+    "PJ"
+  ],
+  "createdAt": "2026-09-11T18:46:40.898Z",
+  "description": "<h2 style=\"text-align: center;\"><span style=\"color: rgb(15, 35, 65); --darkreader-inline-color: #cfcbc4;\" data-darkreader-inline-color=\"\"><strong>#VemPraLuby💙</strong></span></h2>\n<p><span style=\"color: rgb(15, 35, 65); --darkreader-inline-color: #cfcbc4;\" data-darkreader-inline-color=\"\"><strong>Aqui voc&ecirc; ter&aacute; a oportunidade de:</strong></span></p>\n<ul>\n<li style=\"color: rgb(15, 35, 65); --darkreader-inline-color: #cfcbc4;\" data-darkreader-inline-color=\"\"><span style=\"color: rgb(15, 35, 65); --darkreader-inline-color: #cfcbc4;\" data-darkreader-inline-color=\"\"><strong>Evoluir em um ambiente de alta performance:</strong>&nbsp;Uma cultura onde o desenvolvimento &eacute; cont&iacute;nuo, com autonomia e envolvimento em projetos nacionais e internacionais que realmente testam suas habilidades e impulsionam seu potencial.</span></li>\n<li style=\"color: rgb(15, 35, 65); --darkreader-inline-color: #cfcbc4;\" data-darkreader-inline-color=\"\"><span style=\"color: rgb(15, 35, 65); --darkreader-inline-color: #cfcbc4;\" data-darkreader-inline-color=\"\"><strong>Integrar um time apaixonado por tecnologia:</strong>&nbsp;Aqui, voc&ecirc; vai trabalhar ao lado de talentos experientes em um ambiente colaborativo e disruptivo, utilizando as tecnologias mais avan&ccedil;adas do mercado.</span></li>\n<li style=\"color: rgb(15, 35, 65); --darkreader-inline-color: #cfcbc4;\" data-darkreader-inline-color=\"\"><span style=\"color: rgb(15, 35, 65); --darkreader-inline-color: #cfcbc4;\" data-darkreader",
+  "displayName": "Business Development Representative Sênior - Remoto",
+  "jobBoardsData": {
+    "indeedATSIntegration": {
+      "jobKey": "ad2396e1383cf146",
+      "jobUrl": "https://luby.inhire.app/vagas/88afbe1b-318c-4c92-b799-7e4f4010cc0a/business-development-representative-senior-remoto?source=indeed"
+    }
+  },
+  "lastPublishedAt": "2026-09-18T15:22:52.800Z",
+  "publishedAt": "2026-09-11T18:46:40.898Z",
+  "status": "published",
+  "updatedAt": "2026-10-14T18:39:30.814Z",
+  "jobId": "88afbe1b-318c-4c92-b799-7e4f4010cc0a",
+  "privacyPolicyUrl": "www.inhire.com.br",
+  "workplaceType": "Remote",
+  "location": "BR",
+  "salaryCurrency": "BRL"
+}

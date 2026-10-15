@@ -1,0 +1,116 @@
+{
+  "tenantName": "Luby",
+  "about": "<h2>O lugar onde o talento pode prosperar e crescer continuamente!</h2><p>Somos uma consultoria<strong> global</strong> com mais de 20 anos de experiência,<strong> acelerando</strong> negócios de alto impacto e entregando soluções digitais completas para mais de 520 clientes em diversos setores.</p>",
+  "background": [
+    "https://files.inhire.app/pages/career/banner_luby.png"
+  ],
+  "logo": "https://files.inhire.app/pages/career/logo_luby.png",
+  "jobsPage": [
+    {
+      "displayName": "Banco de Talentos | #VemPraLuby",
+      "jobId": "a4ba304d-b635-4e62-a3c0-152e8df7400d",
+      "status": "published",
+      "workplaceType": "Remote",
+      "location": "BR"
+    },
+    {
+      "careerPageId": "default",
+      "careerPageIds": [
+        "default"
+      ],
+      "displayName": "Business Development Representative Sênior - Remoto",
+      "jobId": "88afbe1b-318c-4c92-b799-7e4f4010cc0a",
+      "status": "published",
+      "workplaceType": "Remote",
+      "location": "BR"
+    },
+    {
+      "careerPageId": "default",
+      "careerPageIds": [
+        "default"
+      ],
+      "displayName": "Profissional Backend (.NET) Sênior - Remoto",
+      "jobId": "17d7c9e1-94a2-4dfa-9ffa-1c645f6e725d",
+      "status": "published",
+      "workplaceType": "Remote",
+      "location": "BR"
+    },
+    {
+      "careerPageId": "default",
+      "careerPageIds": [
+        "default"
+      ],
+      "displayName": "Profissional Backend (Golang) Sênior - Remoto",
+      "jobId": "15eb38bf-b4aa-460a-b89a-7a2978435558",
+      "status": "published",
+      "workplaceType": "Remote",
+      "location": "BR"
+    },
+    {
+      "careerPageId": "default",
+      "careerPageIds": [
+        "default"
+      ],
+      "displayName": "Profissional Desenvolvedor Quant (Python) Sênior - Remoto",
+      "jobId": "619202b0-8193-48e4-b5e8-3ffe1bf1078f",
+      "status": "published",
+      "workplaceType": "Remote",
+      "location": "BR"
+    },
+    {
+      "careerPageId": "default",
+      "careerPageIds": [
+        "default"
+      ],
+      "displayName": "Profissional Engenheiro(a) de Dados (Snowflake) Sênior - Remoto",
+      "jobId": "293fa594-6fde-4a52-883a-aea5a99bc39f",
+      "status": "published",
+      "workplaceType": "Remote",
+      "location": "BR"
+    },
+    {
+      "careerPageId": "default",
+      "careerPageIds": [
+        "default"
+      ],
+      "displayName": "Profissional Engenheiro(a) de Plataforma de IA Especialista - Remoto",
+      "jobId": "332625a4-f3b9-4905-8664-7f3901f75cc0",
+      "status": "published",
+      "workplaceType": "Remote",
+      "location": "BR"
+    },
+    {
+      "careerPageId": "default",
+      "careerPageIds": [
+        "default"
+      ],
+      "displayName": "Profissional Executivo de Contas (New Business/ Hunter) Sênior - Híbrido (SP)",
+      "jobId": "31656593-cbe3-443c-bfcf-1a2183bc776c",
+      "status": "published",
+      "workplaceType": "Hybrid",
+      "location": "São Paulo, SP, BR"
+    },
+    {
+      "careerPageId": "default",
+      "careerPageIds": [
+        "default"
+      ],
+      "displayName": "Profissional Fullstack (Java/Angular) Sênior - Remoto",
+      "jobId": "091922df-4967-40b1-b4d2-1a520fdf5a00",
+      "status": "published",
+      "workplaceType": "Remote",
+      "location": "BR"
+    },
+    {
+      "careerPageId": "default",
+      "careerPageIds": [
+        "default"
+      ],
+      "displayName": "Profissional QA (Automação) Sênior/Especialista - Remoto",
+      "jobId": "7b59dbae-27cb-44fb-bc4a-e3d3024cdde4",
+      "status": "published",
+      "workplaceType": "Remote",
+      "location": "BR"
+    }
+  ]
+}
