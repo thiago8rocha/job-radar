@@ -121,7 +121,9 @@ locale: en                   # all generated content is in English
 
 search:
   include: ["QA", "Quality Assurance", "Quality Engineer", "SDET", "Test Automation", "Analista de Testes", "Especialista de Testes", "Analista de Qualidade"]
-  ambiguous_requires: ["software", "testes", "QA", "automação"]  # e.g. "Analista de Qualidade" only passes with one of these
+  ambiguous: ["Analista de Qualidade"]                           # include terms too generic on their own
+  ambiguous_requires: ["software", "testes", "QA", "automação"]  # an ambiguous match only passes with one of these
+  highlight: ["Playwright", "Cypress", "Selenium", "API testing", "CI/CD"]  # listed in the issue when the description mentions them
   exclude: ["Intern", "Estágio", "Trainee", "Júnior", "Junior", "Pleno", "Mid-level"]
   seniority: [senior, specialist, staff, lead]
   max_age_days: 15
@@ -159,7 +161,7 @@ issues:
 inhire: [luby, radix, brq, lyncas, vonbz, zallpy, extractta]
 greenhouse: [airbnb]
 lever: []
-ashby: []
+ashby: [{ slug: ramp, name: Ramp }]   # a slug, or a slug with the display name for issue titles
 ```
 
 The private repo's workflow stays at a few lines:
@@ -184,7 +186,7 @@ jobs:
           serpapi-key: ${{ secrets.SERPAPI_KEY }}
 ```
 
-The default `GITHUB_TOKEN` creates issues but can't write to user-level Projects. That is why a fine-grained PAT (`JOB_RADAR_TOKEN`) is used, with Issues and Projects permission, limited to the private repo.
+The default `GITHUB_TOKEN` creates issues but can't write to user-level Projects, and fine-grained PATs don't support user-owned Projects either. That is why `JOB_RADAR_TOKEN` is a classic PAT with the `repo` and `project` scopes. (If the Project belongs to an organization, a fine-grained PAT with Issues and Projects permission works and can be limited to the private repo.)
 
 ## Issue model
 
