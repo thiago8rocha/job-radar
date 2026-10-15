@@ -9,10 +9,10 @@ Options:
   --repo <owner/name>   Private repo with the issues (default: $GITHUB_REPOSITORY)
   --config <path>       Config file (default: job-radar.config.yml)
   --xlsx <path>         Spreadsheet to import (import only)
-  --companies <path>    Companies file (default: companies.yml; collect only)
+  --companies <path>    Companies file (default: companies.yml; collect and revalidate)
   --state <path>        State file (default: state/seen.json; collect only)
   --event <path>        GitHub event payload (event-driven commands)
-  --dry-run             Report what would happen without writing (import and collect)
+  --dry-run             Report what would happen without writing (import, collect, metrics and revalidate)
   -h, --help            Show this help
 
 The token is read from $GITHUB_TOKEN (or $GH_TOKEN).`;

@@ -206,3 +206,71 @@ export async function getDateValue(octokit: GitHub, itemId: string, fieldName: s
   );
   return data.node?.fieldValueByName?.date ?? undefined;
 }
+
+export interface ProjectItem {
+  id: string;
+  issueNumber: number;
+  /** Current value of each field by name: dates as `YYYY-MM-DD`, numbers, option and text values. */
+  values: Record<string, string | number>;
+}
+
+interface RawItem {
+  id: string;
+  content: { number?: number } | null;
+  fieldValues: {
+    nodes: Array<{
+      date?: string;
+      number?: number;
+      name?: string;
+      text?: string;
+      field?: { name?: string };
+    } | null>;
+  };
+}
+
+/** Every issue item of the Project with its field values (the Project is read once per run). */
+export async function listProjectItems(octokit: GitHub, project: Project): Promise<Map<number, ProjectItem>> {
+  const items = new Map<number, ProjectItem>();
+  let cursor: string | null = null;
+  do {
+    const data: {
+      node: { items: { pageInfo: { hasNextPage: boolean; endCursor: string | null }; nodes: RawItem[] } };
+    } = await octokit.graphql(
+      `query($id: ID!, $cursor: String) {
+        node(id: $id) {
+          ... on ProjectV2 {
+            items(first: 100, after: $cursor) {
+              pageInfo { hasNextPage endCursor }
+              nodes {
+                id
+                content { ... on Issue { number } }
+                fieldValues(first: 30) {
+                  nodes {
+                    ... on ProjectV2ItemFieldDateValue { date field { ... on ProjectV2FieldCommon { name } } }
+                    ... on ProjectV2ItemFieldNumberValue { number field { ... on ProjectV2FieldCommon { name } } }
+                    ... on ProjectV2ItemFieldSingleSelectValue { name field { ... on ProjectV2FieldCommon { name } } }
+                    ... on ProjectV2ItemFieldTextValue { text field { ... on ProjectV2FieldCommon { name } } }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }`,
+      { id: project.id, cursor },
+    );
+    const page = data.node.items;
+    for (const node of page.nodes) {
+      if (node.content?.number === undefined) continue; // draft items and pull requests
+      const values: Record<string, string | number> = {};
+      for (const value of node.fieldValues.nodes) {
+        const name = value?.field?.name;
+        const actual = value?.date ?? value?.number ?? value?.name ?? value?.text;
+        if (name && actual !== undefined) values[name] = actual;
+      }
+      items.set(node.content.number, { id: node.id, issueNumber: node.content.number, values });
+    }
+    cursor = page.pageInfo.hasNextPage ? page.pageInfo.endCursor : null;
+  } while (cursor);
+  return items;
+}

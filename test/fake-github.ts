@@ -43,7 +43,11 @@ interface Overrides {
   /** Value returned for the `Applied on` field of an item. */
   appliedOn?: string;
   labelsOnIssue?: string[];
-  existingIssues?: Array<{ title?: string; body: string | null; pull_request?: unknown }>;
+  existingIssues?: Array<{ title?: string; body: string | null; pull_request?: unknown; [key: string]: unknown }>;
+  /** Status events by issue number, as `issues.listEvents` returns them. */
+  events?: Record<number, Array<{ event: string; created_at: string; label?: { name: string } }>>;
+  /** Project items as the GraphQL `items` query returns them. */
+  projectItems?: unknown[];
   existingLabels?: string[];
   /** Current state of the issue `issues.get` returns. */
   issueState?: 'open' | 'closed';
@@ -67,6 +71,7 @@ export function fakeContext(overrides: Overrides = {}) {
     })),
     get: vi.fn(async (_params: unknown) => ({ data: { state: overrides.issueState ?? 'open' } })),
     listForRepo: vi.fn(),
+    listEvents: vi.fn(),
     listLabelsForRepo: vi.fn(),
   };
 
@@ -79,6 +84,10 @@ export function fakeContext(overrides: Overrides = {}) {
         },
       };
     }
+    if (query.includes('items(first')) {
+      return { node: { items: { pageInfo: { hasNextPage: false, endCursor: null }, nodes: overrides.projectItems ?? [] } } };
+    }
+    if (query.includes('pinIssue')) return { pinIssue: { issue: { id: 'x' } } };
     if (query.includes('addProjectV2ItemById')) return { addProjectV2ItemById: { item: { id: 'ITEM_1' } } };
     if (query.includes('fieldValueByName')) {
       return { node: { fieldValueByName: overrides.appliedOn ? { date: overrides.appliedOn } : null } };
@@ -89,11 +98,11 @@ export function fakeContext(overrides: Overrides = {}) {
   const octokit = {
     rest: { issues },
     graphql,
-    paginate: vi.fn(async (method: unknown, _params: unknown) =>
-      method === issues.listLabelsForRepo
-        ? (overrides.existingLabels ?? []).map((name) => ({ name }))
-        : (overrides.existingIssues ?? []).map((issue) => ({ title: '', ...issue })),
-    ),
+    paginate: vi.fn(async (method: unknown, params: any) => {
+      if (method === issues.listLabelsForRepo) return (overrides.existingLabels ?? []).map((name) => ({ name }));
+      if (method === issues.listEvents) return overrides.events?.[params.issue_number] ?? [];
+      return (overrides.existingIssues ?? []).map((issue) => ({ title: '', ...issue }));
+    }),
   };
 
   const log = { info: vi.fn(), warn: vi.fn() };

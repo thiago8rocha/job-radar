@@ -1,6 +1,8 @@
 import { readFile } from 'node:fs/promises';
 import { loadCompanies, loadConfig } from './config/load.js';
 import { collect } from './commands/collect.js';
+import { metrics } from './commands/metrics.js';
+import { revalidate } from './commands/revalidate.js';
 import { consoleLogger, type Context, type Logger } from './commands/context.js';
 import { intake, type OpenedEvent } from './commands/intake.js';
 import { setup } from './commands/setup.js';
@@ -9,7 +11,7 @@ import { createClient, parseRepo } from './github/client.js';
 import { runImport } from './import/run.js';
 import { parseXlsx } from './import/xlsx.js';
 
-export const COMMANDS = ['setup', 'sync-status', 'intake', 'import', 'collect', 'metrics'] as const;
+export const COMMANDS = ['setup', 'sync-status', 'intake', 'import', 'collect', 'metrics', 'revalidate'] as const;
 export type Command = (typeof COMMANDS)[number];
 
 export interface RunOptions {
@@ -37,10 +39,6 @@ async function readEvent<T>(path: string | undefined, command: Command): Promise
 
 export async function run(options: RunOptions): Promise<void> {
   const log = options.log ?? consoleLogger;
-  if (options.command === 'metrics') {
-    throw new Error(`"${options.command}" is not available yet (planned for a later phase)`);
-  }
-
   const ctx: Context = {
     octokit: createClient(options.token),
     repo: parseRepo(options.repository),
@@ -58,6 +56,14 @@ export async function run(options: RunOptions): Promise<void> {
     case 'collect': {
       const companies = await loadCompanies(options.companiesPath ?? 'companies.yml');
       await collect(ctx, { dryRun: options.dryRun, companies, statePath: options.statePath });
+      return;
+    }
+    case 'metrics':
+      await metrics(ctx, { dryRun: options.dryRun });
+      return;
+    case 'revalidate': {
+      const companies = await loadCompanies(options.companiesPath ?? 'companies.yml');
+      await revalidate(ctx, { dryRun: options.dryRun, companies });
       return;
     }
     case 'import': {

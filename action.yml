@@ -7,7 +7,7 @@ branding:
 
 inputs:
   command:
-    description: "One of: setup, sync-status, intake, import, collect (metrics arrives in a later phase)"
+    description: "One of: setup, sync-status, intake, import, collect, metrics, revalidate"
     required: true
   github-token:
     description: Token with Issues and Projects access to the private repo (a classic PAT with the repo and project scopes; the default GITHUB_TOKEN cannot write to user Projects)
@@ -20,7 +20,7 @@ inputs:
     description: Spreadsheet to import (import only)
     required: false
   companies-path:
-    description: Path to the companies file in the private repo (collect only)
+    description: Path to the companies file in the private repo (collect and revalidate)
     required: false
     default: companies.yml
   state-path:
@@ -28,7 +28,7 @@ inputs:
     required: false
     default: state/seen.json
   dry-run:
-    description: "Report what would happen without writing (import and collect)"
+    description: "Report what would happen without writing (import, collect, metrics and revalidate)"
     required: false
     default: "false"
   serpapi-key:
