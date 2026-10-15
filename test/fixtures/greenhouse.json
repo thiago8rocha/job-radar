@@ -1,0 +1,351 @@
+{
+  "jobs": [
+    {
+      "absolute_url": "https://careers.airbnb.com/positions/8257826?gh_jid=8257826",
+      "data_compliance": [
+        {
+          "type": "gdpr",
+          "requires_consent": false,
+          "requires_processing_consent": false,
+          "requires_retention_consent": false,
+          "retention_period": null,
+          "demographic_data_consent_applies": false
+        }
+      ],
+      "internal_job_id": 3573202,
+      "location": {
+        "name": "Brazil"
+      },
+      "metadata": [
+        {
+          "id": 9245691,
+          "name": "Is this job part of ACC?",
+          "value": false,
+          "value_type": "yes_no"
+        },
+        {
+          "id": 10216612,
+          "name": "Workplace Type",
+          "value": "Remote",
+          "value_type": "single_select"
+        }
+      ],
+      "id": 8257826,
+      "updated_at": "2026-10-06T11:54:03-04:00",
+      "requisition_id": "ONE",
+      "title": "Senior Fullstack Software Engineer, Quality Platform",
+      "company_name": "Airbnb",
+      "first_published": "2026-10-06T11:54:03-04:00",
+      "language": "en",
+      "application_deadline": null,
+      "content": "&lt;div class=&quot;content-intro&quot;&gt;&lt;p&gt;&lt;span style=&quot;font-family: helvetica, arial, sans-serif; font-size: 12pt;&quot;&gt;Airbnb was born in 2007 when two hosts welcomed three guests to their San Francisco home, and has since grown to over 5 million hosts who have welcomed over 2 billion guest arrivals in almost every country across the globe. Every day, hosts offer unique stays and experiences that make it possible for guests to connect with communities in a more authentic way.&lt;/span&gt;&lt;/p&gt;&lt;/div&gt;&lt;p&gt;&lt;strong&gt;The Community You Will Join:&amp;nbsp;&lt;/strong&gt;&lt;/p&gt;\n&lt;p&gt;The Quality Engineering team helps Airbnb build high-quality software efficiently. We enable Airbnb engineers to build highly testable systems by building and using tools leveraging AI. We own and continuously improve product test cases, automation coverage, test automation tools, environments, and frameworks. We navigate Airbnb’s massive codebase, identifying weak spots, and help design and implement testable, fault-tolerant systems.&amp;nbsp;&amp;nbsp;&lt;/p&gt;\n&lt;p&gt;&lt;strong&gt;The Difference You Will Make:&lt;/strong&gt;&lt;/p&gt;\n&lt;ul&gt;\n&lt;li&gt;Be a leader in Airbnb leveraging AI to redefine and accelerate Quality Engineering.&lt;/li&gt;\n&lt;li&gt;As a Senior Software Engineer - Fullstack, you will help us meet this challenge by building and evolving comprehensive automation coverage for features and releases. You will work directly with the product engineering team to develop and maintain our test tools, write and test product code, participate in design reviews to architect testable systems, and guide designs and code to enhance modularity and testability.&lt;/li&gt;\n&lt;li&gt;You are eager to understand complex systems top to bottom and thrive working across technologies and codebases. In addition, you excel at working through ambiguity, concept validation, and implementing best-in-class solutions.&lt;/li&gt;\n&lt;li&gt;As a global company, our mission is to develop and maintain the necessary quality engineering processes that scale to meet the needs of both our external customers and internal teams. We strive to ensure that our product and support workflows deliver a seamless experience for guests, hosts, and support agents.&lt;/li&gt;\n&lt;/ul&gt;\n&lt;p&gt;&lt;strong&gt;A Typical Day:&amp;nbsp;&lt;/strong&gt;&lt;/p&gt;\n&lt;ul&gt;\n&lt;li&gt;Leverage AI and tooling to lead the implementation of a test automation stra",
+      "departments": [
+        {
+          "id": 77,
+          "name": "Software Engineering",
+          "child_ids": [],
+          "parent_id": 73703
+        }
+      ],
+      "offices": [
+        {
+          "id": 63869,
+          "name": "Brazil",
+          "location": null,
+          "child_ids": [
+            176
+          ],
+          "parent_id": 63606
+        }
+      ],
+      "ai_disclaimer": null,
+      "include_ai_disclaimer": null,
+      "ai_opt_out_request_url": null
+    },
+    {
+      "absolute_url": "https://careers.airbnb.com/positions/8184174?gh_jid=8184174",
+      "data_compliance": [
+        {
+          "type": "gdpr",
+          "requires_consent": false,
+          "requires_processing_consent": false,
+          "requires_retention_consent": false,
+          "retention_period": null,
+          "demographic_data_consent_applies": false
+        }
+      ],
+      "internal_job_id": 3541546,
+      "location": {
+        "name": "London, United Kingdom"
+      },
+      "metadata": [
+        {
+          "id": 9245691,
+          "name": "Is this job part of ACC?",
+          "value": false,
+          "value_type": "yes_no"
+        },
+        {
+          "id": 10216612,
+          "name": "Workplace Type",
+          "value": "Hybrid",
+          "value_type": "single_select"
+        }
+      ],
+      "id": 8184174,
+      "updated_at": "2026-09-29T20:00:54-04:00",
+      "requisition_id": "MULTI",
+      "title": "Account Manager ",
+      "company_name": "Airbnb",
+      "first_published": "2026-09-09T04:35:19-04:00",
+      "language": "en",
+      "application_deadline": null,
+      "content": "&lt;div class=&quot;content-intro&quot;&gt;&lt;p&gt;&lt;span style=&quot;font-family: helvetica, arial, sans-serif; font-size: 12pt;&quot;&gt;Airbnb was born in 2007 when two hosts welcomed three guests to their San Francisco home, and has since grown to over 5 million hosts who have welcomed over 2 billion guest arrivals in almost every country across the globe. Every day, hosts offer unique stays and experiences that make it possible for guests to connect with communities in a more authentic way.&lt;/span&gt;&lt;/p&gt;&lt;/div&gt;&lt;p&gt;&lt;strong&gt;The Community you will join:&lt;/strong&gt;&lt;/p&gt;\n&lt;p&gt;Our Supply Team is growing, and we want you to be part of it! As a &lt;strong&gt;Market Associate / Account Manager,&lt;/strong&gt; you will play a crucial role in the retention, growth, and optimisation of host entrepreneurs and rising hosts in your assigned territory. These hosts are individuals who manage their own property or support owners by hosting on their behalf. You will focus on building strong relationships with these hosts, helping them optimise their listings, improve pricing strategies, and enhance their overall success on Airbnb.&lt;/p&gt;\n&lt;p&gt;&lt;strong&gt;The difference you will make:&lt;/strong&gt;&lt;/p&gt;\n&lt;p&gt;As a Market Associate, you will be responsible for the retention and growth of long-tail Hosts in an assigned territory. You will establish and nurture business relationships with emerging professional host accounts by suggesting and supporting strategic initiatives that drive their success on Airbnb. These initiatives will include supply optimisation, pricing optimisation, host recruitment, and platform education. In addition, as these Hosts successfully grow on the platform, it will be imperative that you help them maintain best-in-class hospitality standards for an excellent guest experience. Beyond one-to-one account management responsibilities, you’ll also support Market Managers on your team to deliver one-to-many education programs, such as webinars and scaled e-mail communication. Ultimately, this team will be responsible for helping long-tail Hosts thrive on Airbnb.&lt;/p&gt;\n&lt;p&gt;&lt;strong&gt;A typical day:&amp;nbsp;&lt;/strong&gt;&lt;/p&gt;\n&lt;ul&gt;\n&lt;li&gt;Manage a book of business consisting of host entrepreneurs and rising hosts, ensuring their retention, growth, and optimisation on Airbnb.&lt;/li&gt;\n&lt;li&gt;Conduct one-on-one optimisation and onboarding conversations, providing str",
+      "departments": [
+        {
+          "id": 247,
+          "name": "Business Development",
+          "child_ids": [],
+          "parent_id": 73691
+        }
+      ],
+      "offices": [
+        {
+          "id": 151,
+          "name": "London, United Kingdom",
+          "location": "London, United Kingdom",
+          "child_ids": [],
+          "parent_id": 64290
+        }
+      ],
+      "ai_disclaimer": null,
+      "include_ai_disclaimer": null,
+      "ai_opt_out_request_url": null
+    },
+    {
+      "absolute_url": "https://careers.airbnb.com/positions/7789554?gh_jid=7789554",
+      "data_compliance": [
+        {
+          "type": "gdpr",
+          "requires_consent": false,
+          "requires_processing_consent": false,
+          "requires_retention_consent": false,
+          "retention_period": null,
+          "demographic_data_consent_applies": false
+        }
+      ],
+      "internal_job_id": 3407102,
+      "location": {
+        "name": "Tokyo, Japan"
+      },
+      "metadata": [
+        {
+          "id": 9245691,
+          "name": "Is this job part of ACC?",
+          "value": false,
+          "value_type": "yes_no"
+        },
+        {
+          "id": 10216612,
+          "name": "Workplace Type",
+          "value": "Hybrid",
+          "value_type": "single_select"
+        }
+      ],
+      "id": 7789554,
+      "updated_at": "2026-09-29T20:00:54-04:00",
+      "requisition_id": "ONE",
+      "title": "Associate Legal Counsel, Japan",
+      "company_name": "Airbnb",
+      "first_published": "2026-04-13T04:49:05-04:00",
+      "language": "en",
+      "application_deadline": null,
+      "content": "&lt;div class=&quot;content-intro&quot;&gt;&lt;p&gt;&lt;span style=&quot;font-family: helvetica, arial, sans-serif; font-size: 12pt;&quot;&gt;Airbnb was born in 2007 when two hosts welcomed three guests to their San Francisco home, and has since grown to over 5 million hosts who have welcomed over 2 billion guest arrivals in almost every country across the globe. Every day, hosts offer unique stays and experiences that make it possible for guests to connect with communities in a more authentic way.&lt;/span&gt;&lt;/p&gt;&lt;/div&gt;&lt;p&gt;&lt;span style=&quot;font-family: arial, helvetica, sans-serif; color: #000000;&quot;&gt;&lt;strong&gt;The Community You Will Join:&amp;nbsp;&lt;/strong&gt;&lt;/span&gt;&lt;/p&gt;\n&lt;p&gt;&lt;span style=&quot;font-family: arial, helvetica, sans-serif; color: #000000;&quot;&gt;Airbnb’s Legal team embodies the company’s innovative, forward-thinking spirit. At the frontier of the sharing economy, Airbnb is breaking new ground in matters of policy, law, and government relations. Where some see obstacles, we see the opportunity to find creative, practical solutions, right at the cutting edge. Our adventurous, fast-moving legal team is committed to building a team of talented, collaborative and self-motivated legal professionals across the globe who believe in Airbnb’s mission and leading as a 21st century company.&lt;/span&gt;&lt;/p&gt;\n&lt;p&gt;&amp;nbsp;&lt;/p&gt;\n&lt;p&gt;&lt;span style=&quot;font-family: arial, helvetica, sans-serif; color: #000000;&quot;&gt;&lt;strong&gt;The Difference You Will Make:&lt;/strong&gt;&lt;/span&gt;&lt;/p&gt;\n&lt;p&gt;We are in search of an Associate Legal Counsel for Japan.This role reports to the Associate General Counsel - Northeast Asia and serves as legal partner to many other teams outside Legal. Collaboration will be a key attribute as this role will work very closely with the other members of the legal team both in the region and globally.&amp;nbsp;&lt;/p&gt;\n&lt;p&gt;This role needs to be based in Japan. Any location in Japan is welcomed. Living in Tokyo or the greater Kanto area, with the ability to commute to the Tokyo office, is a plus. Candidates based elsewhere in Japan will need to travel to the Tokyo office roughly once or twice a month, as needed.&lt;/p&gt;\n&lt;p&gt;&amp;nbsp;&lt;/p&gt;\n&lt;p&gt;&lt;span style=&quot;font-family: arial, helvetica, sans-serif; color: #000000;&quot;&gt;&lt;strong&gt;A Typical Day:&amp;nbsp;&lt;/strong&gt;&lt;/span&gt;&lt;/p&gt;\n&lt;ul&gt;\n&lt;",
+      "departments": [
+        {
+          "id": 253,
+          "name": "Legal",
+          "child_ids": [],
+          "parent_id": 73696
+        }
+      ],
+      "offices": [
+        {
+          "id": 625,
+          "name": "Tokyo, Japan",
+          "location": "Tokyo, Japan",
+          "child_ids": [],
+          "parent_id": 64274
+        }
+      ],
+      "ai_disclaimer": null,
+      "include_ai_disclaimer": null,
+      "ai_opt_out_request_url": null
+    },
+    {
+      "absolute_url": "https://careers.airbnb.com/positions/8231416?gh_jid=8231416",
+      "data_compliance": [
+        {
+          "type": "gdpr",
+          "requires_consent": false,
+          "requires_processing_consent": false,
+          "requires_retention_consent": false,
+          "retention_period": null,
+          "demographic_data_consent_applies": false
+        }
+      ],
+      "internal_job_id": 3562002,
+      "location": {
+        "name": "United States "
+      },
+      "metadata": [
+        {
+          "id": 9245691,
+          "name": "Is this job part of ACC?",
+          "value": false,
+          "value_type": "yes_no"
+        },
+        {
+          "id": 10216612,
+          "name": "Workplace Type",
+          "value": "Remote",
+          "value_type": "single_select"
+        }
+      ],
+      "id": 8231416,
+      "updated_at": "2026-09-29T20:00:54-04:00",
+      "requisition_id": "ONE",
+      "title": "Associate Principal, Procurement Innovation Supplier Programs",
+      "company_name": "Airbnb",
+      "first_published": "2026-09-24T18:17:39-04:00",
+      "language": "en",
+      "application_deadline": null,
+      "content": "&lt;div class=&quot;content-intro&quot;&gt;&lt;p&gt;&lt;span style=&quot;font-family: helvetica, arial, sans-serif; font-size: 12pt;&quot;&gt;Airbnb was born in 2007 when two hosts welcomed three guests to their San Francisco home, and has since grown to over 5 million hosts who have welcomed over 2 billion guest arrivals in almost every country across the globe. Every day, hosts offer unique stays and experiences that make it possible for guests to connect with communities in a more authentic way.&lt;/span&gt;&lt;/p&gt;&lt;/div&gt;&lt;p&gt;&lt;span style=&quot;font-family: arial, helvetica, sans-serif; color: #000000;&quot;&gt;&lt;strong&gt;The Community You Will Join:&amp;nbsp;&lt;/strong&gt;&lt;/span&gt;&lt;/p&gt;\n&lt;ul&gt;\n&lt;li&gt;The Procurement team at Airbnb manages the source-to-pay processes including Accounts Payable, Travel and Expense, and the Contingent Workforce program. Procurement Innovation is a pillar within Procurement overseeing procurement tools, processes, reporting, and AI.&amp;nbsp;&lt;/li&gt;\n&lt;li&gt;We are a collaborative, forward-thinking team that embraces an AI-first mindset — leveraging technology, automation, and data to simplify processes and unlock new efficiencies. Guided by Airbnb’s mission to create a world where anyone can belong, we focus on delivering value through curiosity, creativity, and integrity.&lt;/li&gt;\n&lt;li&gt;Your role will involve close collaboration with key cross-functional partners, including Finance Technology Group, Procurement Operation, Third-Party Security, and various other business units. Together, we will ensure the efficient management of our programs and create an environment of collaboration, innovation, and inclusivity.&amp;nbsp;&lt;/li&gt;\n&lt;li&gt;Our focus on robust onboarding, monitoring, and promoting a great supplier experience will be at the forefront of everything you do. Join us and be part of a team that is making a positive impact in the world of procurement.&lt;/li&gt;\n&lt;/ul&gt;\n&lt;p&gt;&lt;span style=&quot;font-family: arial, helvetica, sans-serif; color: #000000;&quot;&gt;&lt;strong&gt;The Difference You Will Make:&lt;/strong&gt;&lt;/span&gt;&lt;/p&gt;\n&lt;ul&gt;\n&lt;li&gt;In this exciting role, you will have responsibility to manage the supplier onboarding process, including the management of the tools, orchestration, and support the cross-function teams involved in onboarding operations to smoothly onboard third-party suppliers into the Airbnb financial system&lt;",
+      "departments": [
+        {
+          "id": 76,
+          "name": "Financial Planning and Analysis",
+          "child_ids": [],
+          "parent_id": 73694
+        }
+      ],
+      "offices": [
+        {
+          "id": 63868,
+          "name": "United States",
+          "location": null,
+          "child_ids": [
+            246412,
+            258081,
+            258082,
+            258083,
+            87306,
+            87309,
+            211524,
+            87312,
+            87316,
+            87315,
+            104152,
+            88158,
+            85791,
+            87313,
+            88161,
+            87308,
+            87311,
+            87307,
+            80804,
+            109320,
+            87314,
+            88160,
+            78632,
+            87310,
+            88159,
+            241531,
+            108489,
+            62810,
+            62444,
+            85003,
+            104153,
+            12964,
+            11235,
+            55,
+            4447,
+            5924,
+            1316,
+            162,
+            5925,
+            1086,
+            1355
+          ],
+          "parent_id": 17515
+        }
+      ],
+      "ai_disclaimer": null,
+      "include_ai_disclaimer": null,
+      "ai_opt_out_request_url": null
+    },
+    {
+      "absolute_url": "https://careers.airbnb.com/positions/7995153?gh_jid=7995153",
+      "data_compliance": [
+        {
+          "type": "gdpr",
+          "requires_consent": false,
+          "requires_processing_consent": false,
+          "requires_retention_consent": false,
+          "retention_period": null,
+          "demographic_data_consent_applies": false
+        }
+      ],
+      "internal_job_id": 3468206,
+      "location": {
+        "name": "Berlin, Germany "
+      },
+      "metadata": [
+        {
+          "id": 9245691,
+          "name": "Is this job part of ACC?",
+          "value": false,
+          "value_type": "yes_no"
+        },
+        {
+          "id": 10216612,
+          "name": "Workplace Type",
+          "value": "Hybrid",
+          "value_type": "single_select"
+        }
+      ],
+      "id": 7995153,
+      "updated_at": "2026-09-29T20:00:54-04:00",
+      "requisition_id": "ONE",
+      "title": "Business Development Manager",
+      "company_name": "Airbnb",
+      "first_published": "2026-06-10T08:50:56-04:00",
+      "language": "en",
+      "application_deadline": null,
+      "content": "&lt;div class=&quot;content-intro&quot;&gt;&lt;p&gt;&lt;span style=&quot;font-family: helvetica, arial, sans-serif; font-size: 12pt;&quot;&gt;Airbnb was born in 2007 when two hosts welcomed three guests to their San Francisco home, and has since grown to over 5 million hosts who have welcomed over 2 billion guest arrivals in almost every country across the globe. Every day, hosts offer unique stays and experiences that make it possible for guests to connect with communities in a more authentic way.&lt;/span&gt;&lt;/p&gt;&lt;/div&gt;&lt;p class=&quot;p1&quot;&gt;&lt;span style=&quot;font-family: helvetica, arial, sans-serif;&quot;&gt;&lt;strong&gt;The Community You&#39;ll Join&lt;/strong&gt;&lt;/span&gt;&lt;/p&gt;\n&lt;p class=&quot;p1&quot;&gt;&lt;span style=&quot;font-family: helvetica, arial, sans-serif;&quot;&gt;The Homes team plays a key role in shaping the Airbnb stays experience. As a multidisciplinary team, we partner with Hosts to build high-quality, repeatable, commercially viable offerings that reflect our brand values.&lt;/span&gt;&lt;/p&gt;\n&lt;p class=&quot;p1&quot;&gt;&lt;span style=&quot;font-family: helvetica, arial, sans-serif;&quot;&gt;We&#39;re building something new: a dedicated Business Development function across EMEA, focused entirely on winning new professional supply for Airbnb. This isn&#39;t a role that inherits an existing book of business, it&#39;s a genuine new-business mandate, and you&#39;ll be one of the first people helping shape how we approach it.&lt;/span&gt;&lt;/p&gt;\n&lt;p class=&quot;p1&quot;&gt;&lt;span style=&quot;font-family: helvetica, arial, sans-serif;&quot;&gt;For this role, you&#39;ll be at the forefront of expanding Airbnb&#39;s professional supply base in one of Europe&#39;s most important travel markets, reporting into our Homes EMEA team under the Field Operations Manager.&lt;/span&gt;&lt;/p&gt;\n&lt;p class=&quot;p1&quot;&gt;&lt;span style=&quot;font-family: helvetica, arial, sans-serif;&quot;&gt;&lt;strong&gt;The Difference You&#39;ll Make&lt;/strong&gt;&lt;/span&gt;&lt;/p&gt;\n&lt;p class=&quot;p1&quot;&gt;&lt;span style=&quot;font-family: helvetica, arial, sans-serif;&quot;&gt;You&#39;re not managing what already exists, you&#39;re building what&#39;s next. You&#39;ll hunt down new opportunities, win new business, and bring high-quality professional hosts and partners onto Airbnb for the first time.&lt;/span&gt;&lt;/p&gt;\n&lt;p class=&quot;p1&quot;&gt;&lt;span style=&quot;font-family: helvetica, arial, s",
+      "departments": [
+        {
+          "id": 57796,
+          "name": "Sales",
+          "child_ids": [],
+          "parent_id": 73691
+        }
+      ],
+      "offices": [
+        {
+          "id": 153,
+          "name": "Berlin, Germany",
+          "location": "Berlin, Germany",
+          "child_ids": [],
+          "parent_id": 64286
+        }
+      ],
+      "ai_disclaimer": null,
+      "include_ai_disclaimer": null,
+      "ai_opt_out_request_url": null
+    }
+  ],
+  "meta": {
+    "total": 163
+  }
+}
