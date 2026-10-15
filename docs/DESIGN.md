@@ -40,7 +40,7 @@ The private repo contains no collector code, so it never diverges from the publi
 
 ```text
 job-radar/
-├─ action.yml              # Action entry point: command = collect | sync-status | intake | metrics | setup | import
+├─ action.yml              # Action entry point: command = collect | sync-status | intake | metrics | revalidate | setup | import
 ├─ src/
 │  ├─ adapters/            # one file per source
 │  ├─ pipeline/            # normalize, filter, dedup
@@ -239,7 +239,9 @@ Separating where you saw a job from where you applied fixes a bias in the spread
 
 **Jobs outside the collector.** An issue form (`.github/ISSUE_TEMPLATE/job.yml`) covers recruiters, referrals and anything found by hand. It has structured fields for company, role, link, contract, compensation, currency and contact channel. The `intake` command runs on `issues: [opened]` for issues labeled `manual`: it rewrites the title and body to the collector's format and fills in labels and Project fields, just like the collector. Notes become the first comment.
 
-**Closing the issue:** closed without a final `status:*` = discarded without applying. Closed with `status:rejected`, `status:withdrawn` or `status:hired` = history.
+**Closing the issue:** GitHub only offers three close reasons (completed, not planned, duplicate), so the outcome lives in the `status:*` label and the Project `Status` field. The reason says whether a process happened: closed with `status:rejected`, `status:withdrawn` or `status:hired` = history, closed as *completed*; closed without a final `status:*` = discarded without applying, closed as *not planned*. `sync-status` closes the issue when the label becomes one of the three final statuses and reopens it when it goes back to an active one (`issues.close_on_final_status`, on by default).
+
+**Work model.** The source's own field is cross-checked against the title, the locations and explicit phrases in the description ("hybrid role", "modelo híbrido", "100% presencial"). When they disagree, the more demanding model wins, because a missed job costs less than a misleading one. Mentions that offer a choice ("hybrid or remote") do not count.
 
 ## Status and calculated fields
 
