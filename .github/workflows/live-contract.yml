@@ -1,0 +1,42 @@
+# One real request per source, every day. A source that changed its format opens an issue here,
+# so people using job-radar find out through GitHub itself.
+name: live-contract
+on:
+  schedule:
+    - cron: "0 9 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  live:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - id: live
+        run: npm run test:live
+        continue-on-error: true
+      - name: Report a broken source
+        if: steps.live.outcome == 'failure'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          gh label create live-contract --color d93f0b --description "A source no longer matches its adapter" 2>/dev/null || true
+          existing=$(gh issue list --label live-contract --state open --json number --jq '.[0].number // empty')
+          body="The daily live contract test failed: $RUN_URL"
+          if [ -n "$existing" ]; then
+            gh issue comment "$existing" --body "$body"
+          else
+            gh issue create --label live-contract --title "Live contract test failing" --body "$body"
+          fi
+      - name: Fail the run
+        if: steps.live.outcome == 'failure'
+        run: exit 1
