@@ -172,6 +172,13 @@ describe('dedup', () => {
     expect(duplicates.map((item) => item.reason)).toEqual(['company and title', 'url', 'id']);
   });
 
+  it('treats company names that differ only by a suffix as the same company', () => {
+    expect(jobKey('Stefanini Group', 'QA Lead')).toBe(jobKey('Stefanini', 'QA Lead'));
+    expect(jobKey('Acme Ltda.', 'QA')).toBe(jobKey('ACME', 'qa'));
+    expect(jobKey('Group', 'QA')).toBe('group|qa'); // a name made only of suffixes is kept
+    expect(jobKey('Acme', 'QA')).not.toBe(jobKey('Beta', 'QA'));
+  });
+
   it('keeps one copy of a job found on several sources, preferring the company ATS', () => {
     const aggregator = job({ id: 'himalayas:acme:1', source: 'himalayas', atsApply: false, applyUrl: 'https://himalayas.app/acme/qa' });
     const ats = job({ id: 'greenhouse:acme:2', applyUrl: 'https://boards.greenhouse.io/acme/jobs/2' });

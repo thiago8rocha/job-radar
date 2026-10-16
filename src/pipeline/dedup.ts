@@ -3,9 +3,18 @@ import { extractMarker } from '../github/issue-body.js';
 import { normalizeText } from '../util/text.js';
 import { canonicalUrl } from './url.js';
 
-/** Company + title, normalized: the same job shows up on its ATS, Himalayas and Google Jobs. */
+/** Legal and descriptive suffixes that differ between sources for the same company ("Stefanini" / "Stefanini Group"). */
+const COMPANY_SUFFIX =
+  /\b(inc|ltda|ltd|limited|llc|corp|corporation|co|company|sa|s a|gmbh|group|grupo|holding|brasil|brazil|technologies|technology|tecnologia|solutions|solucoes)\b/g;
+
+export function companyKey(company: string): string {
+  const stripped = normalizeText(company).replace(COMPANY_SUFFIX, ' ').replace(/\s+/g, ' ').trim();
+  return stripped || normalizeText(company);
+}
+
+/** Company + title, normalized: the same job shows up on its ATS, Himalayas, Gupy and Google Jobs. */
 export function jobKey(company: string, title: string): string {
-  return `${normalizeText(company)}|${normalizeText(title)}`;
+  return `${companyKey(company)}|${normalizeText(title)}`;
 }
 
 export interface KnownJobs {
