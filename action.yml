@@ -7,7 +7,7 @@ branding:
 
 inputs:
   command:
-    description: "One of: setup, sync-status, intake, import, collect, metrics, revalidate"
+    description: "One of: setup, sync-status, intake, import, collect, metrics, revalidate, discover"
     required: true
   github-token:
     description: Token with Issues and Projects access to the private repo (a classic PAT with the repo and project scopes; the default GITHUB_TOKEN cannot write to user Projects)
@@ -32,7 +32,7 @@ inputs:
     required: false
     default: "false"
   serpapi-key:
-    description: SerpAPI key for Google Jobs and company discovery (used from phase 3)
+    description: SerpAPI key for Google Jobs and company discovery (optional; those stay off without it)
     required: false
 
 runs:

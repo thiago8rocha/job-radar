@@ -1,10 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import { ashby } from '../../src/adapters/ashby.js';
 import { greenhouse } from '../../src/adapters/greenhouse.js';
+import { gupy } from '../../src/adapters/gupy.js';
 import { himalayas } from '../../src/adapters/himalayas.js';
 import { inhire } from '../../src/adapters/inhire.js';
 import { lever } from '../../src/adapters/lever.js';
+import { remoteok } from '../../src/adapters/remoteok.js';
 import type { FetchContext, SourceAdapter } from '../../src/adapters/types.js';
+import { weworkremotely } from '../../src/adapters/weworkremotely.js';
 import { parseConfig } from '../../src/config/load.js';
 import { createHttpClient } from '../../src/util/http.js';
 
@@ -45,4 +48,8 @@ describe('live sources', () => {
   it('lever', () => check(lever, ['palantir']));
   it('ashby', () => check(ashby, ['ramp']));
   it('himalayas', () => check(himalayas, []));
+  it('gupy', () => check(gupy, []));
+  it('remoteok', () => check(remoteok, []));
+  it('weworkremotely', () => check(weworkremotely, []));
+  // google_jobs and discovery need a SerpAPI key, which CI does not have; they are covered by recorded-shape tests.
 });

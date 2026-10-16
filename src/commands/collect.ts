@@ -30,6 +30,8 @@ export interface CollectOptions {
   /** Adapters to run; defaults to every adapter in this version. Tests inject their own. */
   adapters?: Record<string, AnySourceAdapter>;
   http?: HttpClient;
+  /** SerpAPI key, for the sources that need one (Google Jobs). */
+  serpapiKey?: string;
   now?: Date;
   /** Pause between issue creations, to stay under GitHub's secondary rate limit. */
   delayMs?: number;
@@ -130,6 +132,12 @@ export async function collect(ctx: Context, options: CollectOptions = {}): Promi
       continue;
     }
 
+    const apiKey = toggle.api_key_secret ? options.serpapiKey : undefined;
+    if (adapter.requiresKey && !apiKey) {
+      ctx.log.info(`${id}: no API key provided (${toggle.api_key_secret ?? 'api_key_secret'} is not set); skipped`);
+      continue;
+    }
+
     const report: SourceReport = { source: id, fetched: 0, discarded: {}, duplicates: 0, created: 0 };
     reports.push(report);
     const fetchContext: FetchContext = {
@@ -137,6 +145,7 @@ export async function collect(ctx: Context, options: CollectOptions = {}): Promi
       config: ctx.config,
       companies: refs,
       now,
+      apiKey,
       worthDetails: (candidate) => filter.worthDetails(candidate),
       warn: (message) => ctx.log.warn(message),
     };

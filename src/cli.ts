@@ -12,10 +12,10 @@ Options:
   --companies <path>    Companies file (default: companies.yml; collect and revalidate)
   --state <path>        State file (default: state/seen.json; collect only)
   --event <path>        GitHub event payload (event-driven commands)
-  --dry-run             Report what would happen without writing (import, collect, metrics and revalidate)
+  --dry-run             Report what would happen without writing (import, collect, metrics, revalidate and discover)
   -h, --help            Show this help
 
-The token is read from $GITHUB_TOKEN (or $GH_TOKEN).`;
+The token is read from $GITHUB_TOKEN (or $GH_TOKEN); the SerpAPI key, if any, from $SERPAPI_KEY.`;
 
 async function main(): Promise<void> {
   const { values, positionals } = parseArgs({
@@ -52,6 +52,7 @@ async function main(): Promise<void> {
     xlsxPath: values.xlsx,
     companiesPath: values.companies,
     statePath: values.state,
+    serpapiKey: process.env.SERPAPI_KEY,
     dryRun: values['dry-run'],
   });
 }

@@ -1,6 +1,7 @@
 import { readFile } from 'node:fs/promises';
 import { loadCompanies, loadConfig } from './config/load.js';
 import { collect } from './commands/collect.js';
+import { discover } from './commands/discover.js';
 import { metrics } from './commands/metrics.js';
 import { revalidate } from './commands/revalidate.js';
 import { consoleLogger, type Context, type Logger } from './commands/context.js';
@@ -11,7 +12,7 @@ import { createClient, parseRepo } from './github/client.js';
 import { runImport } from './import/run.js';
 import { parseXlsx } from './import/xlsx.js';
 
-export const COMMANDS = ['setup', 'sync-status', 'intake', 'import', 'collect', 'metrics', 'revalidate'] as const;
+export const COMMANDS = ['setup', 'sync-status', 'intake', 'import', 'collect', 'metrics', 'revalidate', 'discover'] as const;
 export type Command = (typeof COMMANDS)[number];
 
 export interface RunOptions {
@@ -28,6 +29,8 @@ export interface RunOptions {
   companiesPath?: string;
   /** `state/seen.json` for `collect`. */
   statePath?: string;
+  /** SerpAPI key (Google Jobs, discovery). */
+  serpapiKey?: string;
   dryRun?: boolean;
   log?: Logger;
 }
@@ -55,11 +58,14 @@ export async function run(options: RunOptions): Promise<void> {
       return intake(ctx, await readEvent<OpenedEvent>(options.eventPath, options.command));
     case 'collect': {
       const companies = await loadCompanies(options.companiesPath ?? 'companies.yml');
-      await collect(ctx, { dryRun: options.dryRun, companies, statePath: options.statePath });
+      await collect(ctx, { dryRun: options.dryRun, companies, statePath: options.statePath, serpapiKey: options.serpapiKey });
       return;
     }
     case 'metrics':
       await metrics(ctx, { dryRun: options.dryRun });
+      return;
+    case 'discover':
+      await discover(ctx, { dryRun: options.dryRun, companiesPath: options.companiesPath, serpapiKey: options.serpapiKey });
       return;
     case 'revalidate': {
       const companies = await loadCompanies(options.companiesPath ?? 'companies.yml');

@@ -30,6 +30,7 @@ async function main(): Promise<void> {
       xlsxPath: input('xlsx-path'),
       companiesPath: input('companies-path'),
       statePath: input('state-path'),
+      serpapiKey: input('serpapi-key'),
       dryRun: input('dry-run') === 'true',
       log: { info: record(''), warn: record('::warning::') },
     });
