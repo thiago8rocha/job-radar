@@ -1,0 +1,31 @@
+{
+  "search_metadata": { "id": "synthetic", "status": "Success" },
+  "search_parameters": { "engine": "google_jobs", "q": "QA OR \"Quality Assurance\" remote", "location": "Brazil" },
+  "jobs_results": [
+    {
+      "title": "Senior QA Engineer",
+      "company_name": "Acme Brasil",
+      "location": "Brazil",
+      "via": "via LinkedIn",
+      "description": "We are looking for a Senior QA Engineer with Playwright experience. 100% remote.",
+      "extensions": ["3 days ago", "Work from home", "Full-time"],
+      "detected_extensions": { "posted_at": "3 days ago", "schedule_type": "Full-time", "work_from_home": true },
+      "job_id": "eyJqb2JfdGl0bGUiOiJTZW5pb3IgUUEifQ==",
+      "apply_options": [
+        { "title": "Apply on LinkedIn", "link": "https://www.linkedin.com/jobs/view/123456?utm_source=google&trackingId=abc" },
+        { "title": "Apply on Acme", "link": "https://acme.example/careers/qa" }
+      ],
+      "share_link": "https://www.google.com/search?q=senior+qa&ibp=htl;jobs#fpstate=tldetail&htidocid=abc"
+    },
+    {
+      "title": "QA Analyst",
+      "company_name": "Beta Corp",
+      "location": "Sao Paulo, SP",
+      "via": "via Indeed",
+      "description": "Hybrid position.",
+      "detected_extensions": { "posted_at": "30+ days ago" },
+      "job_id": "eyJqb2JfdGl0bGUiOiJRQSJ9",
+      "share_link": "https://www.google.com/search?q=qa&ibp=htl;jobs#fpstate=tldetail&htidocid=def"
+    }
+  ]
+}
