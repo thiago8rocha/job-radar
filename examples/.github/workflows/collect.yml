@@ -18,6 +18,7 @@ concurrency:
 permissions:
   contents: write            # to commit state/seen.json
   issues: write
+  models: read               # only used when ai.enabled is true (GitHub Models, free within its limits)
 
 jobs:
   collect:
@@ -29,7 +30,9 @@ jobs:
           command: collect
           github-token: ${{ secrets.JOB_RADAR_TOKEN }}
           dry-run: ${{ inputs.dry-run || false }}
-          serpapi-key: ${{ secrets.SERPAPI_KEY }}   # optional, used from phase 3
+          serpapi-key: ${{ secrets.SERPAPI_KEY }}   # optional: Google Jobs stays off without it
+          models-token: ${{ github.token }}         # optional: only read when ai.enabled is true
+          profile: ${{ secrets.JOB_RADAR_PROFILE }} # optional: your profile or résumé, only sent to the model
       # state/seen.json is what keeps already-created jobs from coming back; committing it also
       # counts as activity, so GitHub does not pause the schedule after 60 days.
       - name: Commit state

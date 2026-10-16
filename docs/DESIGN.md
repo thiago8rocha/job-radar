@@ -63,7 +63,7 @@ Each source is an independent adapter, switched on or off by the config. There a
 | Greenhouse | Per company | `boards-api.greenhouse.io/v1/boards/{company}/jobs` | v1 | Documented public API |
 | Lever | Per company | `api.lever.co/v0/postings/{company}` | v1 | Documented public API |
 | Ashby | Per company | Public per-company job board API | v1 | Common in startups that hire remotely |
-| Gupy | Global search | `employability-portal.gupy.io/api/v1/jobs`, up to 100 per page | v2 | Undocumented endpoint; included for coverage |
+| Gupy | Global search | `portal.gupy.io/api/job-search/jobs?jobName=…&workplaceType=remote`, up to 100 per page. The `employability-portal.gupy.io/api/v1/jobs` address this document first listed answers 404; the portal's own search page calls the endpoint above | v2 | Undocumented endpoint, found by reading the portal's code; the daily live contract watches it |
 | GitHub job repos | Global search | GitHub issues API (backend-br/vagas, frontendbr/vagas, DevOps-Brazil/Vagas and similar) | v2 | Jobs published as issues; no repo is dedicated to QA, so it filters by term |
 | RemoteOK | Global search | Public JSON API by tag | v2 | Lower volume |
 | We Work Remotely | Global search | Official RSS feeds | v2 | Lower volume |
@@ -346,6 +346,8 @@ AI is only used if it is free: GitHub Models, called from inside Actions with th
 - The profile and résumé live in a private repo secret, never in a committed file
 - Call limit per run below the free quota
 - If the quota runs out or the call fails, the issue is created without a score and collection carries on as normal
+- The workflow passes its own token as the `models-token` input and the secret as the `profile` input; the Action sends the profile only to the model. The posting is sent as data inside tags with instructions in the system message to ignore any instruction found in it, and the reply is validated with a schema and sanitized (no mentions, references or HTML) before it reaches an issue
+- With AI on, each issue keeps the full posting text (up to 8,000 characters) in a collapsed block, because `/evaluate` runs later and the link alone is not enough to rebuild it. Only the owner, members and collaborators can trigger `/evaluate`, so a comment from a stranger cannot spend the quota
 
 **Risk:** the free limits are not well documented and GitHub may reduce them. Community reports mention about 150 requests per day on the smaller models and 50 on the larger ones.
 

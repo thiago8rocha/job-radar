@@ -1,0 +1,34 @@
+# Once a week: searches Google (through SerpAPI) for career pages on the supported ATS and opens a pull
+# request that adds the new companies to companies.yml. Nothing is collected from them until you merge it.
+# Needs discovery.enabled in the config and the SERPAPI_KEY secret; without them it does nothing.
+name: discover
+on:
+  schedule:
+    - cron: "0 12 * * 3"     # Wednesdays, 9 a.m. in Brasília
+  workflow_dispatch:
+    inputs:
+      dry-run:
+        description: "List the companies that would be proposed, without opening a pull request"
+        type: boolean
+        default: false
+
+concurrency:
+  group: discover
+  cancel-in-progress: false
+
+permissions:
+  contents: write            # the pull request branch lives in this repo
+  pull-requests: write
+  issues: read
+
+jobs:
+  discover:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4          # reads job-radar.config.yml
+      - uses: thiago8rocha/job-radar@v1
+        with:
+          command: discover
+          github-token: ${{ secrets.JOB_RADAR_TOKEN }}
+          serpapi-key: ${{ secrets.SERPAPI_KEY }}
+          dry-run: ${{ inputs.dry-run || false }}

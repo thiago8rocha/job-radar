@@ -23,15 +23,30 @@ sources:
   lever: { enabled: true }
   ashby: { enabled: true }
   inhire: { enabled: true }
-  gupy: { enabled: false }
-  remoteok: { enabled: false }
-  google_jobs: { enabled: false, api_key_secret: SERPAPI_KEY }
+  gupy: { enabled: false }            # Brazilian portal; needs no key
+  remoteok: { enabled: false }        # latest ~100 remote jobs; needs no key
+  weworkremotely: { enabled: false }  # latest remote jobs from its RSS feed; needs no key
+  # Needs the SERPAPI_KEY secret (free plan: 100 searches a month). Each run spends up to max_searches.
+  google_jobs: { enabled: false, api_key_secret: SERPAPI_KEY, max_searches: 3 }
 
 discovery:
-  enabled: false             # depends on SerpAPI
-  queries: []
+  enabled: false             # needs the SERPAPI_KEY secret; the weekly `discover` workflow opens a pull request
+  max_searches: 8
+  queries:
+    - 'site:inhire.app/vagas QA'
+    - 'site:boards.greenhouse.io "QA" remote'
+    - 'site:jobs.lever.co "quality assurance"'
+    - 'site:jobs.ashbyhq.com QA'
 
 issues:
   max_per_run: 25            # guard against flooding the board
   project_number: 1          # number of your GitHub Project (see its URL)
+  close_on_final_status: true  # close the issue on rejected, withdrawn, hired and discarded
   # project_owner: your-login  # only when the Project belongs to someone else than the repo owner
+
+# Optional AI, free through GitHub Models. Off by default. Before turning it on, check in GitHub Billing
+# that paid usage of GitHub Models is off, so the free limits are the only limits.
+ai:
+  enabled: false
+  model: openai/gpt-4o-mini
+  max_calls_per_run: 30
