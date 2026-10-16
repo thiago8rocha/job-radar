@@ -31,7 +31,7 @@ Everything personal (your searches, companies and history) lives in your own **p
 | Screening, HR interview, Tech interview, Take-home, Offer | `status:*` | The board column follows the label. |
 | Hired, Rejected, Withdrawn | `status:hired`, `status:rejected`, `status:withdrawn` | The issue closes as "completed". Going back to an active status reopens it. |
 
-Add one `status:*` label and the workflow removes the previous one. Dragging a card on the board does not trigger Actions on a personal account, so change the label. Closing an issue without any status means "discarded without applying".
+Add one `status:*` label and the workflow removes the previous one. Dragging a card on the board does not trigger Actions on a personal account, so change the label. To drop a job you will not apply to, close the issue as **not planned** and leave `status:new` as it is. The Metrics issue counts it as *Discarded* (and notes how many left the company's board by themselves), keeping it apart from jobs still waiting for a decision.
 
 ## Commands
 
