@@ -19,22 +19,27 @@ export async function setup(ctx: Context): Promise<void> {
   }
 }
 
-/** Replacing the options of `Status` empties it on every item; the labels say what it should be. */
+/**
+ * Replacing the options of `Status` empties it on every item; the labels say what it should be.
+ * GitHub can lag behind the writes, so the Project is read again and anything still off is fixed once more.
+ */
 async function restoreStatuses(ctx: Context): Promise<void> {
-  const project = await loadProject(ctx);
-  const items = await listProjectItems(ctx.octokit, project);
   const issues = await ctx.octokit.paginate(ctx.octokit.rest.issues.listForRepo, { ...ctx.repo, state: 'all', per_page: 100 });
-  const restored = await reconcileStatusField(
-    ctx,
-    project,
-    issues
-      .filter((issue) => !issue.pull_request)
-      .map((issue) => ({
-        number: issue.number,
-        node_id: issue.node_id,
-        labels: issue.labels.map((label) => (typeof label === 'string' ? label : label.name ?? '')),
-      })),
-    items,
-  );
-  ctx.log.info(`Status restored from the labels on ${restored} item(s)`);
+  const labeled = issues
+    .filter((issue) => !issue.pull_request)
+    .map((issue) => ({
+      number: issue.number,
+      node_id: issue.node_id,
+      labels: issue.labels.map((label) => (typeof label === 'string' ? label : label.name ?? '')),
+    }));
+
+  let restored = 0;
+  for (let pass = 0; pass < 2; pass++) {
+    const project = await loadProject(ctx);
+    const items = await listProjectItems(ctx.octokit, project);
+    const changed = await reconcileStatusField(ctx, project, labeled, items);
+    restored += changed;
+    if (changed === 0) break;
+  }
+  ctx.log.info(`Status restored from the labels on ${restored} write(s)`);
 }
