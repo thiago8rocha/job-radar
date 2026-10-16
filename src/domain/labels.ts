@@ -41,6 +41,11 @@ export const DISCARD_REASONS: Array<{ reason: string; description: string }> = [
   { reason: 'other', description: 'Another reason' },
 ];
 
+export const FIT_PREFIX = 'fit:';
+
+/** Fit score from the optional AI step, 1 (poor) to 5 (excellent). It sorts and highlights; nothing is discarded by it. */
+const FIT_COLORS = ['d73a4a', 'e99695', 'fbca04', 'a2eeef', '0e8a16'];
+
 /** Labels with a fixed name, created by `job-radar setup`. */
 export const STATIC_LABELS: LabelDef[] = [
   ...STATUSES.map((s) => ({
@@ -52,6 +57,11 @@ export const STATIC_LABELS: LabelDef[] = [
     name: `${DISCARD_PREFIX}${reason}`,
     color: 'e4e669',
     description: `Discarded: ${description}`,
+  })),
+  ...FIT_COLORS.map((color, index) => ({
+    name: `${FIT_PREFIX}${index + 1}`,
+    color,
+    description: `AI fit score ${index + 1} of 5`,
   })),
   { name: 'scope:brazil', color: '1d76db', description: 'Brazilian job' },
   { name: 'scope:international', color: '0052cc', description: 'International job' },

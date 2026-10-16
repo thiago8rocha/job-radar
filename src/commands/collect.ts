@@ -1,6 +1,9 @@
 import { setTimeout as sleep } from 'node:timers/promises';
+import { formatRange } from '../adapters/common.js';
 import { ADAPTERS } from '../adapters/index.js';
 import type { AnySourceAdapter, FetchContext } from '../adapters/types.js';
+import { analyzeJob, type JobInsight } from '../ai/insight.js';
+import { AiQuotaError, type ChatClient } from '../ai/models.js';
 import { companyRefs, type Companies } from '../config/schema.js';
 import { FIELD } from '../domain/fields.js';
 import type { Job } from '../domain/job.js';
@@ -11,11 +14,12 @@ import { ensureLabels } from '../github/labels.js';
 import { addIssueToProject, setFieldValue, type Project } from '../github/project.js';
 import { dedupe, knownFromIssues } from '../pipeline/dedup.js';
 import { regionsOf } from '../pipeline/eligibility.js';
-import { buildExcerpt } from '../pipeline/excerpt.js';
+import { buildExcerpt, sanitizeForIssue } from '../pipeline/excerpt.js';
 import { createFilter, inferWorkModel } from '../pipeline/filter.js';
 import { brasiliaHours } from '../pipeline/timezone.js';
 import { DEFAULT_STATE_PATH, loadState, saveState, type SeenState } from '../state/seen.js';
 import { createHttpClient, type HttpClient } from '../util/http.js';
+import { truncate } from '../util/text.js';
 import { loadProject, type Context } from './context.js';
 
 /** A source that returns nothing this many runs in a row, without an error, is probably broken. */
@@ -32,6 +36,8 @@ export interface CollectOptions {
   http?: HttpClient;
   /** SerpAPI key, for the sources that need one (Google Jobs). */
   serpapiKey?: string;
+  /** The optional AI step: when present, each new job gets a fit score and extracted details. */
+  ai?: { client: ChatClient; profile: string };
   now?: Date;
   /** Pause between issue creations, to stay under GitHub's secondary rate limit. */
   delayMs?: number;
@@ -211,9 +217,11 @@ export async function collect(ctx: Context, options: CollectOptions = {}): Promi
         (label) => label.name,
       ),
     );
+    const ai = { calls: 0, stopped: false };
     try {
       for (const [index, job] of batch.entries()) {
-        const issue = await writeIssue(ctx, project, labelNames, job, now);
+        const insight = await insightFor(ctx, options.ai, ai, job);
+        const issue = await writeIssue(ctx, project, labelNames, job, now, insight, options.ai !== undefined);
         state.jobs[job.id] = { issue, seenAt: now.toISOString() };
         bySource.get(job.source)!.created++;
         created++;
@@ -248,8 +256,72 @@ function updateHealth(ctx: Context, state: SeenState, report: SourceReport): voi
   }
 }
 
-async function writeIssue(ctx: Context, project: Project, knownLabels: Set<string>, job: Job, today: Date): Promise<number> {
-  const { names, dynamic } = labelsFor(job);
+/**
+ * The AI's read of one job, or undefined when AI is off, the per-run call limit is used up, the free
+ * quota ran out, or the call failed: in every one of those cases the issue is created without a score.
+ */
+async function insightFor(
+  ctx: Context,
+  ai: CollectOptions['ai'],
+  state: { calls: number; stopped: boolean },
+  job: Job,
+): Promise<JobInsight | undefined> {
+  if (!ai || state.stopped) return undefined;
+  if (state.calls >= ctx.config.ai.max_calls_per_run) {
+    state.stopped = true;
+    ctx.log.info(`AI: the limit of ${ctx.config.ai.max_calls_per_run} calls per run was reached; the rest are created without a score`);
+    return undefined;
+  }
+  state.calls++;
+  try {
+    return await analyzeJob(ai.client, ai.profile, job);
+  } catch (error) {
+    if (error instanceof AiQuotaError) {
+      state.stopped = true;
+      ctx.log.warn('AI: the GitHub Models quota is used up; the rest are created without a score');
+    } else {
+      ctx.log.warn(`AI: could not read "${job.title}" (${(error as Error).message}); created without a score`);
+    }
+    return undefined;
+  }
+}
+
+const KNOWN_CONTRACTS = new Map([
+  ['clt', 'CLT'],
+  ['pj', 'PJ'],
+  ['cooperado', 'Cooperado'],
+  ['contractor', 'Contractor'],
+]);
+
+/** What the AI read, as extra body lines: fit, stack, required hours and a remote check. */
+function insightLines(insight: JobInsight, today: Date): string[] {
+  const lines = [`**Fit:** ${insight.fit}/5${insight.rationale ? ` — ${insight.rationale}` : ''}`];
+  if (insight.stack.length > 0) lines.push(`**Stack:** ${insight.stack.join(', ')}`);
+  if (insight.required_hours) lines.push(`**Required hours:** ${brasiliaHours(insight.required_hours, today) ?? insight.required_hours}`);
+  if (insight.really_remote === false) lines.push('**Remote check:** the posting seems to require office presence');
+  return lines;
+}
+
+async function writeIssue(
+  ctx: Context,
+  project: Project,
+  knownLabels: Set<string>,
+  job: Job,
+  today: Date,
+  insight?: JobInsight,
+  keepDescription = false,
+): Promise<number> {
+  const stated = job.contracts.length > 0;
+  const read = (insight?.contract ?? []).map((name) => KNOWN_CONTRACTS.get(name.trim().toLowerCase())).filter((name): name is string => Boolean(name));
+  const withContracts: Job = stated || read.length === 0 ? job : { ...job, contracts: read };
+  const salary = insight?.salary;
+  const aiCompensation =
+    !job.compensation && salary && (salary.min || salary.max)
+      ? `${formatRange(salary.min ?? undefined, salary.max ?? undefined, salary.currency, salary.period)} (read by AI)`
+      : undefined;
+
+  const { names: baseNames, dynamic } = labelsFor(withContracts);
+  const names = insight ? [...baseNames, `fit:${insight.fit}`] : baseNames;
   const missing = dynamic.filter((label) => !knownLabels.has(label.name));
   if (missing.length > 0) {
     await ensureLabels(ctx.octokit, ctx.repo, missing);
@@ -263,9 +335,11 @@ async function writeIssue(ctx: Context, project: Project, knownLabels: Set<strin
       applyUrl: job.applyUrl,
       location: describeLocation(job, today),
       postedOn: job.postedAt?.slice(0, 10),
-      compensation: job.compensation,
+      compensation: job.compensation ?? aiCompensation,
       source: job.source,
+      extraLines: insight ? insightLines(insight, today) : undefined,
       excerpt: buildExcerpt(job.description, ctx.config.search.highlight),
+      fullDescription: keepDescription ? sanitizeForIssue(truncate(job.description, 8000)) : undefined,
       markerId: job.id,
     }),
     labels: names,

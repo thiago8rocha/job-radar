@@ -1,5 +1,9 @@
 import { readFile } from 'node:fs/promises';
+import { createModelsClient } from './ai/models.js';
 import { loadCompanies, loadConfig } from './config/load.js';
+import type { Config } from './config/schema.js';
+import { evaluate, type CommentEvent } from './commands/evaluate.js';
+import { createHttpClient } from './util/http.js';
 import { collect } from './commands/collect.js';
 import { discover } from './commands/discover.js';
 import { metrics } from './commands/metrics.js';
@@ -12,7 +16,7 @@ import { createClient, parseRepo } from './github/client.js';
 import { runImport } from './import/run.js';
 import { parseXlsx } from './import/xlsx.js';
 
-export const COMMANDS = ['setup', 'sync-status', 'intake', 'import', 'collect', 'metrics', 'revalidate', 'discover'] as const;
+export const COMMANDS = ['setup', 'sync-status', 'intake', 'import', 'collect', 'metrics', 'revalidate', 'discover', 'evaluate'] as const;
 export type Command = (typeof COMMANDS)[number];
 
 export interface RunOptions {
@@ -31,8 +35,29 @@ export interface RunOptions {
   statePath?: string;
   /** SerpAPI key (Google Jobs, discovery). */
   serpapiKey?: string;
+  /** Token for GitHub Models: the workflow's `GITHUB_TOKEN` with `permissions: models: read`. */
+  modelsToken?: string;
+  /** The candidate profile or résumé, from a secret; it is only ever sent to the model. */
+  profile?: string;
   dryRun?: boolean;
   log?: Logger;
+}
+
+/** The optional AI step, when it is switched on and the workflow supplied what it needs. */
+function aiOf(options: RunOptions, config: Config, log: Logger): { client: ReturnType<typeof createModelsClient>; profile: string } | undefined {
+  if (!config.ai.enabled) return undefined;
+  if (!options.modelsToken || !options.profile) {
+    log.warn('AI is on (ai.enabled) but the models-token or profile input is missing; continuing without it');
+    return undefined;
+  }
+  return {
+    client: createModelsClient({
+      token: options.modelsToken,
+      model: config.ai.model,
+      http: createHttpClient({ retries: 0, timeoutMs: 60_000 }),
+    }),
+    profile: options.profile,
+  };
 }
 
 async function readEvent<T>(path: string | undefined, command: Command): Promise<T> {
@@ -58,9 +83,17 @@ export async function run(options: RunOptions): Promise<void> {
       return intake(ctx, await readEvent<OpenedEvent>(options.eventPath, options.command));
     case 'collect': {
       const companies = await loadCompanies(options.companiesPath ?? 'companies.yml');
-      await collect(ctx, { dryRun: options.dryRun, companies, statePath: options.statePath, serpapiKey: options.serpapiKey });
+      await collect(ctx, {
+        dryRun: options.dryRun,
+        companies,
+        statePath: options.statePath,
+        serpapiKey: options.serpapiKey,
+        ai: options.dryRun ? undefined : aiOf(options, ctx.config, log),
+      });
       return;
     }
+    case 'evaluate':
+      return evaluate(ctx, await readEvent<CommentEvent>(options.eventPath, options.command), { ai: aiOf(options, ctx.config, log) });
     case 'metrics':
       await metrics(ctx, { dryRun: options.dryRun });
       return;

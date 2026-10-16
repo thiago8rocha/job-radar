@@ -7,7 +7,7 @@ branding:
 
 inputs:
   command:
-    description: "One of: setup, sync-status, intake, import, collect, metrics, revalidate, discover"
+    description: "One of: setup, sync-status, intake, import, collect, metrics, revalidate, discover, evaluate"
     required: true
   github-token:
     description: Token with Issues and Projects access to the private repo (a classic PAT with the repo and project scopes; the default GITHUB_TOKEN cannot write to user Projects)
@@ -20,7 +20,7 @@ inputs:
     description: Spreadsheet to import (import only)
     required: false
   companies-path:
-    description: Path to the companies file in the private repo (collect and revalidate)
+    description: Path to the companies file in the private repo (collect, revalidate and discover)
     required: false
     default: companies.yml
   state-path:
@@ -28,11 +28,17 @@ inputs:
     required: false
     default: state/seen.json
   dry-run:
-    description: "Report what would happen without writing (import, collect, metrics and revalidate)"
+    description: "Report what would happen without writing (import, collect, metrics, revalidate and discover)"
     required: false
     default: "false"
   serpapi-key:
     description: SerpAPI key for Google Jobs and company discovery (optional; those stay off without it)
+    required: false
+  models-token:
+    description: "Token for GitHub Models: pass the workflow's own token (github.token) with permissions: models: read. Only used when ai.enabled is true"
+    required: false
+  profile:
+    description: "Your profile or résumé as text, from a secret (JOB_RADAR_PROFILE). Sent only to the model, never written anywhere. Only used when ai.enabled is true"
     required: false
 
 runs:
