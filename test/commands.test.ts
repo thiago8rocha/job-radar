@@ -31,7 +31,7 @@ describe('setup', () => {
     const update = graphqlCalls.find((call) => call.query.includes('updateProjectV2Field'));
     expect(update?.variables.input.fieldId).toBe('F_status');
     expect(update?.variables.input.singleSelectOptions.map((o: { name: string }) => o.name)).toEqual([
-      'New', 'Applied', 'Screening', 'HR interview', 'Tech interview', 'Take-home', 'Offer', 'Hired', 'Rejected', 'Withdrawn',
+      'New', 'Applied', 'Screening', 'HR interview', 'Tech interview', 'Take-home', 'Offer', 'Hired', 'Rejected', 'Withdrawn', 'Discarded',
     ]);
   });
 
@@ -90,6 +90,12 @@ describe('syncStatus', () => {
     const closedAlready = fakeContext({ labelsOnIssue: ['status:rejected'], issueState: 'closed' });
     await syncStatus(closedAlready.ctx, event('status:rejected'));
     expect(closedAlready.issues.update).not.toHaveBeenCalled();
+  });
+
+  it('closes a discarded job as not planned', async () => {
+    const { ctx, issues } = fakeContext({ labelsOnIssue: ['status:discarded'] });
+    await syncStatus(ctx, event('status:discarded'));
+    expect(issues.update).toHaveBeenCalledWith(expect.objectContaining({ issue_number: 7, state: 'closed', state_reason: 'not_planned' }));
   });
 
   it('reopens a closed issue that goes back to an active status', async () => {

@@ -76,6 +76,17 @@ function breakdown(all: IssueMetrics[], keys: (issue: IssueMetrics) => string[])
     });
 }
 
+/** Reasons given on discarded jobs (`discard:*` labels), most common first; jobs without one are "not given". */
+function discardReasons(all: IssueMetrics[]): Array<Array<string | number>> {
+  const counts = new Map<string, number>();
+  for (const issue of all.filter(isDiscarded)) {
+    for (const reason of issue.discardReasons.length > 0 ? issue.discardReasons : ['not given']) {
+      counts.set(reason, (counts.get(reason) ?? 0) + 1);
+    }
+  }
+  return [...counts.entries()].sort(([, a], [, b]) => b - a).map(([reason, count]) => [reason, count]);
+}
+
 function funnel(applications: IssueMetrics[]): { stage: Status; reached: number }[] {
   const reachedAtLeast = (stage: Status) =>
     applications.filter((issue) => (stageNumber(issue.furthestStage ?? 'applied') ?? 0) >= stageNumber(stage)!).length;
@@ -166,6 +177,8 @@ export function renderReport(all: IssueMetrics[], today: Date): string {
     table(['Found on', 'Jobs', 'Discarded', 'Applied', 'Responded', 'Response rate'], breakdown(all, (issue) => (issue.found ? [issue.found] : []))),
     '### By ATS',
     table(['ATS', 'Jobs', 'Discarded', 'Applied', 'Responded', 'Response rate'], breakdown(all, (issue) => (issue.ats ? [issue.ats] : []))),
+    '## Why jobs were discarded',
+    table(['Reason', 'Jobs'], discardReasons(all)),
     '## Domestic vs international',
     table(['Scope', 'Jobs', 'Discarded', 'Applied', 'Responded', 'Response rate'], breakdown(all, (issue) => (issue.scope ? [issue.scope] : []))),
     '## By contract',

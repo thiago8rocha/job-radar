@@ -4,6 +4,7 @@ import { parseStatusLabel, type Status } from '../domain/status.js';
 import { extractMarker } from '../github/issue-body.js';
 import { listProjectItems, setFieldValue, type Project, type ProjectItem } from '../github/project.js';
 import { loadProject, type Context } from './context.js';
+import { reconcileStatusField } from './reconcile.js';
 
 export interface MetricsOptions {
   /** Print the report and the field changes instead of writing them. */
@@ -92,6 +93,16 @@ export async function metrics(ctx: Context, options: MetricsOptions = {}): Promi
     results.push(analysis);
     if (item) fieldsWritten += await writeFields(ctx, project, item, analysis, dryRun);
   }
+
+  // The labels are the source of truth for Status; this heals cards changed on the board by hand.
+  const statusFixes = await reconcileStatusField(
+    ctx,
+    project,
+    jobs.map((issue) => ({ number: issue.number, node_id: issue.node_id, labels: labelNames(issue) })),
+    items,
+    dryRun,
+  );
+  fieldsWritten += statusFixes;
 
   const report = renderReport(results, now);
   if (dryRun) {

@@ -154,6 +154,17 @@ describe('renderReport', () => {
     expect(report).toContain('| himalayas | 3 | 2 | 0 | 0 | — |');
   });
 
+  it('counts status:discarded jobs and lists why they were dropped', () => {
+    const make = (number: number, labels: string[]) =>
+      analyzeIssue(facts({ number, title: `[Co${number}] QA`, state: 'closed', labels: ['status:discarded', 'found:himalayas', ...labels] }));
+    const report = renderReport([make(1, ['discard:hybrid']), make(2, ['discard:hybrid']), make(3, ['discard:salary']), make(4, [])], TODAY);
+    expect(report).toContain('| Discarded without applying | 4 (0 gone from the source) |');
+    expect(report).toContain('| Discarded | 4 |');
+    expect(report).toContain('| hybrid | 2 |');
+    expect(report).toContain('| salary | 1 |');
+    expect(report).toContain('| not given | 1 |');
+  });
+
   it('copes with no data', () => {
     const report = renderReport([], TODAY);
     expect(report).toContain('| Applications | 0 |');
@@ -199,9 +210,9 @@ describe('metrics command', () => {
         1: [labeled('status:new', '2026-09-01T00:00:00Z'), labeled('status:applied', '2026-09-02T09:00:00Z'), labeled('status:screening', '2026-09-08T09:00:00Z')],
       },
       projectItems: [
-        item(1, { 'Applied on': '2026-09-02' }),
-        item(2, { 'Applied on': '2026-08-01' }),
-        item(3, {}),
+        item(1, { 'Applied on': '2026-09-02', Status: 'Screening' }),
+        item(2, { 'Applied on': '2026-08-01', Status: 'Applied' }),
+        item(3, { Status: 'New' }),
       ],
     });
   }
@@ -238,7 +249,7 @@ describe('metrics command', () => {
       ],
       events: { 1: [labeled('status:applied', '2026-09-02T09:00:00Z'), labeled('status:screening', '2026-09-08T09:00:00Z')] },
       projectItems: [
-        item(1, { 'Applied on': '2026-09-02', 'Furthest stage': 'Screening', 'Response date': '2026-09-08', 'Days to response': 6 }),
+        item(1, { Status: 'Screening', 'Applied on': '2026-09-02', 'Furthest stage': 'Screening', 'Response date': '2026-09-08', 'Days to response': 6 }),
       ],
     });
     const result = await metrics(second.ctx, { now: TODAY });
@@ -246,6 +257,20 @@ describe('metrics command', () => {
     expect(result.fieldsWritten).toBe(0);
     expect(second.issues.create).not.toHaveBeenCalled();
     expect(second.issues.update).toHaveBeenCalledWith(expect.objectContaining({ issue_number: 9, state: 'open' }));
+  });
+
+  it('heals a Status that does not match the label', async () => {
+    const fake = fakeContext({
+      existingIssues: [issue(1, ['status:discarded'], '<!-- job-radar:id=greenhouse:co1:aaaaaaaa -->', { state: 'closed' }), issue(2, ['status:applied'], '<!-- job-radar:id=import:x:11111111 -->')],
+      projectItems: [item(1, { Status: 'New' }), item(2, { 'Applied on': '2026-08-01', 'Furthest stage': 'Applied' })],
+    });
+    await metrics(fake.ctx, { now: TODAY });
+    expect(fake.fieldWrites()).toEqual(
+      expect.arrayContaining([
+        ['F_status', { singleSelectOptionId: 'O_Discarded' }],
+        ['F_status', { singleSelectOptionId: 'O_Applied' }],
+      ]),
+    );
   });
 
   it('writes nothing in a dry run', async () => {
@@ -297,7 +322,8 @@ describe('revalidate', () => {
     });
 
     expect(result).toEqual({ checked: 2, closed: 1 });
-    expect(issues.addLabels).toHaveBeenCalledWith(expect.objectContaining({ issue_number: 1, labels: ['closed-at-source'] }));
+    expect(issues.addLabels).toHaveBeenCalledWith(expect.objectContaining({ issue_number: 1, labels: ['closed-at-source', 'status:discarded'] }));
+    expect(issues.removeLabel).toHaveBeenCalledWith(expect.objectContaining({ issue_number: 1, name: 'status:new' }));
     expect(issues.createComment).toHaveBeenCalledWith(expect.objectContaining({ issue_number: 1 }));
     expect(issues.update).toHaveBeenCalledWith(expect.objectContaining({ issue_number: 1, state: 'closed', state_reason: 'not_planned' }));
     expect(issues.update).not.toHaveBeenCalledWith(expect.objectContaining({ issue_number: 2 }));

@@ -19,7 +19,7 @@ export function readyFields() {
       id: 'F_status',
       name: 'Status',
       dataType: 'SINGLE_SELECT',
-      options: ['New', 'Applied', 'Screening', 'HR interview', 'Tech interview', 'Take-home', 'Offer', 'Hired', 'Rejected', 'Withdrawn'].map(option),
+      options: ['New', 'Applied', 'Screening', 'HR interview', 'Tech interview', 'Take-home', 'Offer', 'Hired', 'Rejected', 'Withdrawn', 'Discarded'].map(option),
     },
     { id: 'F_applied', name: 'Applied on', dataType: 'DATE' },
     { id: 'F_target', name: 'Target salary', dataType: 'NUMBER' },

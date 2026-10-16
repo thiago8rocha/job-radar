@@ -30,6 +30,8 @@ export interface IssueMetrics {
   status?: Status;
   /** The posting left the company's board and job-radar closed the issue. */
   closedAtSource: boolean;
+  /** `discard:*` labels, without the prefix. */
+  discardReasons: string[];
   appliedOn?: string;
   furthestStage?: Status;
   responseDate?: string;
@@ -45,8 +47,12 @@ export interface IssueMetrics {
   currency?: string;
 }
 
-/** Closed without ever being applied to: the job was looked at (or expired) and dropped. */
+/**
+ * A job looked at and dropped: `status:discarded`, or, for issues closed before that status existed,
+ * closed without ever being applied to and still at "New".
+ */
 export function isDiscarded(issue: Pick<IssueMetrics, 'state' | 'appliedOn' | 'status'>): boolean {
+  if (issue.status === 'discarded') return true;
   return issue.state === 'closed' && !issue.appliedOn && (issue.status === undefined || issue.status === 'new');
 }
 
@@ -121,6 +127,7 @@ export function analyzeIssue(facts: IssueFacts): IssueMetrics {
     state: facts.state,
     status,
     closedAtSource: facts.labels.includes('closed-at-source'),
+    discardReasons: facts.labels.filter((name) => name.startsWith('discard:')).map((name) => name.slice('discard:'.length)),
     appliedOn,
     furthestStage,
     responseDate,

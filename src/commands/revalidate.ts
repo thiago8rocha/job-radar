@@ -2,9 +2,9 @@ import { ADAPTERS } from '../adapters/index.js';
 import type { AnySourceAdapter, FetchContext } from '../adapters/types.js';
 import { companyRefs, type Companies } from '../config/schema.js';
 import { LABEL, slugify } from '../domain/labels.js';
-import { parseStatusLabel } from '../domain/status.js';
+import { parseStatusLabel, statusLabel } from '../domain/status.js';
 import { extractMarker } from '../github/issue-body.js';
-import { addLabels } from '../github/labels.js';
+import { addLabels, removeLabel } from '../github/labels.js';
 import { createHttpClient, type HttpClient } from '../util/http.js';
 import type { Context } from './context.js';
 
@@ -103,7 +103,8 @@ export async function revalidate(ctx: Context, options: RevalidateOptions = {}):
       if (dryRun) {
         ctx.log.info(`[dry-run] #${candidate.number} ${candidate.title}: gone from ${source}`);
       } else {
-        await addLabels(ctx.octokit, ctx.repo, candidate.number, [LABEL.closedAtSource]);
+        await addLabels(ctx.octokit, ctx.repo, candidate.number, [LABEL.closedAtSource, statusLabel('discarded')]);
+        await removeLabel(ctx.octokit, ctx.repo, candidate.number, statusLabel('new'));
         await ctx.octokit.rest.issues.createComment({
           ...ctx.repo,
           issue_number: candidate.number,

@@ -1,7 +1,8 @@
-import { PROJECT_FIELDS } from '../domain/fields.js';
+import { FIELD, PROJECT_FIELDS } from '../domain/fields.js';
 import { STATIC_LABELS } from '../domain/labels.js';
 import { ensureLabels } from '../github/labels.js';
-import { ensureProjectFields } from '../github/project.js';
+import { ensureProjectFields, listProjectItems } from '../github/project.js';
+import { reconcileStatusField } from './reconcile.js';
 import { loadProject, type Context } from './context.js';
 
 /** Creates the labels and the Project fields the rest of job-radar relies on. Safe to run repeatedly. */
@@ -12,7 +13,28 @@ export async function setup(ctx: Context): Promise<void> {
   const project = await loadProject(ctx);
   const fields = await ensureProjectFields(ctx.octokit, project, PROJECT_FIELDS);
   ctx.log.info(`Project "${project.title}": ${fields.created.length} fields created`);
-  for (const name of fields.optionsUpdated) {
-    ctx.log.warn(`Options of "${name}" were replaced; items that had a value in that field lost it`);
+  if (fields.optionsUpdated.length > 0) {
+    ctx.log.info(`Options replaced on: ${fields.optionsUpdated.join(', ')}`);
+    if (fields.optionsUpdated.includes(FIELD.status)) await restoreStatuses(ctx);
   }
+}
+
+/** Replacing the options of `Status` empties it on every item; the labels say what it should be. */
+async function restoreStatuses(ctx: Context): Promise<void> {
+  const project = await loadProject(ctx);
+  const items = await listProjectItems(ctx.octokit, project);
+  const issues = await ctx.octokit.paginate(ctx.octokit.rest.issues.listForRepo, { ...ctx.repo, state: 'all', per_page: 100 });
+  const restored = await reconcileStatusField(
+    ctx,
+    project,
+    issues
+      .filter((issue) => !issue.pull_request)
+      .map((issue) => ({
+        number: issue.number,
+        node_id: issue.node_id,
+        labels: issue.labels.map((label) => (typeof label === 'string' ? label : label.name ?? '')),
+      })),
+    items,
+  );
+  ctx.log.info(`Status restored from the labels on ${restored} item(s)`);
 }

@@ -1,5 +1,5 @@
 import { FIELD } from '../domain/fields.js';
-import { STATUS_TITLES, isTerminalStatus, type Status } from '../domain/status.js';
+import { STATUS_TITLES, closeReason, isTerminalStatus, type Status } from '../domain/status.js';
 import { removeLabel } from '../github/labels.js';
 import { addIssueToProject, getDateValue, setFieldValue } from '../github/project.js';
 import { loadProject, type Context } from './context.js';
@@ -45,14 +45,14 @@ export async function syncStatus(ctx: Context, event: LabeledEvent, now = new Da
 }
 
 /**
- * A process that ended (rejected, withdrawn, hired) closes the issue as "completed"; an issue that
- * goes back to an active status is reopened. Jobs closed without any status stay "not planned".
+ * A process that ended (rejected, withdrawn, hired) closes the issue as "completed", a discarded job as
+ * "not planned"; an issue that goes back to an active status is reopened.
  */
 async function reconcileState(ctx: Context, issueNumber: number, status: Status): Promise<void> {
   const { data } = await ctx.octokit.rest.issues.get({ ...ctx.repo, issue_number: issueNumber });
   const finished = isTerminalStatus(status);
   if (finished && data.state === 'open') {
-    await ctx.octokit.rest.issues.update({ ...ctx.repo, issue_number: issueNumber, state: 'closed', state_reason: 'completed' });
+    await ctx.octokit.rest.issues.update({ ...ctx.repo, issue_number: issueNumber, state: 'closed', state_reason: closeReason(status) });
   } else if (!finished && data.state === 'closed') {
     await ctx.octokit.rest.issues.update({ ...ctx.repo, issue_number: issueNumber, state: 'open', state_reason: 'reopened' });
   }
