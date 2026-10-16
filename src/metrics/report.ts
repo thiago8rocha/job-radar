@@ -1,5 +1,5 @@
 import { STAGES, STATUSES, STATUS_TITLES, isTerminalStatus, stageNumber, type Status } from '../domain/status.js';
-import { daysBetween, type IssueMetrics } from './analyze.js';
+import { daysBetween, isDiscarded, type IssueMetrics } from './analyze.js';
 
 export const METRICS_MARKER = '<!-- job-radar:metrics -->';
 
@@ -36,6 +36,11 @@ function table(headers: string[], rows: Array<Array<string | number>>): string {
 
 export interface Totals {
   collected: number;
+  /** Open and still at "New": waiting for you to apply or drop them. */
+  waiting: number;
+  /** Closed without applying, with how many of those left the company's board by themselves. */
+  discarded: number;
+  goneFromSource: number;
   applications: number;
   inProgress: number;
   responded: number;
@@ -46,6 +51,9 @@ export function totals(all: IssueMetrics[]): Totals {
   const applications = all.filter((issue) => issue.appliedOn);
   return {
     collected: all.length,
+    waiting: all.filter((issue) => issue.state === 'open' && !issue.appliedOn && (!issue.status || issue.status === 'new')).length,
+    discarded: all.filter(isDiscarded).length,
+    goneFromSource: all.filter((issue) => isDiscarded(issue) && issue.closedAtSource).length,
     applications: applications.length,
     inProgress: applications.filter((issue) => !issue.status || !isTerminalStatus(issue.status)).length,
     responded: applications.filter((issue) => issue.responseDate).length,
@@ -64,7 +72,7 @@ function breakdown(all: IssueMetrics[], keys: (issue: IssueMetrics) => string[])
     .map(([key, issues]) => {
       const applied = issues.filter((issue) => issue.appliedOn);
       const responded = applied.filter((issue) => issue.responseDate);
-      return [key, issues.length, applied.length, responded.length, pct(responded.length, applied.length)];
+      return [key, issues.length, issues.filter(isDiscarded).length, applied.length, responded.length, pct(responded.length, applied.length)];
     });
 }
 
@@ -94,9 +102,12 @@ export function renderReport(all: IssueMetrics[], today: Date): string {
   const applications = all.filter((issue) => issue.appliedOn);
   const todayIso = today.toISOString().slice(0, 10);
 
-  const byStatus = STATUSES.map((status) => [STATUS_TITLES[status], all.filter((issue) => issue.status === status).length] as const).filter(
-    ([, count]) => count > 0,
-  );
+  // Discarded jobs keep their `status:new` label, so they are counted on their own row.
+  const active = all.filter((issue) => !isDiscarded(issue));
+  const byStatus = [
+    ...STATUSES.map((status) => [STATUS_TITLES[status], active.filter((issue) => issue.status === status).length] as const),
+    ['Discarded', total.discarded] as const,
+  ].filter(([, count]) => count > 0);
   const years = new Map<string, number>();
   for (const issue of applications) years.set(issue.appliedOn!.slice(0, 4), (years.get(issue.appliedOn!.slice(0, 4)) ?? 0) + 1);
 
@@ -134,6 +145,8 @@ export function renderReport(all: IssueMetrics[], today: Date): string {
       ['Indicator', 'Value'],
       [
         ['Jobs tracked', total.collected],
+        ['Waiting for a decision', total.waiting],
+        ['Discarded without applying', total.discarded === 0 ? 0 : `${total.discarded} (${total.goneFromSource} gone from the source)`],
         ['Applications', total.applications],
         ['In progress', total.inProgress],
         ['Response rate', `${pct(total.responded, total.applications)} (${total.responded} of ${total.applications})`],
@@ -150,13 +163,13 @@ export function renderReport(all: IssueMetrics[], today: Date): string {
     funnelChart(steps),
     table(['Step', 'From', 'To', 'Conversion'], conversions),
     '## Where jobs come from',
-    table(['Found on', 'Jobs', 'Applied', 'Responded', 'Response rate'], breakdown(all, (issue) => (issue.found ? [issue.found] : []))),
+    table(['Found on', 'Jobs', 'Discarded', 'Applied', 'Responded', 'Response rate'], breakdown(all, (issue) => (issue.found ? [issue.found] : []))),
     '### By ATS',
-    table(['ATS', 'Jobs', 'Applied', 'Responded', 'Response rate'], breakdown(all, (issue) => (issue.ats ? [issue.ats] : []))),
+    table(['ATS', 'Jobs', 'Discarded', 'Applied', 'Responded', 'Response rate'], breakdown(all, (issue) => (issue.ats ? [issue.ats] : []))),
     '## Domestic vs international',
-    table(['Scope', 'Jobs', 'Applied', 'Responded', 'Response rate'], breakdown(all, (issue) => (issue.scope ? [issue.scope] : []))),
+    table(['Scope', 'Jobs', 'Discarded', 'Applied', 'Responded', 'Response rate'], breakdown(all, (issue) => (issue.scope ? [issue.scope] : []))),
     '## By contract',
-    table(['Contract', 'Jobs', 'Applied', 'Responded', 'Response rate'], breakdown(all, (issue) => issue.contracts)),
+    table(['Contract', 'Jobs', 'Discarded', 'Applied', 'Responded', 'Response rate'], breakdown(all, (issue) => issue.contracts)),
     '## Salary',
     table(['Currency', 'Mean target', 'Targets', 'Mean offered', 'Offers'], salaries),
     `## Stalled applications (over ${STALLED_AFTER_DAYS} days without a response)`,

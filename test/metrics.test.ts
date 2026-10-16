@@ -136,10 +136,22 @@ describe('renderReport', () => {
     expect(report).toContain('| Hired | 33% (1 of 3) |');
     expect(report).toContain('mean 7 days · median 7 days');
     expect(report).toContain('bar [3, 2, 2, 2, 1, 1, 1]');
-    expect(report).toContain('| linkedin | 2 | 2 | 1 | 50% |');
-    expect(report).toContain('| himalayas | 1 | 0 | 0 | — |');
+    expect(report).toContain('| linkedin | 2 | 0 | 2 | 1 | 50% |');
+    expect(report).toContain('| himalayas | 1 | 0 | 0 | 0 | — |');
     expect(report).toContain('- #1 [Co1] QA (75 days)');
     expect(report).not.toContain('#2 [Co2] QA (');
+  });
+
+  it('counts jobs closed without applying on their own, not as "New"', () => {
+    const dropped = analyzeIssue(facts({ number: 5, title: '[Co5] QA', state: 'closed', labels: ['status:new', 'found:himalayas'] }));
+    const gone = analyzeIssue(facts({ number: 6, title: '[Co6] QA', state: 'closed', labels: ['status:new', 'found:himalayas', 'closed-at-source'] }));
+    const waiting = analyzeIssue(facts({ number: 7, title: '[Co7] QA', labels: ['status:new', 'found:himalayas'] }));
+    const report = renderReport([dropped, gone, waiting, applied(1)], TODAY);
+    expect(report).toContain('| Waiting for a decision | 1 |');
+    expect(report).toContain('| Discarded without applying | 2 (1 gone from the source) |');
+    expect(report).toContain('| New | 1 |');
+    expect(report).toContain('| Discarded | 2 |');
+    expect(report).toContain('| himalayas | 3 | 2 | 0 | 0 | — |');
   });
 
   it('copes with no data', () => {

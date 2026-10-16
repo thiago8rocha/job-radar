@@ -25,8 +25,11 @@ export interface IssueMetrics {
   number: number;
   title: string;
   url?: string;
+  state: 'open' | 'closed';
   /** Current status, from the `status:*` label. */
   status?: Status;
+  /** The posting left the company's board and job-radar closed the issue. */
+  closedAtSource: boolean;
   appliedOn?: string;
   furthestStage?: Status;
   responseDate?: string;
@@ -40,6 +43,11 @@ export interface IssueMetrics {
   targetSalary?: number;
   offeredSalary?: number;
   currency?: string;
+}
+
+/** Closed without ever being applied to: the job was looked at (or expired) and dropped. */
+export function isDiscarded(issue: Pick<IssueMetrics, 'state' | 'appliedOn' | 'status'>): boolean {
+  return issue.state === 'closed' && !issue.appliedOn && (issue.status === undefined || issue.status === 'new');
 }
 
 export function dayOf(iso: string): string {
@@ -110,7 +118,9 @@ export function analyzeIssue(facts: IssueFacts): IssueMetrics {
     number: facts.number,
     title: facts.title,
     url: facts.url,
+    state: facts.state,
     status,
+    closedAtSource: facts.labels.includes('closed-at-source'),
     appliedOn,
     furthestStage,
     responseDate,
