@@ -2,7 +2,14 @@ import { z } from 'zod';
 
 const sourceToggle = z.object({
   enabled: z.boolean().default(false),
+  /** Name of the secret that holds the API key, for sources that need one (Google Jobs → SERPAPI_KEY). */
   api_key_secret: z.string().optional(),
+  /** Search queries for sources that take free text; defaults are built from `search.include`. */
+  queries: z.array(z.string()).optional(),
+  /** Cap on paid or metered requests per run (SerpAPI's free plan allows 100 searches a month). */
+  max_searches: z.number().int().positive().optional(),
+  /** Location passed to the source's search, e.g. "Brazil". */
+  location: z.string().optional(),
 });
 
 export const configSchema = z.object({
@@ -46,8 +53,10 @@ export const configSchema = z.object({
     .object({
       enabled: z.boolean().default(false),
       queries: z.array(z.string()).default([]),
+      /** Cap on SerpAPI searches per run; the free plan allows 100 a month. */
+      max_searches: z.number().int().positive().default(8),
     })
-    .default({ enabled: false, queries: [] }),
+    .default({ enabled: false, queries: [], max_searches: 8 }),
 
   issues: z
     .object({
