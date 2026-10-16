@@ -15,6 +15,8 @@ export interface FetchContext {
    * for postings that the filters would discard anyway.
    */
   worthDetails(candidate: { title: string; workModel?: WorkModel }): boolean;
+  /** API key for sources that need one (SerpAPI), from the Action input; undefined when not provided. */
+  apiKey?: string;
   /** Records a problem that does not fail the whole source (one company down, one bad entry). */
   warn(message: string): void;
 }
@@ -28,6 +30,8 @@ export interface SourceAdapter<Raw = unknown> {
   id: string;
   /** `search` runs a global search by term; `company` looks up each company in `companies.yml`. */
   mode: 'search' | 'company';
+  /** True when the source only works with an API key; without one it is skipped, not failed. */
+  requiresKey?: boolean;
   fetch(ctx: FetchContext): Promise<Raw[]>;
   normalize(raw: Raw): Job;
 }

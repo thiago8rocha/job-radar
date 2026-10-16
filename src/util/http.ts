@@ -1,5 +1,8 @@
 import { setTimeout as sleep } from 'node:timers/promises';
 
+/** Never wait longer than this for one retry, whatever the server asks. */
+const MAX_WAIT_MS = 60_000;
+
 export const USER_AGENT = 'job-radar (+https://github.com/thiago8rocha/job-radar)';
 
 export class HttpError extends Error {
@@ -19,6 +22,8 @@ export interface RequestOptions {
 
 export interface HttpClient {
   getJson(url: string, options?: RequestOptions): Promise<unknown>;
+  /** The response body as text, for sources that publish XML or HTML. */
+  getText(url: string, options?: RequestOptions): Promise<string>;
 }
 
 export interface HttpClientOptions {
@@ -56,27 +61,30 @@ export function createHttpClient(options: HttpClientOptions = {}): HttpClient {
     if (wait > 0) await sleep(wait);
   }
 
-  return {
-    async getJson(url, request = {}) {
-      for (let attempt = 0; ; attempt++) {
-        await throttle(url);
-        const response = await fetch(url, {
-          method: request.method ?? 'GET',
-          headers: {
-            'User-Agent': USER_AGENT,
-            Accept: 'application/json',
-            ...(request.body !== undefined ? { 'Content-Type': 'application/json' } : {}),
-            ...request.headers,
-          },
-          body: request.body !== undefined ? JSON.stringify(request.body) : undefined,
-          signal: AbortSignal.timeout(timeoutMs),
-        });
+  async function send(url: string, request: RequestOptions, accept: string): Promise<Response> {
+    for (let attempt = 0; ; attempt++) {
+      await throttle(url);
+      const response = await fetch(url, {
+        method: request.method ?? 'GET',
+        headers: {
+          'User-Agent': USER_AGENT,
+          Accept: accept,
+          ...(request.body !== undefined ? { 'Content-Type': 'application/json' } : {}),
+          ...request.headers,
+        },
+        body: request.body !== undefined ? JSON.stringify(request.body) : undefined,
+        signal: AbortSignal.timeout(timeoutMs),
+      });
 
-        if (response.ok) return response.json();
-        const retryable = response.status === 429 || response.status >= 500;
-        if (!retryable || attempt >= retries) throw new HttpError(response.status, url);
-        await sleep(retryAfterMs(response.headers.get('retry-after')) ?? backoffMs * 2 ** attempt);
-      }
-    },
+      if (response.ok) return response;
+      const retryable = response.status === 429 || response.status >= 500;
+      if (!retryable || attempt >= retries) throw new HttpError(response.status, url);
+      await sleep(Math.min(retryAfterMs(response.headers.get('retry-after')) ?? backoffMs * 2 ** attempt, MAX_WAIT_MS));
+    }
+  }
+
+  return {
+    getJson: async (url, request = {}) => (await send(url, request, 'application/json')).json(),
+    getText: async (url, request = {}) => (await send(url, request, 'application/xml, text/xml, */*')).text(),
   };
 }

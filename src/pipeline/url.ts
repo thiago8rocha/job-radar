@@ -1,4 +1,4 @@
-const TRACKING_PARAMS = new Set(['source', 'gh_src', 'fbclid', 'gclid']);
+const TRACKING_PARAMS = new Set(['source', 'gh_src', 'fbclid', 'gclid', 'jobBoardSource', 'ref']);
 
 /**
  * Canonical form of a job URL: no tracking parameters (`utm_*`, `source`, `gh_src`...),
