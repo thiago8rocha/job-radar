@@ -30,8 +30,9 @@ Everything personal (your searches, companies and history) lives in your own **p
 | Applied | `status:applied` | Fills `Applied on` with today if empty. |
 | Screening, HR interview, Tech interview, Take-home, Offer | `status:*` | The board column follows the label. |
 | Hired, Rejected, Withdrawn | `status:hired`, `status:rejected`, `status:withdrawn` | The issue closes as "completed". Going back to an active status reopens it. |
+| Discarded | `status:discarded` | A job you looked at and will not apply to. The issue closes as "not planned". |
 
-Add one `status:*` label and the workflow removes the previous one. Dragging a card on the board does not trigger Actions on a personal account, so change the label. To drop a job you will not apply to, close the issue as **not planned** and leave `status:new` as it is. The Metrics issue counts it as *Discarded* (and notes how many left the company's board by themselves), keeping it apart from jobs still waiting for a decision.
+Add one `status:*` label and the workflow removes the previous one. Dragging a card on the board does not trigger Actions on a personal account, so change the label. To drop a job you will not apply to, add `status:discarded`, plus a reason such as `discard:hybrid`, `discard:salary` or `discard:stack` (`setup` creates a set; any `discard:*` label counts). The issue closes as "not planned", leaves the "New" column, and the Metrics issue counts it as *Discarded* and breaks the reasons down. Jobs that leave the company's board by themselves get `status:discarded` and `closed-at-source` from `revalidate`.
 
 ## Commands
 
@@ -44,7 +45,7 @@ The Action takes `command` plus `github-token`. The same commands run locally wi
 | `sync-status` | on `labeled` | Keeps one status label and mirrors it to the Project and the issue state. |
 | `intake` | on `opened` | Normalizes issues made with the form. |
 | `revalidate` | weekly | Closes "New" jobs whose posting left the company's board (`closed-at-source`). |
-| `metrics` | weekly | Writes the calculated fields and the Metrics issue. |
+| `metrics` | weekly | Writes the calculated fields, repairs `Status` cards that no longer match their label, and rewrites the Metrics issue. |
 | `import` | once, local | Creates issues from a spreadsheet: `npm run cli -- import --xlsx file.xlsx --repo you/job-search`. See `src/import/xlsx.ts` for the expected columns. |
 
 `collect`, `import`, `metrics` and `revalidate` accept `dry-run` and write nothing.

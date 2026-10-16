@@ -239,7 +239,7 @@ Separating where you saw a job from where you applied fixes a bias in the spread
 
 **Jobs outside the collector.** An issue form (`.github/ISSUE_TEMPLATE/job.yml`) covers recruiters, referrals and anything found by hand. It has structured fields for company, role, link, contract, compensation, currency and contact channel. The `intake` command runs on `issues: [opened]` for issues labeled `manual`: it rewrites the title and body to the collector's format and fills in labels and Project fields, just like the collector. Notes become the first comment.
 
-**Closing the issue:** GitHub only offers three close reasons (completed, not planned, duplicate), so the outcome lives in the `status:*` label and the Project `Status` field. The reason says whether a process happened: closed with `status:rejected`, `status:withdrawn` or `status:hired` = history, closed as *completed*; closed without a final `status:*` = discarded without applying, closed as *not planned*. `sync-status` closes the issue when the label becomes one of the three final statuses and reopens it when it goes back to an active one (`issues.close_on_final_status`, on by default).
+**Closing the issue:** GitHub only offers three close reasons (completed, not planned, duplicate), so the outcome lives in the `status:*` label and the Project `Status` field. The reason says whether a process happened: closed with `status:rejected`, `status:withdrawn` or `status:hired` = history, closed as *completed*; `status:discarded` = dropped without applying, closed as *not planned*. `sync-status` closes the issue when the label becomes a final status and reopens it when it goes back to an active one (`issues.close_on_final_status`, on by default).
 
 **Work model.** The source's own field is cross-checked against the title, the locations and explicit phrases in the description ("hybrid role", "modelo híbrido", "100% presencial"). When they disagree, the more demanding model wins, because a missed job costs less than a misleading one. Mentions that offer a choice ("hybrid or remote") do not count.
 
@@ -258,7 +258,7 @@ Status lives in a label because the issue timeline records each label added with
 7. `status:offer`
 8. `status:hired`
 
-Final states from any stage: `status:rejected` and `status:withdrawn`.
+Final states from any stage: `status:rejected`, `status:withdrawn` and `status:discarded` (a job looked at and dropped without applying; an optional `discard:*` label, such as `discard:hybrid` or `discard:salary`, says why).
 
 **Sync.** An `on: issues: [labeled]` workflow removes the previous status label (one at a time) and updates the Project's `Status` field, which defines the board column. On receiving `status:applied`, it fills `Applied on` if empty. Dragging the card on the board doesn't trigger an Action on a personal account, so the official path is to change the label; the board only reflects it.
 
