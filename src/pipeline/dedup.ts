@@ -17,6 +17,36 @@ export function jobKey(company: string, title: string): string {
   return `${companyKey(company)}|${normalizeText(title)}`;
 }
 
+const ANNOTATION = /[(\[{]\s*([^()[\]{}]*?)\s*[)\]}]/g;
+const POSTING_CODE = /^(?:(?:job|req|ref|id|vaga|cod|codigo)\s+)?#?(\d{3,})$/;
+const YEAR = /^(?:19|20)\d{2}$/;
+const EXCLUSIVE = /\b(?:pcd|pwd|exclusiv[oa]s?|afirmativ[oa]s?)\b/;
+
+/**
+ * The same posting is sometimes republished with a requisition code or an audience tag in the
+ * title ("... (13865)", "[Job - 32255] ...", "... [Exclusiva PCD]"), which defeats an exact title match.
+ * The keys of a job are its exact key, the key without those annotations and, when the title carries
+ * one, the key of its posting code. Any of them being known makes the job a duplicate.
+ */
+export function jobKeys(company: string, title: string): string[] {
+  let code: string | undefined;
+  const bare = title.replace(ANNOTATION, (whole, inner: string) => {
+    const text = normalizeText(inner);
+    const match = POSTING_CODE.exec(text)?.[1];
+    if (match && !YEAR.test(match)) {
+      code ??= match;
+      return ' ';
+    }
+    return EXCLUSIVE.test(text) ? ' ' : whole;
+  });
+
+  const keys = [jobKey(company, title)];
+  const bareKey = jobKey(company, bare);
+  if (normalizeText(bare) && !keys.includes(bareKey)) keys.push(bareKey);
+  if (code) keys.push(`${companyKey(company)}|code:${code}`);
+  return keys;
+}
+
 export interface KnownJobs {
   ids: Set<string>;
   urls: Set<string>;
@@ -44,7 +74,7 @@ export function knownFromIssues(issues: Array<{ title: string; body?: string | n
     if (url) known.urls.add(url);
 
     const title = TITLE.exec(issue.title);
-    if (title) known.keys.add(jobKey(title[1]!, title[2]!));
+    if (title) for (const key of jobKeys(title[1]!, title[2]!)) known.keys.add(key);
   }
   return known;
 }
@@ -60,7 +90,7 @@ export interface DedupResult {
 }
 
 /**
- * Splits jobs into new and already known. Known = seen id, then canonical URL, then company + title.
+ * Splits jobs into new and already known. Known = seen id, then canonical URL, then company + title or posting code.
  * Within one run the first occurrence wins, and jobs applied to on the company's own ATS go first,
  * so an aggregator listing never shadows the direct link.
  */
@@ -73,15 +103,17 @@ export function dedupe(jobs: Job[], known: KnownJobs): DedupResult {
   const ordered = [...jobs].sort((a, b) => Number(b.atsApply) - Number(a.atsApply));
   for (const job of ordered) {
     const url = canonicalUrl(job.applyUrl) ?? job.applyUrl;
-    const key = jobKey(job.company, job.title);
-    const reason = ids.has(job.id) ? 'id' : urls.has(url) ? 'url' : keys.has(key) ? 'company and title' : undefined;
+    const candidates = jobKeys(job.company, job.title);
+    const knownKey = candidates.find((key) => keys.has(key));
+    const keyReason = knownKey?.includes('|code:') ? 'company and posting code' : 'company and title';
+    const reason = ids.has(job.id) ? 'id' : urls.has(url) ? 'url' : knownKey ? keyReason : undefined;
     if (reason) {
       result.duplicates.push({ job, reason });
       continue;
     }
     ids.add(job.id);
     urls.add(url);
-    keys.add(key);
+    for (const key of candidates) keys.add(key);
     result.fresh.push(job);
   }
   return result;

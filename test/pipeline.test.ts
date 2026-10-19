@@ -4,7 +4,7 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { parseConfig } from '../src/config/load.js';
 import type { Job } from '../src/domain/job.js';
-import { dedupe, jobKey, knownFromIssues, emptyKnown } from '../src/pipeline/dedup.js';
+import { dedupe, jobKey, jobKeys, knownFromIssues, emptyKnown } from '../src/pipeline/dedup.js';
 import { checkEligibility, regionsOf } from '../src/pipeline/eligibility.js';
 import { buildExcerpt, sanitizeForIssue } from '../src/pipeline/excerpt.js';
 import { createFilter, detectSeniority, inferWorkModel } from '../src/pipeline/filter.js';
@@ -177,6 +177,35 @@ describe('dedup', () => {
     expect(jobKey('Acme Ltda.', 'QA')).toBe(jobKey('ACME', 'qa'));
     expect(jobKey('Group', 'QA')).toBe('group|qa'); // a name made only of suffixes is kept
     expect(jobKey('Acme', 'QA')).not.toBe(jobKey('Beta', 'QA'));
+  });
+
+  it('matches a republished posting by its code or audience tag', () => {
+    const known = knownFromIssues([
+      { title: '[Sensedia] Analista de Qualidade de Software | Sênior (13865)', body: '**Apply:** https://himalayas.app/sensedia/a\n' },
+    ]);
+    const { fresh, duplicates } = dedupe(
+      [
+        job({ id: 'h:1', company: 'Sensedia', title: 'Analista de Qualidade de Software | Sênior (13865) [Exclusiva PCD}', applyUrl: 'https://himalayas.app/sensedia/b' }),
+        job({ id: 'h:2', company: 'Sensedia', title: 'Analista de Qualidade de Software | Sênior [PCD]', applyUrl: 'https://himalayas.app/sensedia/c' }),
+        job({ id: 'h:3', company: 'Sensedia', title: 'QA Engineer (13865)', applyUrl: 'https://himalayas.app/sensedia/d' }),
+        job({ id: 'h:4', company: 'Sensedia', title: 'QA Engineer (14000)', applyUrl: 'https://himalayas.app/sensedia/e' }),
+      ],
+      known,
+    );
+    expect(fresh.map((item) => item.id)).toEqual(['h:4']);
+    expect(duplicates.map((item) => item.reason)).toEqual(['company and title', 'company and title', 'company and posting code']);
+  });
+
+  it('reads the code from a leading tag such as "[Job - 32255]"', () => {
+    expect(jobKeys('CI&T', '[Job - 32255] Senior SDET, Brazil')).toContain('ci t|code:32255');
+    expect(jobKeys('CI&T', 'Senior SDET, Brazil (job 32255)')).toContain('ci t|code:32255');
+  });
+
+  it('keeps distinct roles apart when only a meaningful qualifier differs', () => {
+    expect(jobKeys('Acme', 'QA Engineer (Backend)')).not.toEqual(jobKeys('Acme', 'QA Engineer (Frontend)'));
+    expect(jobKeys('Acme', 'QA Engineer (2026)')).toEqual([jobKey('Acme', 'QA Engineer (2026)')]);
+    expect(jobKeys('Acme', 'QA Engineer (12)')).toEqual([jobKey('Acme', 'QA Engineer (12)')]);
+    expect(jobKeys('Acme', 'QA Engineer')).toEqual([jobKey('Acme', 'QA Engineer')]);
   });
 
   it('keeps one copy of a job found on several sources, preferring the company ATS', () => {
