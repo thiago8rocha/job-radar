@@ -26,7 +26,7 @@ const EXCLUSIVE = /\b(?:pcd|pwd|exclusiv[oa]s?|afirmativ[oa]s?)\b/;
  * The same posting is sometimes republished with a requisition code or an audience tag in the
  * title ("... (13865)", "[Job - 32255] ...", "... [Exclusiva PCD]"), which defeats an exact title match.
  * The keys of a job are its exact key, the key without those annotations and, when the title carries
- * one, the key of its posting code. Any of them being known makes the job a duplicate.
+ * one, the keys of its posting code. Any of them being known makes the job a duplicate.
  */
 export function jobKeys(company: string, title: string): string[] {
   let code: string | undefined;
@@ -43,7 +43,8 @@ export function jobKeys(company: string, title: string): string[] {
   const keys = [jobKey(company, title)];
   const bareKey = jobKey(company, bare);
   if (normalizeText(bare) && !keys.includes(bareKey)) keys.push(bareKey);
-  if (code) keys.push(`${companyKey(company)}|code:${code}`);
+  // Aggregators name a company differently from its own ATS ("ciandt" / "CI&T"), so the code also pairs with the title alone.
+  if (code) keys.push(`${companyKey(company)}|code:${code}`, `code:${code}|${normalizeText(bare)}`);
   return keys;
 }
 
@@ -105,7 +106,7 @@ export function dedupe(jobs: Job[], known: KnownJobs): DedupResult {
     const url = canonicalUrl(job.applyUrl) ?? job.applyUrl;
     const candidates = jobKeys(job.company, job.title);
     const knownKey = candidates.find((key) => keys.has(key));
-    const keyReason = knownKey?.includes('|code:') ? 'company and posting code' : 'company and title';
+    const keyReason = knownKey?.includes('code:') ? 'company and posting code' : 'company and title';
     const reason = ids.has(job.id) ? 'id' : urls.has(url) ? 'url' : knownKey ? keyReason : undefined;
     if (reason) {
       result.duplicates.push({ job, reason });

@@ -201,6 +201,19 @@ describe('dedup', () => {
     expect(jobKeys('CI&T', 'Senior SDET, Brazil (job 32255)')).toContain('ci t|code:32255');
   });
 
+  it('pairs a posting code with the title when the company is named differently', () => {
+    const known = knownFromIssues([{ title: '[CI&T] [Job - 32255] Senior SDET, Brazil', body: '' }]);
+    const { fresh, duplicates } = dedupe(
+      [
+        job({ id: 'l:1', company: 'ciandt', title: '[Job - 32255]  Senior SDET, Brazil', applyUrl: 'https://jobs.lever.co/ciandt/1' }),
+        job({ id: 'l:2', company: 'ciandt', title: '[Job - 32255] Senior QA Lead', applyUrl: 'https://jobs.lever.co/ciandt/2' }),
+      ],
+      known,
+    );
+    expect(duplicates.map((item) => item.job.id)).toEqual(['l:1']);
+    expect(fresh.map((item) => item.id)).toEqual(['l:2']);
+  });
+
   it('keeps distinct roles apart when only a meaningful qualifier differs', () => {
     expect(jobKeys('Acme', 'QA Engineer (Backend)')).not.toEqual(jobKeys('Acme', 'QA Engineer (Frontend)'));
     expect(jobKeys('Acme', 'QA Engineer (2026)')).toEqual([jobKey('Acme', 'QA Engineer (2026)')]);
