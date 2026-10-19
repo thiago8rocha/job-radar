@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import type { Job } from '../domain/job.js';
 import { sanitizeForIssue } from '../pipeline/excerpt.js';
-import { truncate } from '../util/text.js';
+import { stripInvisible, truncate } from '../util/text.js';
 import { AiError, type ChatClient, type ChatMessage } from './models.js';
 
 const MAX_PROFILE = 6000;
@@ -15,7 +15,7 @@ const SYSTEM = [
 ].join(' ');
 
 function clean(text: string, max: number): string {
-  return truncate(text.replace(/<\/?(profile|job)>/gi, ''), max);
+  return truncate(stripInvisible(text).replace(/<\/?(profile|job)>/gi, ''), max);
 }
 
 function jobMessage(profile: string, job: Pick<Job, 'title' | 'company' | 'locations' | 'description'>, task: string): ChatMessage[] {
@@ -47,6 +47,8 @@ export const insightSchema = z.object({
   required_hours: z.string().nullish(),
   stack: z.array(z.string()).default([]),
   really_remote: z.boolean().nullish(),
+  language_required: z.array(z.string()).default([]),
+  hard_blocker: z.string().nullish(),
 });
 
 export type JobInsight = z.infer<typeof insightSchema>;
@@ -59,7 +61,9 @@ const INSIGHT_TASK = [
   '"salary": {"min": number|null, "max": number|null, "currency": "BRL"|"USD"|"EUR"|null, "period": "month"|"year"|null} or null;',
   '"required_hours": the working hours or time zone the posting requires, as written, or null;',
   '"stack": the main tools and technologies the posting names, at most 8;',
-  '"really_remote": true if the work is fully remote, false if it requires office days or presence, null if unclear.',
+  '"really_remote": true if the work is fully remote, false if it requires office days or presence, null if unclear;',
+  '"language_required": languages the posting requires as a job condition, as written (for example "English (fluent)"), at most 4; the language the ad is written in does not count; empty list if none is stated;',
+  '"hard_blocker": a citizenship, permanent-residency, work-authorization or security-clearance requirement that the candidate in the profile does not meet, quoted from the posting; null if there is none.',
 ].join('\n');
 
 /** The model's reply as an object, tolerating a markdown code fence around it. */
@@ -86,6 +90,8 @@ export async function analyzeJob(
     rationale: sanitizeForIssue(truncate(parsed.data.rationale.replace(/\s+/g, ' ').trim(), 420)),
     stack: parsed.data.stack.slice(0, 8).map((item) => sanitizeForIssue(item.trim())).filter(Boolean),
     required_hours: parsed.data.required_hours ? sanitizeForIssue(parsed.data.required_hours.trim()) : parsed.data.required_hours,
+    language_required: parsed.data.language_required.slice(0, 4).map((item) => sanitizeForIssue(truncate(item.trim(), 60))).filter(Boolean),
+    hard_blocker: parsed.data.hard_blocker?.trim() ? sanitizeForIssue(truncate(parsed.data.hard_blocker.replace(/\s+/g, ' ').trim(), 300)) : null,
   };
 }
 

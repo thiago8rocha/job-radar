@@ -299,6 +299,8 @@ function insightLines(insight: JobInsight, today: Date): string[] {
   if (insight.stack.length > 0) lines.push(`**Stack:** ${insight.stack.join(', ')}`);
   if (insight.required_hours) lines.push(`**Required hours:** ${brasiliaHours(insight.required_hours, today) ?? insight.required_hours}`);
   if (insight.really_remote === false) lines.push('**Remote check:** the posting seems to require office presence');
+  if (insight.language_required.length > 0) lines.push(`**Languages required:** ${insight.language_required.join(', ')}`);
+  if (insight.hard_blocker) lines.push(`**Possible blocker:** ${insight.hard_blocker}`);
   return lines;
 }
 
