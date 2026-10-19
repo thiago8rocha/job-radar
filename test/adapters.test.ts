@@ -3,12 +3,14 @@ import { http, HttpResponse } from 'msw';
 import { setupServer } from 'msw/node';
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { ashby } from '../src/adapters/ashby.js';
+import { freehire } from '../src/adapters/freehire.js';
 import { greenhouse } from '../src/adapters/greenhouse.js';
 import { himalayas } from '../src/adapters/himalayas.js';
 import { inhire } from '../src/adapters/inhire.js';
 import { lever } from '../src/adapters/lever.js';
 import { SchemaError, type FetchContext } from '../src/adapters/types.js';
 import { parseConfig } from '../src/config/load.js';
+import { checkEligibility } from '../src/pipeline/eligibility.js';
 import { createFilter } from '../src/pipeline/filter.js';
 import { createHttpClient } from '../src/util/http.js';
 
@@ -221,6 +223,89 @@ describe('himalayas', () => {
     expect(job.applyUrl).toContain('himalayas.app');
     expect(job.seniority).toContain('senior');
     expect(job.id).toMatch(/^himalayas:/);
+  });
+});
+
+describe('freehire', () => {
+  const SEARCH = 'https://freehire.me/api/v1/agent/jobs/search';
+
+  it('searches titles in one OR query, scoped to the accepted regions and the age limit', async () => {
+    const seen: URLSearchParams[] = [];
+    server.use(
+      http.get(SEARCH, ({ request }) => {
+        seen.push(new URL(request.url).searchParams);
+        return HttpResponse.json(fixture('freehire.json'));
+      }),
+    );
+    const { ctx } = context();
+    const raws = await freehire.fetch(ctx);
+
+    expect(seen).toHaveLength(1);
+    expect(seen[0]!.get('q')).toBe('title:"QA" OR title:"Quality"');
+    expect(seen[0]!.getAll('regions')).toEqual(['global']);
+    expect(seen[0]!.getAll('countries')).toEqual(['br']);
+    expect(seen[0]!.get('work_mode')).toBe('remote');
+    expect(seen[0]!.get('posted_within_days')).toBe('15');
+    expect(raws).toHaveLength(fixture('freehire.json').data.length);
+  });
+
+  it('splits more than five include terms into several queries and pages until the total', async () => {
+    const queries: string[] = [];
+    const offsets: string[] = [];
+    server.use(
+      http.get(SEARCH, ({ request }) => {
+        const params = new URL(request.url).searchParams;
+        queries.push(params.get('q')!);
+        offsets.push(params.get('offset')!);
+        return HttpResponse.json({ data: fixture('freehire.json').data.slice(0, 1), meta: { total: 150 } });
+      }),
+    );
+    const { ctx } = context([], {
+      config: parseConfig('search: { include: ["a", "b", "c", "d", "e", "f"] }\neligibility: { accept_regions: [latam] }'),
+    });
+    await freehire.fetch(ctx);
+
+    expect(queries.map((q) => q.split(' OR ').length)).toEqual([5, 5, 1, 1]);
+    expect(offsets).toEqual(['0', '100', '0', '100']);
+  });
+
+  it('fails the source when the response format changes', async () => {
+    server.use(http.get(SEARCH, () => HttpResponse.json({ jobs: [] })));
+    await expect(freehire.fetch(context().ctx)).rejects.toBeInstanceOf(SchemaError);
+  });
+
+  it('normalizes a posting open to Brazil, dropping the tracking parameters', () => {
+    const job = freehire.normalize(fixture('freehire.json').data[0]);
+    expect(job.id).toMatch(/^freehire:media-hero:[0-9a-f]{8}$/);
+    expect(job.atsApply).toBe(false);
+    expect(job.workModel).toBe('remote');
+    expect(job.restrictions).toEqual(['BR']);
+    expect(job.applyUrl).not.toContain('utm_');
+    expect(checkEligibility(job, ['worldwide', 'latam', 'brazil'], []).ok).toBe(true);
+  });
+
+  it('rejects a posting open to a single other country even when the region is LATAM', () => {
+    const job = freehire.normalize(fixture('freehire.json').data[2]);
+    expect(job.restrictions).toEqual(['CR']);
+    expect(checkEligibility(job, ['worldwide', 'latam', 'brazil'], []).ok).toBe(false);
+  });
+
+  it('uses the location text, not the region facet, when there are no countries', () => {
+    const latam = freehire.normalize(fixture('freehire.json').data[3]);
+    expect(latam.restrictions).toEqual([]);
+    expect(checkEligibility(latam, ['latam'], []).ok).toBe(true);
+
+    const abroad = freehire.normalize({ ...fixture('freehire.json').data[3], location: 'India', regions: ['global'] });
+    expect(checkEligibility(abroad, ['worldwide', 'latam', 'brazil'], []).ok).toBe(false);
+
+    const unlocated = freehire.normalize({ ...fixture('freehire.json').data[3], location: null, regions: ['global'] });
+    expect(unlocated.restrictions).toEqual(['Worldwide']);
+  });
+
+  it('keeps the stated compensation and level', () => {
+    const job = freehire.normalize(fixture('freehire.json').data[5]);
+    expect(job.compensation).toBe('USD 5,000 – 6,000 / month');
+    expect(job.currency).toBe('USD');
   });
 });
 

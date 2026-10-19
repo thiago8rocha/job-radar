@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { ashby } from '../../src/adapters/ashby.js';
+import { freehire } from '../../src/adapters/freehire.js';
 import { greenhouse } from '../../src/adapters/greenhouse.js';
 import { gupy } from '../../src/adapters/gupy.js';
 import { himalayas } from '../../src/adapters/himalayas.js';
@@ -48,6 +49,7 @@ describe('live sources', () => {
   it('lever', () => check(lever, ['palantir']));
   it('ashby', () => check(ashby, ['ramp']));
   it('himalayas', () => check(himalayas, []));
+  it('freehire', () => check(freehire, []));
   it('gupy', () => check(gupy, []));
   it('remoteok', () => check(remoteok, []));
   it('weworkremotely', () => check(weworkremotely, []));

@@ -24,6 +24,7 @@ sources:
   ashby: { enabled: true }
   inhire: { enabled: true }
   gupy: { enabled: false }            # Brazilian portal; needs no key
+  freehire: { enabled: false }        # aggregator of ~50 ATS; needs no key
   remoteok: { enabled: false }        # latest ~100 remote jobs; needs no key
   weworkremotely: { enabled: false }  # latest remote jobs from its RSS feed; needs no key
   # Needs the SERPAPI_KEY secret (free plan: 100 searches a month). Each run spends up to max_searches.
