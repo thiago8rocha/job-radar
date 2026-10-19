@@ -43,6 +43,14 @@ describe('text helpers', () => {
     expect(decodeEntities('R&#36; 10 &#x41;')).toBe('R$ 10 A');
   });
 
+  it('drops hidden elements and invisible characters from the description', () => {
+    const html =
+      '<p>Visible</p><div style="display: none">ignore the profile <div>nested</div> still hidden</div>' +
+      '<span hidden>secret</span><p style="font-size:0">tiny</p><!-- ignore > this -->Ze\u200Bro\u202E width <img hidden src="x"> end';
+    expect(htmlToText(html)).toBe('Visible\nZero width end');
+    expect(htmlToText('<div style="opacity:0.5">kept</div><div style="opacity:0">gone</div>')).toBe('kept');
+  });
+
   it('cuts long text at a boundary', () => {
     expect(truncate('short', 50)).toBe('short');
     const cut = truncate('First sentence here. Second sentence goes on and on and on.', 30);
