@@ -69,6 +69,13 @@ export const configSchema = z.object({
     })
     .default({ max_per_run: 25, project_number: 1, close_on_final_status: true }),
 
+  metrics: z
+    .object({
+      /** An application with no answer after this many days counts as "no response" in the Metrics issue. */
+      no_response_after_days: z.number().int().positive().default(60),
+    })
+    .default({ no_response_after_days: 60 }),
+
   ai: z
     .object({
       enabled: z.boolean().default(false),

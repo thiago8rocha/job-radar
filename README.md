@@ -35,6 +35,8 @@ Everything personal (your searches, companies and history) lives in your own **p
 
 Add one `status:*` label and the workflow removes the previous one. Dragging a card on the board does not trigger Actions on a personal account, so change the label. To drop a job you will not apply to, add `status:discarded`, plus a reason such as `discard:hybrid`, `discard:salary` or `discard:stack` (`setup` creates a set; any `discard:*` label counts). The issue closes as "not planned", leaves the "New" column, and the Metrics issue counts it as *Discarded* and breaks the reasons down. Jobs that leave the company's board by themselves get `status:discarded` and `closed-at-source` from `revalidate`.
 
+An application nobody answers is not a rejection, so it keeps its status. The Metrics issue lists it as *No response* once it is older than `metrics.no_response_after_days` (60 by default), or at once when you add the `no-response` label, for example after seeing the posting taken down.
+
 ## Commands
 
 The Action takes `command` plus `github-token`. The same commands run locally with `npm run cli -- <command>` and a `GITHUB_TOKEN`.

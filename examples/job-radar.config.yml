@@ -45,6 +45,9 @@ issues:
   close_on_final_status: true  # close the issue on rejected, withdrawn, hired and discarded
   # project_owner: your-login  # only when the Project belongs to someone else than the repo owner
 
+metrics:
+  no_response_after_days: 60  # an application with no answer after this long counts as "no response"
+
 # Optional AI, free through GitHub Models. Off by default. Before turning it on, check in GitHub Billing
 # that paid usage of GitHub Models is off, so the free limits are the only limits.
 ai:

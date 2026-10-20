@@ -9,6 +9,7 @@ export interface LabelDef {
 export const LABEL = {
   manual: 'manual',
   closedAtSource: 'closed-at-source',
+  noResponse: 'no-response',
 } as const;
 
 const STATUS_COLORS: Record<string, string> = {
@@ -69,6 +70,7 @@ export const STATIC_LABELS: LabelDef[] = [
   { name: 'work:hybrid', color: 'fef2c0', description: 'Hybrid work model' },
   { name: LABEL.manual, color: 'd4c5f9', description: 'Entered by hand (recruiter, referral...)' },
   { name: LABEL.closedAtSource, color: 'cccccc', description: 'The posting disappeared from its source' },
+  { name: LABEL.noResponse, color: 'cccccc', description: 'Applied, and the company never answered' },
 ];
 
 const PREFIX_COLORS: Record<string, string> = {

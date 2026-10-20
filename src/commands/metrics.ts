@@ -1,5 +1,5 @@
 import { desiredFields, analyzeIssue, type IssueFacts, type IssueMetrics } from '../metrics/analyze.js';
-import { METRICS_MARKER, renderReport } from '../metrics/report.js';
+import { IGNORE_MARKER, METRICS_MARKER, renderReport } from '../metrics/report.js';
 import { parseStatusLabel, type Status } from '../domain/status.js';
 import { extractMarker } from '../github/issue-body.js';
 import { listProjectItems, setFieldValue, type Project, type ProjectItem } from '../github/project.js';
@@ -64,7 +64,7 @@ export async function metrics(ctx: Context, options: MetricsOptions = {}): Promi
     per_page: 100,
   })) as unknown as RepoIssue[];
   const metricsIssue = all.find((issue) => !issue.pull_request && (issue.body ?? '').includes(METRICS_MARKER));
-  const jobs = all.filter((issue) => !issue.pull_request && issue !== metricsIssue);
+  const jobs = all.filter((issue) => !issue.pull_request && issue !== metricsIssue && !(issue.body ?? '').includes(IGNORE_MARKER));
 
   const project = await loadProject(ctx);
   const items = await listProjectItems(ctx.octokit, project);
@@ -104,7 +104,7 @@ export async function metrics(ctx: Context, options: MetricsOptions = {}): Promi
   );
   fieldsWritten += statusFixes;
 
-  const report = renderReport(results, now);
+  const report = renderReport(results, now, ctx.config.metrics.no_response_after_days);
   if (dryRun) {
     ctx.log.info(`[dry-run] Would update the Metrics issue with:\n${report}`);
   } else {

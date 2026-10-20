@@ -5,7 +5,7 @@ import { revalidate } from '../src/commands/revalidate.js';
 import { parseConfig } from '../src/config/load.js';
 import type { Job } from '../src/domain/job.js';
 import { analyzeIssue, daysBetween, desiredFields, type IssueFacts } from '../src/metrics/analyze.js';
-import { METRICS_MARKER, renderReport } from '../src/metrics/report.js';
+import { IGNORE_MARKER, METRICS_MARKER, renderReport } from '../src/metrics/report.js';
 import { fakeContext } from './fake-github.js';
 import { job } from './helpers.js';
 
@@ -128,6 +128,7 @@ describe('renderReport', () => {
         analyzeIssue(facts({ number: 4, title: '[Co4] QA', labels: ['status:new', 'found:himalayas'] })),
       ],
       TODAY,
+      90,
     );
     expect(report).toContain(METRICS_MARKER);
     expect(report).toContain('| Applications | 3 |');
@@ -140,6 +141,32 @@ describe('renderReport', () => {
     expect(report).toContain('| himalayas | 1 | 0 | 0 | 0 | — |');
     expect(report).toContain('- #1 [Co1] QA (75 days)');
     expect(report).not.toContain('#2 [Co2] QA (');
+  });
+
+  it('counts an application nobody answered, by label or by age, apart from the ones still waiting', () => {
+    const report = renderReport(
+      [
+        applied(1),
+        applied(2, { 'Applied on': '2026-10-01' }),
+        analyzeIssue(facts({ number: 3, title: '[Co3] QA', labels: ['status:applied', 'no-response'], fields: { 'Applied on': '2026-10-01' } })),
+        applied(4, { 'Response date': '2026-08-11' }),
+        analyzeIssue(facts({ number: 5, title: '[Co5] QA', state: 'closed', labels: ['status:withdrawn'], fields: { 'Applied on': '2026-07-01' } })),
+      ],
+      TODAY,
+      60,
+    );
+    expect(report).toContain('| Applications | 5 |');
+    expect(report).toContain('| Awaiting a reply | 1 |');
+    expect(report).toContain('| No response (marked or over 60 days) | 2 |');
+    expect(report).toContain('| In progress | 2 |');
+    expect(report).toContain('## Stalled applications (30 to 60 days without a response)');
+    expect(report).not.toContain('#1 [Co1] QA (');
+  });
+
+  it('keeps an application between the stalled and no-response thresholds in the stalled list', () => {
+    const report = renderReport([applied(1, { 'Applied on': '2026-09-01' })], TODAY, 60);
+    expect(report).toContain('- #1 [Co1] QA (44 days)');
+    expect(report).toContain('| No response (marked or over 60 days) | 0 |');
   });
 
   it('counts jobs closed without applying on their own, not as "New"', () => {
@@ -257,6 +284,20 @@ describe('metrics command', () => {
     expect(result.fieldsWritten).toBe(0);
     expect(second.issues.create).not.toHaveBeenCalled();
     expect(second.issues.update).toHaveBeenCalledWith(expect.objectContaining({ issue_number: 9, state: 'open' }));
+  });
+
+  it('does not count issues marked to be ignored, such as a pinned guide', async () => {
+    const { ctx } = fakeContext({
+      existingIssues: [
+        issue(1, [], `${IGNORE_MARKER}
+How to use this board`, { title: 'How to use this board' }),
+        issue(2, ['status:new'], '<!-- job-radar:id=himalayas:co2:cccccccc -->'),
+      ],
+      projectItems: [item(2, { Status: 'New' })],
+    });
+    const result = await metrics(ctx, { now: TODAY });
+
+    expect(result.issues).toBe(1);
   });
 
   it('heals a Status that does not match the label', async () => {

@@ -1,9 +1,11 @@
 import { STAGES, STATUSES, STATUS_TITLES, isTerminalStatus, stageNumber, type Status } from '../domain/status.js';
-import { daysBetween, isDiscarded, type IssueMetrics } from './analyze.js';
+import { daysBetween, isDiscarded, isUnanswered, type IssueMetrics } from './analyze.js';
 
 export const METRICS_MARKER = '<!-- job-radar:metrics -->';
+export const IGNORE_MARKER = '<!-- job-radar:ignore -->';
 
 const STALLED_AFTER_DAYS = 30;
+export const DEFAULT_NO_RESPONSE_AFTER_DAYS = 60;
 
 function pct(part: number, whole: number): string {
   return whole === 0 ? '—' : `${Math.round((part / whole) * 100)}%`;
@@ -43,19 +45,27 @@ export interface Totals {
   goneFromSource: number;
   applications: number;
   inProgress: number;
+  /** Applications with no answer yet, still inside the no-response window. */
+  awaitingReply: number;
+  /** Applications nobody answered: marked by hand or past the no-response window. */
+  noResponse: number;
   responded: number;
   hired: number;
 }
 
-export function totals(all: IssueMetrics[]): Totals {
+export function totals(all: IssueMetrics[], todayIso: string, noResponseAfterDays: number): Totals {
   const applications = all.filter((issue) => issue.appliedOn);
+  const unanswered = applications.filter((issue) => isUnanswered(issue, todayIso, noResponseAfterDays));
+  const open = applications.filter((issue) => !issue.status || !isTerminalStatus(issue.status));
   return {
     collected: all.length,
     waiting: all.filter((issue) => issue.state === 'open' && !issue.appliedOn && (!issue.status || issue.status === 'new')).length,
     discarded: all.filter(isDiscarded).length,
     goneFromSource: all.filter((issue) => isDiscarded(issue) && issue.closedAtSource).length,
     applications: applications.length,
-    inProgress: applications.filter((issue) => !issue.status || !isTerminalStatus(issue.status)).length,
+    inProgress: open.length - unanswered.length,
+    awaitingReply: open.filter((issue) => !issue.responseDate && !unanswered.includes(issue)).length,
+    noResponse: unanswered.length,
     responded: applications.filter((issue) => issue.responseDate).length,
     hired: applications.filter((issue) => issue.status === 'hired').length,
   };
@@ -108,10 +118,10 @@ function funnelChart(steps: { stage: Status; reached: number }[]): string {
 }
 
 /** The body of the pinned "Metrics" issue. */
-export function renderReport(all: IssueMetrics[], today: Date): string {
-  const total = totals(all);
-  const applications = all.filter((issue) => issue.appliedOn);
+export function renderReport(all: IssueMetrics[], today: Date, noResponseAfterDays = DEFAULT_NO_RESPONSE_AFTER_DAYS): string {
   const todayIso = today.toISOString().slice(0, 10);
+  const total = totals(all, todayIso, noResponseAfterDays);
+  const applications = all.filter((issue) => issue.appliedOn);
 
   // Discarded jobs keep their `status:new` label, so they are counted on their own row.
   const active = all.filter((issue) => !isDiscarded(issue));
@@ -143,7 +153,7 @@ export function renderReport(all: IssueMetrics[], today: Date): string {
     .filter((row) => Number(row[2]) > 0 || Number(row[4]) > 0);
 
   const stalled = applications
-    .filter((issue) => !issue.responseDate && (!issue.status || !isTerminalStatus(issue.status)))
+    .filter((issue) => !issue.responseDate && (!issue.status || !isTerminalStatus(issue.status)) && !isUnanswered(issue, todayIso, noResponseAfterDays))
     .map((issue) => ({ issue, days: daysBetween(issue.appliedOn!, todayIso) }))
     .filter(({ days }) => days > STALLED_AFTER_DAYS)
     .sort((a, b) => b.days - a.days);
@@ -160,6 +170,8 @@ export function renderReport(all: IssueMetrics[], today: Date): string {
         ['Discarded without applying', total.discarded === 0 ? 0 : `${total.discarded} (${total.goneFromSource} gone from the source)`],
         ['Applications', total.applications],
         ['In progress', total.inProgress],
+        ['Awaiting a reply', total.awaitingReply],
+        [`No response (marked or over ${noResponseAfterDays} days)`, total.noResponse],
         ['Response rate', `${pct(total.responded, total.applications)} (${total.responded} of ${total.applications})`],
         ['Hired', `${pct(total.hired, total.applications)} (${total.hired} of ${total.applications})`],
         ['Time to first response', `mean ${fixed(avg(responseDays))} days · median ${fixed(median(responseDays))} days`],
@@ -185,7 +197,7 @@ export function renderReport(all: IssueMetrics[], today: Date): string {
     table(['Contract', 'Jobs', 'Discarded', 'Applied', 'Responded', 'Response rate'], breakdown(all, (issue) => issue.contracts)),
     '## Salary',
     table(['Currency', 'Mean target', 'Targets', 'Mean offered', 'Offers'], salaries),
-    `## Stalled applications (over ${STALLED_AFTER_DAYS} days without a response)`,
+    `## Stalled applications (${STALLED_AFTER_DAYS} to ${noResponseAfterDays} days without a response)`,
     stalled.length === 0
       ? '_None._'
       : stalled.map(({ issue, days }) => `- #${issue.number} ${issue.title} (${days} days)`).join('\n'),

@@ -30,6 +30,8 @@ export interface IssueMetrics {
   status?: Status;
   /** The posting left the company's board and job-radar closed the issue. */
   closedAtSource: boolean;
+  /** Marked by hand with `no-response`: applied, and the company never answered. */
+  markedNoResponse: boolean;
   /** `discard:*` labels, without the prefix. */
   discardReasons: string[];
   appliedOn?: string;
@@ -54,6 +56,16 @@ export interface IssueMetrics {
 export function isDiscarded(issue: Pick<IssueMetrics, 'state' | 'appliedOn' | 'status'>): boolean {
   if (issue.status === 'discarded') return true;
   return issue.state === 'closed' && !issue.appliedOn && (issue.status === undefined || issue.status === 'new');
+}
+
+/**
+ * An application nobody answered: marked `no-response` by hand, or older than `afterDays` with no response.
+ * A process that ended on its own (rejected, withdrawn, hired) is not in this group.
+ */
+export function isUnanswered(issue: IssueMetrics, todayIso: string, afterDays: number): boolean {
+  if (!issue.appliedOn || issue.responseDate) return false;
+  if (issue.status && isTerminalStatus(issue.status)) return false;
+  return issue.markedNoResponse || daysBetween(issue.appliedOn, todayIso) > afterDays;
 }
 
 export function dayOf(iso: string): string {
@@ -127,6 +139,7 @@ export function analyzeIssue(facts: IssueFacts): IssueMetrics {
     state: facts.state,
     status,
     closedAtSource: facts.labels.includes('closed-at-source'),
+    markedNoResponse: facts.labels.includes('no-response'),
     discardReasons: facts.labels.filter((name) => name.startsWith('discard:')).map((name) => name.slice('discard:'.length)),
     appliedOn,
     furthestStage,
