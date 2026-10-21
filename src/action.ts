@@ -31,7 +31,7 @@ async function main(): Promise<void> {
       companiesPath: input('companies-path'),
       statePath: input('state-path'),
       serpapiKey: input('serpapi-key'),
-      modelsToken: input('models-token'),
+      aiApiKey: input('ai-api-key'),
       profile: input('profile'),
       dryRun: input('dry-run') === 'true',
       log: { info: record(''), warn: record('::warning::') },

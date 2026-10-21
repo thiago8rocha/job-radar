@@ -79,15 +79,15 @@ export const configSchema = z.object({
   ai: z
     .object({
       enabled: z.boolean().default(false),
-      provider: z.literal('github-models').default('github-models'),
-      model: z.string().default('openai/gpt-4o-mini'),
+      /** Base URL of an OpenAI-compatible API, e.g. `https://generativelanguage.googleapis.com/v1beta/openai`. */
+      base_url: z.string().url().optional(),
+      /** Model id as the provider names it, e.g. `gemini-2.5-flash`. */
+      model: z.string().optional(),
       max_calls_per_run: z.number().int().positive().default(30),
       profile_secret: z.string().default('JOB_RADAR_PROFILE'),
     })
     .default({
       enabled: false,
-      provider: 'github-models',
-      model: 'openai/gpt-4o-mini',
       max_calls_per_run: 30,
       profile_secret: 'JOB_RADAR_PROFILE',
     }),

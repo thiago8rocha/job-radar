@@ -35,8 +35,8 @@ export interface RunOptions {
   statePath?: string;
   /** SerpAPI key (Google Jobs, discovery). */
   serpapiKey?: string;
-  /** Token for GitHub Models: the workflow's `GITHUB_TOKEN` with `permissions: models: read`. */
-  modelsToken?: string;
+  /** API key of the AI provider named by `ai.base_url`, from a secret. */
+  aiApiKey?: string;
   /** The candidate profile or résumé, from a secret; it is only ever sent to the model. */
   profile?: string;
   dryRun?: boolean;
@@ -46,13 +46,14 @@ export interface RunOptions {
 /** The optional AI step, when it is switched on and the workflow supplied what it needs. */
 function aiOf(options: RunOptions, config: Config, log: Logger): { client: ReturnType<typeof createModelsClient>; profile: string } | undefined {
   if (!config.ai.enabled) return undefined;
-  if (!options.modelsToken || !options.profile) {
-    log.warn('AI is on (ai.enabled) but the models-token or profile input is missing; continuing without it');
+  if (!config.ai.base_url || !config.ai.model || !options.aiApiKey || !options.profile) {
+    log.warn('AI is on (ai.enabled) but ai.base_url, ai.model, the ai-api-key input or the profile input is missing; continuing without it');
     return undefined;
   }
   return {
     client: createModelsClient({
-      token: options.modelsToken,
+      baseUrl: config.ai.base_url,
+      apiKey: options.aiApiKey,
       model: config.ai.model,
       http: createHttpClient({ retries: 0, timeoutMs: 60_000 }),
     }),

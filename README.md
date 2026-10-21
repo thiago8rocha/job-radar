@@ -6,7 +6,7 @@ Collects job postings, opens one GitHub issue per relevant job, and tracks each 
 - **Tracker.** You move a job along by changing its `status:*` label. The Project board, the open/closed state and the dates follow.
 - **Metrics.** A weekly job rewrites a pinned "Metrics" issue (funnel, response rate, time to response, by source and contract) and fills the calculated Project fields.
 - **Manual jobs.** An issue form covers recruiters and referrals. A spreadsheet importer brings in history.
-- **Optional extras.** A weekly search for new companies to follow (SerpAPI), and a fit score and `/evaluate` analysis from GitHub Models (AI). Both are off until you turn them on, and neither is needed for the rest.
+- **Optional extras.** A weekly search for new companies to follow (SerpAPI), and a fit score and `/evaluate` analysis from an AI provider of your choice. Both are off until you turn them on, and neither is needed for the rest.
 
 Everything personal (your searches, companies and history) lives in your own **private** repo. This repo only holds the engine, which your workflows call as `thiago8rocha/job-radar@v1`.
 
@@ -113,10 +113,10 @@ Without the key both stay off and the run summary says so.
 
 When `ai.enabled` is true, each new job gets a fit score for your profile (a `fit:1` to `fit:5` label and two or three lines of reasoning in the issue), plus what rules cannot read: contract, salary range, required hours, stack, and whether it really is fully remote. The score sorts and highlights; it never discards a job. Commenting `/evaluate` on an issue posts the full analysis.
 
-- **Free:** it calls [GitHub Models](https://docs.github.com/en/github-models) with the workflow's own `GITHUB_TOKEN` (`permissions: models: read`), so there is no API key. Before turning it on, check in GitHub Billing that paid usage of GitHub Models is off; then the free limits are the only limits. They are not well documented and GitHub may reduce them.
+- **Your provider:** it calls any OpenAI-compatible chat completions API. Set `ai.base_url` and `ai.model` in the config and save the provider's API key as the secret `AI_API_KEY`. Several providers have a free tier that is enough for a few calls a day (Google Gemini, Groq); their limits change, so check the provider's page and its billing settings before relying on them. GitHub Models is no longer an option: it was retired on 2026-07-30.
 - **Your profile stays private:** save your profile or résumé as text in the secret `JOB_RADAR_PROFILE`. The workflow passes it to the Action, which sends it only to the model and never writes it anywhere.
 - **Safe by default:** off unless you enable it, at most `ai.max_calls_per_run` calls a run, and an issue is created without a score when the quota runs out or a call fails. Posting text is sent to the model as data and its reply is validated and sanitized before it reaches an issue, but treat the score as a hint.
-- **Setup:** `ai.enabled: true`, the `collect` workflow's `models-token` and `profile` inputs (already in the example), and the `evaluate` workflow for `/evaluate`. Only the repository owner, members and collaborators can trigger it. With AI on, each new issue also keeps the full posting text in a collapsed block, which `/evaluate` reads.
+- **Setup:** `ai.enabled: true` with `ai.base_url` and `ai.model`, the `collect` workflow's `ai-api-key` and `profile` inputs (already in the example), and the `evaluate` workflow for `/evaluate`. Only the repository owner, members and collaborators can trigger it. With AI on, each new issue also keeps the full posting text in a collapsed block, which `/evaluate` reads.
 
 ## Development
 

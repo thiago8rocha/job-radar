@@ -48,9 +48,10 @@ issues:
 metrics:
   no_response_after_days: 60  # an application with no answer after this long counts as "no response"
 
-# Optional AI, free through GitHub Models. Off by default. Before turning it on, check in GitHub Billing
-# that paid usage of GitHub Models is off, so the free limits are the only limits.
+# Optional AI through any OpenAI-compatible API. Off by default. The key goes in the AI_API_KEY secret.
+# Check the provider's billing settings before turning it on, so only the free tier is used.
 ai:
   enabled: false
-  model: openai/gpt-4o-mini
+  # base_url: https://generativelanguage.googleapis.com/v1beta/openai   # Google Gemini
+  # model: gemini-2.5-flash
   max_calls_per_run: 30

@@ -278,7 +278,7 @@ async function insightFor(
   } catch (error) {
     if (error instanceof AiQuotaError) {
       state.stopped = true;
-      ctx.log.warn('AI: the GitHub Models quota is used up; the rest are created without a score');
+      ctx.log.warn('AI: the AI quota is used up; the rest are created without a score');
     } else {
       ctx.log.warn(`AI: could not read "${job.title}" (${(error as Error).message}); created without a score`);
     }

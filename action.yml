@@ -34,8 +34,8 @@ inputs:
   serpapi-key:
     description: SerpAPI key for Google Jobs and company discovery (optional; those stay off without it)
     required: false
-  models-token:
-    description: "Token for GitHub Models: pass the workflow's own token (github.token) with permissions: models: read. Only used when ai.enabled is true"
+  ai-api-key:
+    description: "API key of the AI provider set in ai.base_url, from a secret (AI_API_KEY). Only used when ai.enabled is true"
     required: false
   profile:
     description: "Your profile or résumé as text, from a secret (JOB_RADAR_PROFILE). Sent only to the model, never written anywhere. Only used when ai.enabled is true"

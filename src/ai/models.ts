@@ -1,11 +1,9 @@
 import { HttpError, type HttpClient } from '../util/http.js';
 
-const ENDPOINT = 'https://models.github.ai/inference/chat/completions';
-
-/** The free quota of GitHub Models is used up (HTTP 429). Callers stop asking and carry on without AI. */
+/** The provider's quota or rate limit is used up (HTTP 429). Callers stop asking and carry on without AI. */
 export class AiQuotaError extends Error {}
 
-/** Any other failure talking to the model. The message never includes the token. */
+/** Any other failure talking to the model. The message never includes the API key. */
 export class AiError extends Error {}
 
 export interface ChatMessage {
@@ -19,8 +17,9 @@ export interface ChatClient {
 }
 
 export interface ModelsClientOptions {
-  /** The workflow's `GITHUB_TOKEN`, with `permissions: models: read`. */
-  token: string;
+  /** Base URL of an OpenAI-compatible API, without `/chat/completions`. */
+  baseUrl: string;
+  apiKey: string;
   model: string;
   /** A client without retries: waiting out an exhausted quota only wastes the run. */
   http: HttpClient;
@@ -28,21 +27,19 @@ export interface ModelsClientOptions {
 }
 
 /**
- * GitHub Models chat completions, free within rate limits and billed to no one when paid usage is off.
+ * Chat completions of any OpenAI-compatible provider (Gemini, Groq, OpenAI, Azure...).
  * Only the posting and the profile text are sent, as data in the user message.
  */
 export function createModelsClient(options: ModelsClientOptions): ChatClient {
+  const endpoint = `${options.baseUrl.replace(/\/+$/, '')}/chat/completions`;
+  const provider = new URL(endpoint).host;
   return {
     async complete(messages) {
       let response: unknown;
       try {
-        response = await options.http.getJson(ENDPOINT, {
+        response = await options.http.getJson(endpoint, {
           method: 'POST',
-          headers: {
-            Authorization: `Bearer ${options.token}`,
-            Accept: 'application/vnd.github+json',
-            'X-GitHub-Api-Version': '2022-11-28',
-          },
+          headers: { Authorization: `Bearer ${options.apiKey}` },
           body: {
             model: options.model,
             messages,
@@ -53,14 +50,12 @@ export function createModelsClient(options: ModelsClientOptions): ChatClient {
         });
       } catch (error) {
         const status = error instanceof HttpError ? error.status : undefined;
-        if (status === 429) throw new AiQuotaError('GitHub Models quota reached');
-        if (status === 401 || status === 403) {
-          throw new AiError('GitHub Models refused the token; the workflow needs "permissions: models: read"');
-        }
-        throw new AiError(status ? `GitHub Models returned HTTP ${status}` : 'GitHub Models request failed');
+        if (status === 429) throw new AiQuotaError(`${provider} quota reached`);
+        if (status === 401 || status === 403) throw new AiError(`${provider} refused the API key (HTTP ${status})`);
+        throw new AiError(status ? `${provider} returned HTTP ${status}` : `request to ${provider} failed`);
       }
       const content = (response as { choices?: Array<{ message?: { content?: unknown } }> })?.choices?.[0]?.message?.content;
-      if (typeof content !== 'string' || content.trim() === '') throw new AiError('GitHub Models returned an empty reply');
+      if (typeof content !== 'string' || content.trim() === '') throw new AiError(`${provider} returned an empty reply`);
       return content;
     },
   };

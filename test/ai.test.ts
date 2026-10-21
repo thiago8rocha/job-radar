@@ -30,35 +30,40 @@ const INSIGHT = {
 
 const fixed = (reply: unknown): ChatClient => ({ complete: vi.fn(async () => (typeof reply === 'string' ? reply : JSON.stringify(reply))) });
 
-describe('GitHub Models client', () => {
-  const client = (retries = 0) =>
-    createModelsClient({ token: 'ghs_SECRET123', model: 'openai/gpt-4o-mini', http: createHttpClient({ retries }) });
+describe('chat client', () => {
+  const URL = 'https://llm.example.com/v1/chat/completions';
+  const client = (retries = 0, baseUrl = 'https://llm.example.com/v1') =>
+    createModelsClient({ baseUrl, apiKey: 'sk-SECRET123', model: 'some-model', http: createHttpClient({ retries }) });
 
-  it('posts the conversation with the token and asks for JSON', async () => {
-    let seen: { auth: string | null; version: string | null; body: any } | undefined;
+  it('posts the conversation to the configured provider with the key and asks for JSON', async () => {
+    let seen: { auth: string | null; body: any } | undefined;
     server.use(
-      http.post('https://models.github.ai/inference/chat/completions', async ({ request }) => {
-        seen = { auth: request.headers.get('authorization'), version: request.headers.get('x-github-api-version'), body: await request.json() };
+      http.post(URL, async ({ request }) => {
+        seen = { auth: request.headers.get('authorization'), body: await request.json() };
         return HttpResponse.json({ choices: [{ message: { content: '{"ok":true}' } }] });
       }),
     );
     expect(await client().complete([{ role: 'user', content: 'hi' }])).toBe('{"ok":true}');
-    expect(seen!.auth).toBe('Bearer ghs_SECRET123');
-    expect(seen!.version).toBe('2022-11-28');
-    expect(seen!.body).toMatchObject({ model: 'openai/gpt-4o-mini', response_format: { type: 'json_object' }, messages: [{ role: 'user', content: 'hi' }] });
+    expect(seen!.auth).toBe('Bearer sk-SECRET123');
+    expect(seen!.body).toMatchObject({ model: 'some-model', response_format: { type: 'json_object' }, messages: [{ role: 'user', content: 'hi' }] });
   });
 
-  it('tells a spent quota from a refused token and never repeats the token', async () => {
-    server.use(http.post('https://models.github.ai/inference/chat/completions', () => new HttpResponse(null, { status: 429 })));
+  it('ignores a trailing slash in the base URL', async () => {
+    server.use(http.post(URL, () => HttpResponse.json({ choices: [{ message: { content: 'ok' } }] })));
+    expect(await client(0, 'https://llm.example.com/v1/').complete([])).toBe('ok');
+  });
+
+  it('tells a spent quota from a refused key and never repeats the key', async () => {
+    server.use(http.post(URL, () => new HttpResponse(null, { status: 429 })));
     await expect(client().complete([])).rejects.toBeInstanceOf(AiQuotaError);
 
-    server.use(http.post('https://models.github.ai/inference/chat/completions', () => new HttpResponse(null, { status: 403 })));
+    server.use(http.post(URL, () => new HttpResponse(null, { status: 403 })));
     const refused = await client().complete([]).catch((error: Error) => error);
     expect(refused).toBeInstanceOf(AiError);
-    expect((refused as Error).message).toContain('models: read');
-    expect((refused as Error).message).not.toContain('ghs_SECRET123');
+    expect((refused as Error).message).toContain('llm.example.com refused the API key');
+    expect((refused as Error).message).not.toContain('sk-SECRET123');
 
-    server.use(http.post('https://models.github.ai/inference/chat/completions', () => HttpResponse.json({ choices: [] })));
+    server.use(http.post(URL, () => HttpResponse.json({ choices: [] })));
     await expect(client().complete([])).rejects.toThrow('empty reply');
   });
 });
@@ -271,7 +276,7 @@ describe('/evaluate', () => {
 
     const unwired = setup();
     await evaluate(unwired.ctx, event(), {});
-    expect((unwired.issues.createComment.mock.calls[0]![0] as any).body).toContain('models-token');
+    expect((unwired.issues.createComment.mock.calls[0]![0] as any).body).toContain('ai-api-key');
 
     const empty = setup();
     await evaluate(empty.ctx, event('/evaluate', 'OWNER', { body: '**Apply:** https://x.test' }), { ai: ai() });

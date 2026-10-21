@@ -53,7 +53,7 @@ async function main(): Promise<void> {
     companiesPath: values.companies,
     statePath: values.state,
     serpapiKey: process.env.SERPAPI_KEY,
-    modelsToken: process.env.GITHUB_MODELS_TOKEN,
+    aiApiKey: process.env.AI_API_KEY,
     profile: process.env.JOB_RADAR_PROFILE,
     dryRun: values['dry-run'],
   });

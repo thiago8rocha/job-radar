@@ -1,6 +1,6 @@
 # Comment "/evaluate" on a job issue to get a full analysis (strengths, gaps, likely interview questions).
 # Needs ai.enabled in the config and the JOB_RADAR_PROFILE secret (your profile or résumé, as text).
-# It uses GitHub Models with the workflow's own token, so no API key is involved.
+# It calls the provider set in ai.base_url with the AI_API_KEY secret.
 name: evaluate
 on:
   issue_comment:
@@ -9,7 +9,6 @@ on:
 permissions:
   issues: write
   contents: read
-  models: read
 
 jobs:
   evaluate:
@@ -21,5 +20,5 @@ jobs:
         with:
           command: evaluate
           github-token: ${{ secrets.JOB_RADAR_TOKEN }}
-          models-token: ${{ github.token }}
+          ai-api-key: ${{ secrets.AI_API_KEY }}
           profile: ${{ secrets.JOB_RADAR_PROFILE }}

@@ -331,7 +331,7 @@ When the live contract fails in the public repo, an issue is opened there automa
 
 ## Optional AI (phase 5)
 
-AI is only used if it is free: GitHub Models, called from inside Actions with the repo's own `GITHUB_TOKEN` and the `models: read` permission, with no API key. It runs after the rule-based filters, so it only sees the few new jobs of the day.
+AI is optional and provider-neutral: any OpenAI-compatible chat completions API, called from inside Actions with an API key kept in a repo secret (`AI_API_KEY`). A free tier is enough for the volume. It runs after the rule-based filters, so it only sees the few new jobs of the day.
 
 **What it does, per new job**
 
@@ -344,18 +344,18 @@ AI is only used if it is free: GitHub Models, called from inside Actions with th
 
 - Off by default in the public repo (`ai.enabled: false`)
 - The profile and résumé live in a private repo secret, never in a committed file
-- Call limit per run below the free quota
+- Call limit per run below the provider's quota
 - If the quota runs out or the call fails, the issue is created without a score and collection carries on as normal
-- The workflow passes its own token as the `models-token` input and the secret as the `profile` input; the Action sends the profile only to the model. The posting is sent as data inside tags with instructions in the system message to ignore any instruction found in it, and the reply is validated with a schema and sanitized (no mentions, references or HTML) before it reaches an issue
+- The workflow passes the key as the `ai-api-key` input and the secret as the `profile` input; the Action sends the profile only to the model. The posting is sent as data inside tags with instructions in the system message to ignore any instruction found in it, and the reply is validated with a schema and sanitized (no mentions, references or HTML) before it reaches an issue
 - With AI on, each issue keeps the full posting text (up to 8,000 characters) in a collapsed block, because `/evaluate` runs later and the link alone is not enough to rebuild it. Only the owner, members and collaborators can trigger `/evaluate`, so a comment from a stranger cannot spend the quota
 
-**Risk:** the free limits are not well documented and GitHub may reduce them. Community reports mention about 150 requests per day on the smaller models and 50 on the larger ones.
+**Risk:** free tiers change without notice. GitHub Models, the first provider, was retired on 2026-07-30, which is why the provider is configurable.
 
 ```yaml
 ai:
   enabled: true
-  provider: github-models
-  model: openai/gpt-4o-mini
+  base_url: https://generativelanguage.googleapis.com/v1beta/openai
+  model: gemini-2.5-flash
   max_calls_per_run: 30
   profile_secret: JOB_RADAR_PROFILE
 ```
@@ -391,7 +391,7 @@ Delivery comes in 4 phases, plus an optional AI phase. Each one ends with someth
 - [x] SerpAPI optional, on the free plan; without a key, Google Jobs and automatic discovery stay off
 - [x] Filters: Senior and above (no Mid-level), remote only, no salary filter and no technical scope filter
 - [ ] InHire: link resolved. The page only uses the jobId and accepts any text in place of the slug; the slug is generated from the title with slugify (lower, strict) just to keep the link readable
-- [ ] AI: check in GitHub Billing that paid usage of GitHub Models is turned off
+- [ ] AI: check the provider's billing settings so only the free tier is used
 
 ## Sources consulted
 
