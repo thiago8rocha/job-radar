@@ -2,6 +2,7 @@ import type { Config } from '../config/schema.js';
 import type { Job, WorkModel } from '../domain/job.js';
 import { containsTerm, normalizeText } from '../util/text.js';
 import { checkEligibility } from './eligibility.js';
+import { requiredLanguage } from './language.js';
 import { detectWorkModel } from './work-model.js';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -108,6 +109,10 @@ export function createFilter(config: Config): JobFilter {
 
       const geo = checkEligibility(job, eligibility.accept_regions, eligibility.reject);
       if (!geo.ok) return { ok: false, reason: geo.reason };
+
+      const language = requiredLanguage(`${job.title}
+${job.description}`, eligibility.reject_languages);
+      if (language) return { ok: false, reason: `language: requires ${language}` };
       return { ok: true };
     },
   };

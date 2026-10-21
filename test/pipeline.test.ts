@@ -9,6 +9,7 @@ import { checkEligibility, regionsOf } from '../src/pipeline/eligibility.js';
 import { buildExcerpt, sanitizeForIssue } from '../src/pipeline/excerpt.js';
 import { createFilter, detectSeniority, inferWorkModel } from '../src/pipeline/filter.js';
 import { emptyState, loadState, saveState } from '../src/state/seen.js';
+import { requiredLanguage } from '../src/pipeline/language.js';
 import { job } from './helpers.js';
 import { containsTerm, decodeEntities, htmlToText, truncate } from '../src/util/text.js';
 
@@ -160,6 +161,42 @@ describe('filter', () => {
     expect(filter.worthDetails({ title: 'Backend Engineer' })).toBe(false);
     expect(filter.worthDetails({ title: 'QA Intern' })).toBe(false);
     expect(filter.worthDetails({ title: 'QA Engineer' })).toBe(true); // seniority is checked later
+  });
+});
+
+describe('required language', () => {
+  const languages = ['Russian', 'Spanish', 'Espanhol', 'Russo'];
+
+  it('rejects a language the posting requires', () => {
+    expect(requiredLanguage('Fluent Russian is required.', languages)).toBe('Russian');
+    expect(requiredLanguage('Idioma Necessário\n• Espanhol Avançado\n• Ensino Superior', languages)).toBe('Espanhol');
+    expect(requiredLanguage('English and Spanish (advanced) are mandatory', languages)).toBe('Spanish');
+    expect(requiredLanguage('Native Spanish speaker', languages)).toBe('Spanish');
+  });
+
+  it('lets through optional mentions, alternatives and bare words', () => {
+    expect(requiredLanguage('Excellent English; Spanish is a plus for LATAM collaboration.', languages)).toBeUndefined();
+    expect(requiredLanguage('Russian language skills are highly preferred', languages)).toBeUndefined();
+    expect(requiredLanguage('Idioma obrigatório: Inglês ou espanhol em nível avançado', languages)).toBeUndefined();
+    expect(requiredLanguage('Fluent in English or Spanish', languages)).toBeUndefined();
+    expect(requiredLanguage('Conhecimento de Espanhol', languages)).toBeUndefined();
+    expect(requiredLanguage('Our team speaks Spanish and Portuguese every day', languages)).toBeUndefined();
+    expect(requiredLanguage('Fluent Russian is required.', [])).toBeUndefined();
+  });
+
+  it('applies to the description in the filter', () => {
+    const strict = createFilter(parseConfig(`
+search:
+  include: ["QA"]
+  seniority: [senior]
+eligibility:
+  accept_regions: [worldwide]
+  reject_languages: ["Russian"]
+work_model: [remote]
+`));
+    const base = { title: 'Senior QA', seniority: ['senior'], workModel: 'remote' as const, locations: ['Remote'], postedAt: NOW.toISOString() };
+    expect(strict.check(job({ ...base, description: 'Russian fluency required.' }), NOW).reason).toBe('language: requires Russian');
+    expect(strict.check(job({ ...base, description: 'Russian is a plus.' }), NOW).ok).toBe(true);
   });
 });
 

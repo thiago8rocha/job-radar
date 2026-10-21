@@ -132,6 +132,7 @@ eligibility:
   accept_regions: [worldwide, latam, americas, brazil]
   # no timezone filter: the required hours are converted to Brasília time in the issue
   reject: ["US only", "EU only", "must reside in"]
+  reject_languages: [Russian, Spanish]  # drop a job that requires one of these languages
 
 work_model: [remote]         # no salary filter and no technical scope filter
 

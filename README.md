@@ -69,6 +69,7 @@ The Action takes `command` plus `github-token`. The same commands run locally wi
 | `search.highlight` | Stack terms quoted in the issue when the description mentions them. |
 | `eligibility.accept_regions` | `worldwide`, `latam`, `americas`, `brazil`. A job passes when any of its locations is in one of them. |
 | `eligibility.reject` | Phrases that discard a job anywhere in its text (`US only`...). "must reside in Brazil" is not rejected when Brazil is accepted. |
+| `eligibility.reject_languages` | Languages a job may not require (`Russian`, `Spanish`...). "Fluent Russian", "Espanhol avançado" or "Bilingual (English/Spanish)" discard the job; "Spanish is a plus", "English or Spanish" and a bare mention do not. |
 | `work_model` | `remote`, `hybrid`, `onsite`. The source's field is checked against the title and description; the more demanding model wins. |
 | `sources.<id>.enabled` | Turn a source on or off. A source with no adapter in your version is skipped with a note in the run summary. |
 | `sources.google_jobs.*` | `api_key_secret`, `max_searches` (default 3 a run), `queries` and `location`. See "Optional: SerpAPI". |

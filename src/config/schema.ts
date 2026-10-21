@@ -42,8 +42,10 @@ export const configSchema = z.object({
     .object({
       accept_regions: z.array(z.string()).default(['worldwide']),
       reject: z.array(z.string()).default([]),
+      /** A job whose text requires one of these languages is dropped ("Spanish is a plus" is not a requirement). */
+      reject_languages: z.array(z.string()).default([]),
     })
-    .default({ accept_regions: ['worldwide'], reject: [] }),
+    .default({ accept_regions: ['worldwide'], reject: [], reject_languages: [] }),
 
   work_model: z.array(z.enum(['remote', 'hybrid', 'onsite'])).default(['remote']),
 
