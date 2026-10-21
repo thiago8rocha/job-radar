@@ -14,18 +14,34 @@ const SENIORITY_KEYWORDS: Record<string, string[]> = {
   lead: ['lead', 'lider', 'head'],
 };
 
+/** Years of experience at which a posting that states no level is read as senior. */
+const SENIOR_MIN_YEARS = 5;
+
+const YEARS_RANGE = /\d{1,2}\s*(?:-|–|to|a)\s*\d{1,2}\+?/gi;
+const YEARS_THEN_EXPERIENCE = /(\d{1,2})\s*\+?\s*(?:years?|yrs?|anos)\b[^.\n]{0,40}?\bexperi[eê]nc(?:e|ia)/gi;
+const EXPERIENCE_THEN_YEARS = /\bexperi[eê]nc(?:e|ia)\b[^.\n]{0,40}?(\d{1,2})\s*\+?\s*(?:years?|yrs?|anos)\b/gi;
+
+/** True when the description asks for `SENIOR_MIN_YEARS` or more years of experience; ranges like "3-5 years" are mid level and ignored. */
+function asksForSeniorExperience(description: string): boolean {
+  const text = description.replace(YEARS_RANGE, ' ');
+  return [YEARS_THEN_EXPERIENCE, EXPERIENCE_THEN_YEARS].some((pattern) =>
+    [...text.matchAll(pattern)].some((match) => Number(match[1]) >= SENIOR_MIN_YEARS),
+  );
+}
+
 export interface FilterResult {
   ok: boolean;
   /** `<stage>: <detail>`; the part before the colon groups the discard counts in the summary. */
   reason?: string;
 }
 
-/** Seniority levels a job states, from the source's own field and from words in the title. */
-export function detectSeniority(job: Pick<Job, 'title' | 'seniority'>): string[] {
+/** Seniority levels a job states, from the source's own field and from words in the title; failing both, senior if the description asks for years of experience. */
+export function detectSeniority(job: Pick<Job, 'title' | 'seniority'> & { description?: string }): string[] {
   const found = new Set(job.seniority.map((level) => level.toLowerCase()));
   for (const [level, keywords] of Object.entries(SENIORITY_KEYWORDS)) {
     if (keywords.some((keyword) => containsTerm(job.title, keyword))) found.add(level);
   }
+  if (found.size === 0 && job.description && asksForSeniorExperience(job.description)) found.add('senior');
   return [...found];
 }
 

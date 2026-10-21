@@ -125,6 +125,18 @@ describe('filter', () => {
     expect(detectSeniority({ title: 'Líder de QA Sênior', seniority: [] })).toEqual(expect.arrayContaining(['senior', 'lead']));
   });
 
+  it('reads a posting that states no level as senior when it asks for 5+ years of experience', () => {
+    const years = (description: string) => check({ title: 'QA Engineer', description }).ok;
+    expect(years('You bring 5+ years of experience in test automation.')).toBe(true);
+    expect(years('Mais de 7 anos de experiência com testes.')).toBe(true);
+    expect(years('Experience: at least 6 years with Playwright.')).toBe(true);
+    expect(years('3-5 years of experience in QA.')).toBe(false);
+    expect(years('We have been around for 10 years.')).toBe(false);
+    expect(years('2 years of experience.')).toBe(false);
+    expect(check({ title: 'QA Engineer', description: '5+ years of experience' }).ok).toBe(true);
+    expect(check({ title: 'QA Engineer', seniority: ['manager'], description: '8 years of experience' }).reason).toContain('seniority: manager');
+  });
+
   it('keeps only the configured work model', () => {
     expect(check({ workModel: 'hybrid' }).reason).toBe('work model: hybrid');
     expect(check({ workModel: undefined, locations: ['Brazil'], description: 'Fully onsite' }).reason).toBe('work model: onsite');
