@@ -68,7 +68,7 @@ The Action takes `command` plus `github-token`. The same commands run locally wi
 | `search.max_age_days` | Ignore postings older than this. |
 | `search.highlight` | Stack terms quoted in the issue when the description mentions them. |
 | `eligibility.accept_regions` | `worldwide`, `latam`, `americas`, `brazil`. A job passes when any of its locations is in one of them. |
-| `eligibility.reject` | Phrases that discard a job anywhere in its text (`US only`...). "must reside in Brazil" is not rejected when Brazil is accepted. |
+| `eligibility.reject` | Phrases that discard a job anywhere in its text (`US only`...). "must reside in Brazil" is not rejected when Brazil is accepted. A role the text places in another country ("Our partner is looking for a QA Engineer based in Canada") is also dropped, whatever countries the source lists. |
 | `eligibility.reject_languages` | Languages a job may not require (`Russian`, `Spanish`...). "Fluent Russian", "Espanhol avançado" or "Bilingual (English/Spanish)" discard the job; "Spanish is a plus", "English or Spanish" and a bare mention do not. |
 | `work_model` | `remote`, `hybrid`, `onsite`. The source's field is checked against the title and description; the more demanding model wins. |
 | `sources.<id>.enabled` | Turn a source on or off. A source with no adapter in your version is skipped with a note in the run summary. |
@@ -82,7 +82,7 @@ The Action takes `command` plus `github-token`. The same commands run locally wi
 
 `companies.yml` lists the companies to follow on each ATS, by the slug in their career page URL (`https://boards.greenhouse.io/<slug>`). An entry can be `{ slug: ramp, name: Ramp }` to pick the name used in issue titles.
 
-A job counts as a duplicate when its source id, its application link, its company and title, or its company and posting code match one that already has an issue, open or closed. Company names are compared without legal suffixes, so "Plata" and "Banco Plata, S.A." are the same company, and a bracketed code or a `[Exclusiva PCD]` tag in the title does not make a job new.
+A job counts as a duplicate when its source id, its application link, its company and title, or its company and posting code match one that already has an issue, open or closed. Company names are compared without legal suffixes, so "Plata" and "Banco Plata, S.A." are the same company, and a bracketed code, a `[Exclusiva PCD]` tag or a region tag such as `- Brazil` or `(LATAM based)` in the title does not make a job new.
 
 When a posting states working hours with a time zone (`9am–5pm ET`), the issue shows them in Brasília time, using the zone's rules on the collection date.
 
