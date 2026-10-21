@@ -67,6 +67,16 @@ function rejectedBy(haystack: string, phrase: string, accepted: Set<string>): bo
   }
 }
 
+const BASED_IN = /\b(?:looking for|seeking|searching for|hiring)\b[^.\n]{0,150}?\bbased in (?:the )?([^.\n*,;()]{2,40})/i;
+
+/**
+ * Aggregators such as jobgether list dozens of countries a candidate may apply from, while the text
+ * says where the role really is: "Our partner is looking for a QA Engineer based in Canada".
+ */
+function statedBase(description: string): string | undefined {
+  return BASED_IN.exec(description)?.[1]?.trim();
+}
+
 export interface EligibilityInput {
   locations: string[];
   restrictions?: string[];
@@ -93,6 +103,12 @@ export function checkEligibility(
   const haystack = normalizeText(`${job.locations.join(' ')} ${job.description}`);
   const phrase = rejectPhrases.find((candidate) => rejectedBy(haystack, candidate, accepted));
   if (phrase) return { ok: false, reason: `eligibility: "${phrase}"` };
+
+  const base = statedBase(job.description);
+  const baseRegions = base ? regionsOf(base) : [];
+  if (base && baseRegions.length > 0 && !baseRegions.some((region) => region !== 'other' && accepted.has(region))) {
+    return { ok: false, reason: `eligibility: based in ${base}` };
+  }
 
   const sources = job.restrictions && job.restrictions.length > 0 ? job.restrictions : job.locations;
   const regions = sources.length === 0 ? ['worldwide' as Region] : sources.flatMap(regionsOf);

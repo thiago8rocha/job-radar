@@ -164,6 +164,24 @@ describe('filter', () => {
   });
 });
 
+describe('stated base', () => {
+  const check = (description: string, restrictions = ['BR', 'CA', 'IN']) =>
+    checkEligibility({ locations: ['Brazil'], restrictions, description }, ['worldwide', 'latam', 'americas', 'brazil'], []);
+
+  it('rejects a role the text puts in a place that is not accepted, whatever the source lists', () => {
+    expect(check('Our partner is looking for a QA Engineer based in Canada.* This remote role').reason).toBe('eligibility: based in Canada');
+    expect(check('Our partner is looking for a Data QA Engineer based in United States.*').ok).toBe(false);
+    expect(check('Our partner is looking for a Senior QA Engineer based in the UK.*').ok).toBe(false);
+  });
+
+  it('keeps roles based in an accepted place, and ignores company descriptions', () => {
+    expect(check('Our partner is looking for a Senior SDET based in Brazil.*').ok).toBe(true);
+    expect(check('We are seeking a QA lead based in Brazil or Argentina.').ok).toBe(true);
+    expect(check('Our team of 600 professionals, based in the United States, partners with clients.').ok).toBe(true);
+    expect(check('We are looking for a QA based in Springfield.').ok).toBe(true);
+  });
+});
+
 describe('required language', () => {
   const languages = ['Russian', 'Spanish', 'Espanhol', 'Russo'];
 
