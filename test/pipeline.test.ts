@@ -211,6 +211,14 @@ describe('dedup', () => {
     expect([...known.keys]).toEqual([jobKey('Luby', 'Senior QA')]);
   });
 
+  it('treats company name variants as the same company', () => {
+    const plata = jobKey('Plata', 'QA Engineer - Backend (Golang) Senior [Core Banking Systems]');
+    expect(jobKey('Banco Plata, S.A., Institución de Banca Múltiple', 'QA Engineer - Backend (Golang) Senior [Core Banking Systems]')).toBe(plata);
+    expect(jobKey('Acme, Inc.', 'QA')).toBe(jobKey('Acme', 'QA'));
+    expect(jobKey('Bank of Anywhere', 'QA')).not.toBe(jobKey('Anywhere', 'QA'));
+    expect(jobKey('Stefanini Group', 'QA')).toBe(jobKey('Stefanini', 'QA'));
+  });
+
   it('drops jobs already known by id, url or company and title', () => {
     const known = knownFromIssues([
       { title: '[Acme] Senior QA Engineer', body: '**Apply:** https://x.test/a\n' },

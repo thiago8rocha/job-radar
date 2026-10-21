@@ -7,8 +7,13 @@ import { canonicalUrl } from './url.js';
 const COMPANY_SUFFIX =
   /\b(inc|ltda|ltd|limited|llc|corp|corporation|co|company|sa|s a|gmbh|group|grupo|holding|brasil|brazil|technologies|technology|tecnologia|solutions|solucoes)\b/g;
 
+/** "Banco Plata" on one source is "Plata" on another. */
+const COMPANY_PREFIX = /^(?:banco|bank|grupo|group|the)\s+/;
+
+/** Sources append the legal entity after a comma ("Banco Plata, S.A., Institución de Banca Múltiple"). */
 export function companyKey(company: string): string {
-  const stripped = normalizeText(company).replace(COMPANY_SUFFIX, ' ').replace(/\s+/g, ' ').trim();
+  const name = normalizeText(company.split(',')[0] ?? company);
+  const stripped = name.replace(COMPANY_SUFFIX, ' ').replace(/\s+/g, ' ').trim().replace(COMPANY_PREFIX, '');
   return stripped || normalizeText(company);
 }
 
