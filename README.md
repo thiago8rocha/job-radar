@@ -4,7 +4,7 @@ Collects job postings, opens one GitHub issue per relevant job, and tracks each 
 
 - **Collector.** Every business day it reads InHire, Greenhouse, Lever, Ashby, Gupy, Himalayas, freehire, Remote OK and We Work Remotely (and Google Jobs, optionally), filters by title, seniority, remote work and region, removes duplicates, and opens one issue per new job.
 - **Tracker.** You move a job along by changing its `status:*` label. The Project board, the open/closed state and the dates follow.
-- **Metrics.** A weekly job rewrites a pinned "Metrics" issue (funnel, response rate, time to response, by source and contract) and fills the calculated Project fields.
+- **Metrics.** After every collect and every week, a job rewrites a pinned "Metrics" issue (funnel, response rate, time to response, by source and contract) and fills the calculated Project fields.
 - **Manual jobs.** An issue form covers recruiters and referrals. A spreadsheet importer brings in history.
 - **Optional extras.** A weekly search for new companies to follow (SerpAPI), and a fit score and `/evaluate` analysis from an AI provider of your choice. Both are off until you turn them on, and neither is needed for the rest.
 
@@ -48,7 +48,7 @@ The Action takes `command` plus `github-token`. The same commands run locally wi
 | `sync-status` | on `labeled` | Keeps one status label and mirrors it to the Project and the issue state. |
 | `intake` | on `opened` | Normalizes issues made with the form. |
 | `revalidate` | weekly | Closes "New" jobs whose posting left the company's board (`closed-at-source`). |
-| `metrics` | weekly | Writes the calculated fields, repairs `Status` cards that no longer match their label, and rewrites the Metrics issue. |
+| `metrics` | weekly, and after each `collect` | Writes the calculated fields, repairs `Status` cards that no longer match their label, and rewrites the Metrics issue. |
 | `discover` | weekly, optional | Searches Google through SerpAPI for career pages on the supported ATS and opens a pull request that adds the new companies to `companies.yml`. |
 | `evaluate` | on `/evaluate` comment, optional | Posts a full AI analysis of the job (strengths, gaps, likely interview questions) and refreshes its `fit:*` label. |
 | `import` | once, local | Creates issues from a spreadsheet: `npm run cli -- import --xlsx file.xlsx --repo you/job-search`. See `src/import/xlsx.ts` for the expected columns. |
@@ -74,12 +74,15 @@ The Action takes `command` plus `github-token`. The same commands run locally wi
 | `sources.<id>.enabled` | Turn a source on or off. A source with no adapter in your version is skipped with a note in the run summary. |
 | `sources.google_jobs.*` | `api_key_secret`, `max_searches` (default 3 a run), `queries` and `location`. See "Optional: SerpAPI". |
 | `discovery.*` | `enabled`, `queries` (Google searches such as `site:boards.greenhouse.io "QA" remote`) and `max_searches`. |
-| `ai.*` | `enabled`, `model` and `max_calls_per_run`. See "Optional: AI". |
+| `ai.*` | `enabled`, `base_url`, `model` and `max_calls_per_run`. See "Optional: AI". |
+| `metrics.no_response_after_days` | Days after which an unanswered application counts as "no response" (default 60). |
 | `issues.max_per_run` | At most this many new issues per run, newest first. The rest wait for the next run. |
 | `issues.project_number`, `issues.project_owner` | Which Project to use. |
 | `issues.close_on_final_status` | Close issues on `rejected`, `withdrawn` and `hired` (default `true`). |
 
 `companies.yml` lists the companies to follow on each ATS, by the slug in their career page URL (`https://boards.greenhouse.io/<slug>`). An entry can be `{ slug: ramp, name: Ramp }` to pick the name used in issue titles.
+
+A job counts as a duplicate when its source id, its application link, its company and title, or its company and posting code match one that already has an issue, open or closed. Company names are compared without legal suffixes, so "Plata" and "Banco Plata, S.A." are the same company, and a bracketed code or a `[Exclusiva PCD]` tag in the title does not make a job new.
 
 When a posting states working hours with a time zone (`9am–5pm ET`), the issue shows them in Brasília time, using the zone's rules on the collection date.
 

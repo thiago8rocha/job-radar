@@ -44,3 +44,10 @@ jobs:
             git commit -m "chore(state): update seen jobs"
             git push
           fi
+      # Keeps the Metrics issue and the Project's calculated fields current between the weekly runs.
+      - uses: thiago8rocha/job-radar@v1
+        if: ${{ always() }}
+        with:
+          command: metrics
+          github-token: ${{ secrets.JOB_RADAR_TOKEN }}
+          dry-run: ${{ inputs.dry-run || false }}
