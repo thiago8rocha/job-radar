@@ -26,10 +26,13 @@ const ANNOTATION = /[(\[{]\s*([^()[\]{}]*?)\s*[)\]}]/g;
 const POSTING_CODE = /^(?:(?:job|req|ref|id|vaga|cod|codigo)\s+)?#?(\d{3,})$/;
 const YEAR = /^(?:19|20)\d{2}$/;
 const EXCLUSIVE = /\b(?:pcd|pwd|exclusiv[oa]s?|afirmativ[oa]s?)\b/;
+const REGION_TAG = /^(?:remote\s+)?(?:brazil|brasil|latam|latin america|americas|worldwide|global)(?:\s+based)?$/;
+const REGION_SUFFIX = /\s*[-–—|,]\s*(?:remote\s+)?(?:brazil|brasil|latam|latin america|americas|worldwide|global)(?:\s+based)?\s*$/i;
 
 /**
  * The same posting is sometimes republished with a requisition code or an audience tag in the
- * title ("... (13865)", "[Job - 32255] ...", "... [Exclusiva PCD]"), which defeats an exact title match.
+ * title ("... (13865)", "[Job - 32255] ...", "... [Exclusiva PCD]") or a region tag ("... - Brazil",
+ * "... (LATAM based)"), which defeats an exact title match.
  * The keys of a job are its exact key, the key without those annotations and, when the title carries
  * one, the keys of its posting code. Any of them being known makes the job a duplicate.
  */
@@ -42,8 +45,8 @@ export function jobKeys(company: string, title: string): string[] {
       code ??= match;
       return ' ';
     }
-    return EXCLUSIVE.test(text) ? ' ' : whole;
-  });
+    return EXCLUSIVE.test(text) || REGION_TAG.test(text) ? ' ' : whole;
+  }).replace(REGION_SUFFIX, '');
 
   const keys = [jobKey(company, title)];
   const bareKey = jobKey(company, bare);

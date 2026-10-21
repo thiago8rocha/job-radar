@@ -237,6 +237,14 @@ describe('dedup', () => {
     expect(jobKey('Stefanini Group', 'QA')).toBe(jobKey('Stefanini', 'QA'));
   });
 
+  it('treats a region tag in the title as the same job', () => {
+    const plain = jobKeys('truelogic', 'QA Automation Engineer - Digital Media & Advertising');
+    expect(jobKeys('truelogic', 'QA Automation Engineer - Digital Media & Advertising - Brazil')).toEqual(expect.arrayContaining(plain));
+    expect(jobKeys('Arionkoder', 'QA Lead (LATAM based)')).toContain(jobKey('Arionkoder', 'QA Lead'));
+    expect(jobKeys('Acme', 'QA Engineer - Brazil')).toContain(jobKey('Acme', 'QA Engineer'));
+    expect(jobKeys('Acme', 'QA Engineer - Mexico')).not.toContain(jobKey('Acme', 'QA Engineer'));
+  });
+
   it('drops jobs already known by id, url or company and title', () => {
     const known = knownFromIssues([
       { title: '[Acme] Senior QA Engineer', body: '**Apply:** https://x.test/a\n' },
