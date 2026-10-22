@@ -218,6 +218,28 @@ work_model: [remote]
   });
 });
 
+describe('excluded companies', () => {
+  const filter = createFilter(parseConfig(`
+search:
+  include: ["QA"]
+  exclude_companies: ["JobTogether"]
+eligibility:
+  accept_regions: [worldwide]
+work_model: [remote]
+`));
+  const base = { title: 'Senior QA', seniority: ['senior'], workModel: 'remote' as const, locations: ['Remote'], postedAt: NOW.toISOString() };
+
+  it('drops a job from a listed company whatever the spacing or case', () => {
+    for (const company of ['JobTogether', 'Job Together', 'jobtogether', 'JobTogether Inc.']) {
+      expect(filter.check(job({ ...base, company }), NOW).reason).toBe('excluded company: "JobTogether"');
+    }
+  });
+
+  it('keeps jobs from other companies', () => {
+    expect(filter.check(job({ ...base, company: 'Together Labs' }), NOW).ok).toBe(true);
+  });
+});
+
 describe('dedup', () => {
   it('reads known jobs from existing issues: marker, apply link and title', () => {
     const known = knownFromIssues([

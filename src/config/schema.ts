@@ -25,6 +25,8 @@ export const configSchema = z.object({
       /** Terms (stack, tools) listed in the issue excerpt when the description mentions them. */
       highlight: z.array(z.string()).default([]),
       exclude: z.array(z.string()).default([]),
+      /** Companies whose jobs are always dropped (scams, agencies you refuse); matched on the company name, spacing and case ignored. */
+      exclude_companies: z.array(z.string()).default([]),
       seniority: z.array(z.string()).default([]),
       max_age_days: z.number().int().positive().default(15),
     })
@@ -34,6 +36,7 @@ export const configSchema = z.object({
       ambiguous_requires: [],
       highlight: [],
       exclude: [],
+      exclude_companies: [],
       seniority: [],
       max_age_days: 15,
     }),

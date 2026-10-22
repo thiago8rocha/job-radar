@@ -57,11 +57,16 @@ export interface JobFilter {
   worthDetails(candidate: { title: string; workModel?: WorkModel }): boolean;
 }
 
+const compactText = (value: string): string => normalizeText(value).replace(/ /g, '');
+
 export function createFilter(config: Config): JobFilter {
   const { search, eligibility } = config;
   const ambiguous = new Set(search.ambiguous.map(normalizeText));
   const allowedModels = new Set<WorkModel>(config.work_model);
   const wantedSeniority = new Set(search.seniority.map((level) => level.toLowerCase()));
+
+  const blockedCompany = (company: string): string | undefined =>
+    search.exclude_companies.find((name) => containsTerm(company, name) || (compactText(name) !== '' && compactText(company) === compactText(name)));
 
   const titleResult = (title: string): { matched: string[]; excluded?: string } => ({
     matched: search.include.filter((term) => containsTerm(title, term)),
@@ -76,6 +81,9 @@ export function createFilter(config: Config): JobFilter {
     },
 
     check(job, now) {
+      const blocked = blockedCompany(job.company);
+      if (blocked) return { ok: false, reason: `excluded company: "${blocked}"` };
+
       const { matched, excluded } = titleResult(job.title);
       if (excluded) return { ok: false, reason: `excluded term: "${excluded}"` };
       if (matched.length === 0) return { ok: false, reason: 'title: no search term matched' };

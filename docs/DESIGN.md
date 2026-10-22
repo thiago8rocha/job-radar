@@ -125,6 +125,7 @@ search:
   ambiguous_requires: ["software", "testes", "QA", "automação"]  # an ambiguous match only passes with one of these
   highlight: ["Playwright", "Cypress", "Selenium", "API testing", "CI/CD"]  # listed in the issue when the description mentions them
   exclude: ["Intern", "Estágio", "Trainee", "Júnior", "Junior", "Pleno", "Mid-level"]
+  exclude_companies: []  # companies whose jobs are always dropped
   seniority: [senior, specialist, staff, lead]
   max_age_days: 15
 
