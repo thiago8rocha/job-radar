@@ -286,6 +286,26 @@ describe('dedup', () => {
     expect([...known.keys]).toEqual([jobKey('Luby', 'Senior QA')]);
   });
 
+  it('does not reopen a job entered by hand, whose marker differs from the collector id', () => {
+    const known = knownFromIssues([
+      {
+        title: '[Zallpy] Analista de Qualidade SR',
+        body: '**Apply:** https://zallpy.inhire.app/vagas/1b573a14/analista-de-qualidade-sr\n**Source:** manual\n\n<!-- job-radar:id=manual:zallpy:3344bd28 -->',
+      },
+    ]);
+    const collected = job({
+      id: 'inhire:zallpy:b697a047',
+      source: 'inhire',
+      company: 'Zallpy',
+      title: 'Analista de Qualidade SR',
+      applyUrl: 'https://zallpy.inhire.app/vagas/1b573a14/analista-de-qualidade-sr',
+    });
+    expect(dedupe([collected], known).duplicates).toEqual([{ job: collected, reason: 'url' }]);
+
+    const otherLink = { ...collected, applyUrl: 'https://br.linkedin.com/jobs/view/123' };
+    expect(dedupe([otherLink], known).duplicates).toEqual([{ job: otherLink, reason: 'company and title' }]);
+  });
+
   it('treats company name variants as the same company', () => {
     const plata = jobKey('Plata', 'QA Engineer - Backend (Golang) Senior [Core Banking Systems]');
     expect(jobKey('Banco Plata, S.A., Institución de Banca Múltiple', 'QA Engineer - Backend (Golang) Senior [Core Banking Systems]')).toBe(plata);
