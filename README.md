@@ -65,7 +65,7 @@ The Action takes `command` plus `github-token`. The same commands run locally wi
 | `search.ambiguous`, `search.ambiguous_requires` | Terms too generic on their own, and the words that confirm them in the title or description. |
 | `search.exclude` | Titles with these terms are dropped (`Intern`, `Junior`...). |
 | `search.exclude_companies` | Companies whose jobs are always dropped (`Jobgether`...). Matched on the company name, case, accents and spacing ignored: `Jobgether` also catches `Job Gether`. |
-| `search.seniority` | `senior`, `specialist`, `staff`, `lead`. A job that states no level is dropped, unless its description asks for 5 or more years of experience (ranges like "3-5 years" do not count), which reads as `senior`. |
+| `search.seniority` | `senior`, `specialist`, `staff`, `lead`. A title with a numbered level of 3 or higher ("III", "IV", "Nível 3", "Level 3") also reads as `senior`. A job that states no level is dropped, unless its description asks for 5 or more years of experience (ranges like "3-5 years" do not count), which reads as `senior`. |
 | `search.max_age_days` | Ignore postings older than this. |
 | `search.highlight` | Stack terms quoted in the issue when the description mentions them. |
 | `eligibility.accept_regions` | `worldwide`, `latam`, `americas`, `brazil`. A job passes when any of its locations is in one of them. |

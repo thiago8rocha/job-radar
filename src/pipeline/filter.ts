@@ -9,7 +9,7 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 
 /** Keywords per seniority level, EN and PT, compared on normalized text (no accents). */
 const SENIORITY_KEYWORDS: Record<string, string[]> = {
-  senior: ['senior', 'sr'],
+  senior: ['senior', 'sr', 'iii', 'iv', 'nivel 3', 'nivel 4', 'level 3', 'level 4'],
   specialist: ['especialista', 'specialist'],
   staff: ['staff', 'principal'],
   lead: ['lead', 'lider', 'head'],

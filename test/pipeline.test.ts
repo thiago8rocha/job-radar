@@ -121,6 +121,11 @@ describe('filter', () => {
     expect(check({ title: 'QA Engineer', seniority: ['manager'] }).reason).toContain('seniority: manager');
     expect(check({ title: 'Sr. QA Engineer' }).ok).toBe(true);
     expect(check({ title: 'QA Especialista' }).ok).toBe(true);
+    expect(check({ title: 'Analista de QA III' }).ok).toBe(true);
+    expect(check({ title: 'SDET - III (RAGas Automation Testing)' }).ok).toBe(true);
+    expect(check({ title: 'QA Engineer Nível 3' }).ok).toBe(true);
+    expect(check({ title: 'QA Engineer II' }).reason).toContain('seniority: not stated');
+    expect(check({ title: 'QA Engineer Level 2' }).reason).toContain('seniority: not stated');
     expect(check({ title: 'Staff QA Engineer' }).ok).toBe(true);
     expect(check({ title: 'QA Lead' }).ok).toBe(true);
     expect(detectSeniority({ title: 'Líder de QA Sênior', seniority: [] })).toEqual(expect.arrayContaining(['senior', 'lead']));
