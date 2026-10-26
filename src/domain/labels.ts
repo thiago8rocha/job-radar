@@ -77,9 +77,10 @@ const PREFIX_COLORS: Record<string, string> = {
   found: 'c5def5',
   ats: 'bfdadc',
   contract: 'e99695',
+  signal: 'f9d0c4',
 };
 
-/** Slug used inside dynamic labels (`found:*`, `ats:*`, `contract:*`). */
+/** Slug used inside dynamic labels (`found:*`, `ats:*`, `contract:*`, `signal:*`). */
 export function slugify(value: string): string {
   return value
     .normalize('NFD')
@@ -90,12 +91,12 @@ export function slugify(value: string): string {
 }
 
 /** Definition for a dynamic label such as `found:linkedin`, created on first use. */
-export function dynamicLabel(prefix: 'found' | 'ats' | 'contract', value: string): LabelDef | undefined {
+export function dynamicLabel(prefix: 'found' | 'ats' | 'contract' | 'signal', value: string): LabelDef | undefined {
   const slug = slugify(value);
   if (!slug) return undefined;
   return {
     name: `${prefix}:${slug}`,
     color: PREFIX_COLORS[prefix] ?? 'ededed',
-    description: { found: 'Where the job was seen', ats: 'Where the application was made', contract: 'Contract type' }[prefix],
+    description: { found: 'Where the job was seen', ats: 'Where the application was made', contract: 'Contract type', signal: 'Warning raised by the posting text' }[prefix],
   };
 }

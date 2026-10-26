@@ -114,6 +114,16 @@ Google Jobs and company discovery use [SerpAPI](https://serpapi.com), whose free
 
 Without the key both stay off and the run summary says so.
 
+## Posting signals
+
+The text of a posting can say what its source label hides. When a new job's text shows one of these, the issue gets a `signal:*` label and a `**Signal (...)**` line quoting the sentence. Nothing is discarded: it is a warning for you to weigh.
+
+| Label | Raised by |
+| --- | --- |
+| `signal:internal` | Internal selection: "internal candidates only", "seleção interna", "exclusivo para colaboradores". |
+| `signal:intermediary` | A recruiter or aggregator posting for someone else: "on behalf of a partner company", "our client is...", "nosso cliente atua...". |
+| `signal:scam` | Money or contact traits: a registration or training fee, a request for bank details, contact only by WhatsApp or Telegram. A sentence that warns against these ("we will never ask you to pay a fee") does not count. |
+
 ## Optional: AI
 
 When `ai.enabled` is true, each new job gets a fit score for your profile (a `fit:1` to `fit:5` label and two or three lines of reasoning in the issue), plus what rules cannot read: contract, salary range, required hours, stack, and whether it really is fully remote. The score sorts and highlights; it never discards a job. Commenting `/evaluate` on an issue posts the full analysis.

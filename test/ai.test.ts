@@ -226,6 +226,14 @@ ai: { enabled: true, max_calls_per_run: 2 }
     expect(broken.log.warn).toHaveBeenCalledWith(expect.stringContaining('created without a score'));
   });
 
+  it('labels a posting that raises a signal and quotes the sentence in the issue', async () => {
+    const flagged = job({ ...jobs[0]!, description: 'Playwright. This role is listed on behalf of a partner company.' });
+    const fake = await run(undefined, [flagged]);
+    const call = fake.issues.create.mock.calls[0]![0] as any;
+    expect(call.labels).toContain('signal:intermediary');
+    expect(call.body).toContain('**Signal (intermediary):** "This role is listed on behalf of a partner company."');
+  });
+
   it('adds no score but still keeps the full description when AI is not provided', async () => {
     const fake = await run(undefined, [jobs[0]!]);
     const call = fake.issues.create.mock.calls[0]![0] as any;

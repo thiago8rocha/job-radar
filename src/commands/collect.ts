@@ -16,6 +16,7 @@ import { dedupe, knownFromIssues } from '../pipeline/dedup.js';
 import { regionsOf } from '../pipeline/eligibility.js';
 import { buildExcerpt, sanitizeForIssue } from '../pipeline/excerpt.js';
 import { createFilter, inferWorkModel } from '../pipeline/filter.js';
+import { detectSignals, type Signal } from '../pipeline/signals.js';
 import { brasiliaHours } from '../pipeline/timezone.js';
 import { DEFAULT_STATE_PATH, loadState, saveState, type SeenState } from '../state/seen.js';
 import { createHttpClient, type HttpClient } from '../util/http.js';
@@ -83,11 +84,12 @@ export function describeLocation(job: Job, today: Date): string {
   return [where, brasiliaHours(job.description, today)].filter(Boolean).join(' · ');
 }
 
-function labelsFor(job: Job): { names: string[]; dynamic: LabelDef[] } {
+function labelsFor(job: Job, signals: Signal[]): { names: string[]; dynamic: LabelDef[] } {
   const dynamic = [
     dynamicLabel('found', job.source),
     job.atsApply ? dynamicLabel('ats', job.source) : undefined,
     ...job.contracts.map((contract) => dynamicLabel('contract', contract)),
+    ...signals.map(({ kind }) => dynamicLabel('signal', kind)),
   ].filter((label): label is LabelDef => label !== undefined);
 
   const brazilian = [...job.locations, ...(job.restrictions ?? [])].some((place) => regionsOf(place).includes('brazil'));
@@ -304,6 +306,16 @@ function insightLines(insight: JobInsight, today: Date): string[] {
   return lines;
 }
 
+const SIGNAL_NAMES: Record<Signal['kind'], string> = {
+  internal: 'internal selection',
+  intermediary: 'intermediary',
+  scam: 'possible scam',
+};
+
+function signalLine({ kind, quote }: Signal): string {
+  return `**Signal (${SIGNAL_NAMES[kind]}):** "${sanitizeForIssue(quote)}"`;
+}
+
 async function writeIssue(
   ctx: Context,
   project: Project,
@@ -321,7 +333,9 @@ async function writeIssue(
       ? `${formatRange(salary.min ?? undefined, salary.max ?? undefined, salary.currency, salary.period)} (read by AI)`
       : undefined;
 
-  const { names: baseNames, dynamic } = labelsFor(withContracts);
+  const signals = detectSignals(`${job.title}
+${job.description}`);
+  const { names: baseNames, dynamic } = labelsFor(withContracts, signals);
   const names = insight ? [...baseNames, `fit:${insight.fit}`] : baseNames;
   const missing = dynamic.filter((label) => !knownLabels.has(label.name));
   if (missing.length > 0) {
@@ -338,7 +352,7 @@ async function writeIssue(
       postedOn: job.postedAt?.slice(0, 10),
       compensation: job.compensation ?? aiCompensation,
       source: job.source,
-      extraLines: insight ? insightLines(insight, today) : undefined,
+      extraLines: [...(insight ? insightLines(insight, today) : []), ...signals.map(signalLine)],
       excerpt: buildExcerpt(job.description, ctx.config.search.highlight),
       fullDescription: sanitizeForIssue(truncate(job.description, 8000)),
       markerId: job.id,

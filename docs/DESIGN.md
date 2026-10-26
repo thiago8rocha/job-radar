@@ -105,7 +105,7 @@ Collection runs once a day, on business days. Company discovery and metrics run 
    - Published at most N days ago (default 15)
    - Eligibility: accept Worldwide, LATAM, Americas, Brazil (timezone does not filter; see Issue model); discard "US only" and "EU only"
 5. **Deduplication.** First by source id and canonical URL (without parameters such as `utm_*`, `source`, `gh_src`). Then by normalized company + title, because the same job shows up on Greenhouse, Himalayas and Google Jobs. Ids already seen are kept in `state/seen.json` in the private repo.
-6. **Writing.** One issue per new job, with a short interval between creations because of GitHub's rate limit. The issue enters the Project with status New.
+6. **Writing.** One issue per new job, with a short interval between creations because of GitHub's rate limit. The issue enters the Project with status New. The posting text is also scanned for signals the source label hides (internal selection, intermediary, scam traits): each raises a `signal:*` label and a quoted line in the body, and never discards the job. In a run over 765 postings from the live sources only the intermediary signal fired (18 postings, all genuine), since public feeds carry no internal selections; a sentence that warns against a scam is ignored, or the Airbnb notice would have flagged 188 of them.
 7. **Summary.** The Actions job summary lists new jobs per source, discards by reason and sources with errors. Notification comes from the GitHub app when the issue is created.
 8. **Weekly revalidation.** Open jobs with status New whose URL has disappeared from the source get the `closed-at-source` label and are closed.
 

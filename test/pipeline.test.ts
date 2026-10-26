@@ -10,6 +10,7 @@ import { buildExcerpt, sanitizeForIssue } from '../src/pipeline/excerpt.js';
 import { createFilter, detectSeniority, inferWorkModel } from '../src/pipeline/filter.js';
 import { emptyState, loadState, saveState } from '../src/state/seen.js';
 import { requiredLanguage } from '../src/pipeline/language.js';
+import { detectSignals } from '../src/pipeline/signals.js';
 import { job } from './helpers.js';
 import { containsTerm, decodeEntities, htmlToText, truncate } from '../src/util/text.js';
 
@@ -220,6 +221,35 @@ work_model: [remote]
     const base = { title: 'Senior QA', seniority: ['senior'], workModel: 'remote' as const, locations: ['Remote'], postedAt: NOW.toISOString() };
     expect(strict.check(job({ ...base, description: 'Russian fluency required.' }), NOW).reason).toBe('language: requires Russian');
     expect(strict.check(job({ ...base, description: 'Russian is a plus.' }), NOW).ok).toBe(true);
+  });
+});
+
+describe('posting signals', () => {
+  const kinds = (text: string) => detectSignals(text).map((signal) => signal.kind);
+
+  it('flags an internal selection, quoting the sentence', () => {
+    expect(kinds('Seleção interna: vaga exclusiva para colaboradores.')).toEqual(['internal']);
+    expect(kinds('This role is open to internal candidates only.')).toEqual(['internal']);
+    expect(detectSignals('Intro.\nOnly open to current employees.\nMore.')[0]!.quote).toBe('Only open to current employees.');
+  });
+
+  it('flags a posting made on behalf of another company', () => {
+    expect(kinds('This position is listed on behalf of a partner company.')).toEqual(['intermediary']);
+    expect(kinds('Our client is a fintech scaling in LATAM.')).toEqual(['intermediary']);
+    expect(kinds('Nosso cliente atua no segmento de saúde.')).toEqual(['intermediary']);
+    expect(kinds('You will work with our clients every day.')).toEqual([]);
+  });
+
+  it('flags scam traits but not a warning against them', () => {
+    expect(kinds('Pague a taxa de inscrição para garantir sua vaga.')).toEqual(['scam']);
+    expect(kinds('Envie seus dados bancários para o cadastro.')).toEqual(['scam']);
+    expect(kinds('Contato somente por WhatsApp.')).toEqual(['scam']);
+    expect(kinds('We will never ask you to pay a fee or send money.')).toEqual([]);
+    expect(kinds('Build the bank account opening flow in our app.')).toEqual([]);
+  });
+
+  it('reports each kind once', () => {
+    expect(kinds('Our client is X. Our client is Y. Seleção interna.')).toEqual(['intermediary', 'internal']);
   });
 });
 
