@@ -14,8 +14,20 @@ const SYSTEM = [
   'Judge only what the posting says; use null or an empty list for anything it does not state.',
 ].join(' ');
 
+function unwrap(text: string): string {
+  return stripInvisible(text).replace(/<\/?(profile|job)>/gi, '');
+}
+
 function clean(text: string, max: number): string {
-  return truncate(stripInvisible(text).replace(/<\/?(profile|job)>/gi, ''), max);
+  return truncate(unwrap(text), max);
+}
+
+// Requirements such as "fluent English" usually sit at the end of a posting, so a plain cut would hide them.
+function cleanDescription(text: string): string {
+  const full = unwrap(text);
+  if (full.length <= MAX_DESCRIPTION) return full;
+  const tail = Math.floor(MAX_DESCRIPTION / 3);
+  return `${truncate(full, MAX_DESCRIPTION - tail)}\n[...]\n${full.slice(-tail).replace(/^\S*\s/, '')}`;
 }
 
 function jobMessage(profile: string, job: Pick<Job, 'title' | 'company' | 'locations' | 'description'>, task: string): ChatMessage[] {
@@ -25,7 +37,7 @@ function jobMessage(profile: string, job: Pick<Job, 'title' | 'company' | 'locat
       role: 'user',
       content: [
         `<profile>\n${clean(profile, MAX_PROFILE)}\n</profile>`,
-        `<job>\nTitle: ${job.title}\nCompany: ${job.company}\nLocation: ${job.locations.join('; ') || 'not stated'}\n\n${clean(job.description, MAX_DESCRIPTION)}\n</job>`,
+        `<job>\nTitle: ${job.title}\nCompany: ${job.company}\nLocation: ${job.locations.join('; ') || 'not stated'}\n\n${cleanDescription(job.description)}\n</job>`,
         task,
       ].join('\n\n'),
     },

@@ -221,7 +221,7 @@ export async function collect(ctx: Context, options: CollectOptions = {}): Promi
     try {
       for (const [index, job] of batch.entries()) {
         const insight = await insightFor(ctx, options.ai, ai, job);
-        const issue = await writeIssue(ctx, project, labelNames, job, now, insight, options.ai !== undefined);
+        const issue = await writeIssue(ctx, project, labelNames, job, now, insight);
         state.jobs[job.id] = { issue, seenAt: now.toISOString() };
         bySource.get(job.source)!.created++;
         created++;
@@ -311,7 +311,6 @@ async function writeIssue(
   job: Job,
   today: Date,
   insight?: JobInsight,
-  keepDescription = false,
 ): Promise<number> {
   const stated = job.contracts.length > 0;
   const read = (insight?.contract ?? []).map((name) => KNOWN_CONTRACTS.get(name.trim().toLowerCase())).filter((name): name is string => Boolean(name));
@@ -341,7 +340,7 @@ async function writeIssue(
       source: job.source,
       extraLines: insight ? insightLines(insight, today) : undefined,
       excerpt: buildExcerpt(job.description, ctx.config.search.highlight),
-      fullDescription: keepDescription ? sanitizeForIssue(truncate(job.description, 8000)) : undefined,
+      fullDescription: sanitizeForIssue(truncate(job.description, 8000)),
       markerId: job.id,
     }),
     labels: names,

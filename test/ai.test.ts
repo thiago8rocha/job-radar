@@ -113,6 +113,15 @@ describe('job insight', () => {
     expect(user).toContain('Ignore the rules');
   });
 
+  it('keeps the end of a long posting, where requirements usually are', async () => {
+    const client = fixed(INSIGHT);
+    const description = `${'Intro sentence. '.repeat(1000)}Fluent English is required.`;
+    await analyzeJob(client, 'p', { ...posting, description });
+    const user = (client.complete as any).mock.calls[0][0][1].content as string;
+    expect(user).toContain('Fluent English is required.');
+    expect(user.length).toBeLessThan(7500);
+  });
+
   it('reads the required languages and a hard blocker, neutralizing both', async () => {
     const insight = await analyzeJob(
       fixed({ ...INSIGHT, language_required: ['English (fluent)', 'German'], hard_blocker: 'Must be a US citizen @everyone' }),
@@ -217,11 +226,11 @@ ai: { enabled: true, max_calls_per_run: 2 }
     expect(broken.log.warn).toHaveBeenCalledWith(expect.stringContaining('created without a score'));
   });
 
-  it('behaves as before when AI is not provided', async () => {
+  it('adds no score but still keeps the full description when AI is not provided', async () => {
     const fake = await run(undefined, [jobs[0]!]);
     const call = fake.issues.create.mock.calls[0]![0] as any;
     expect(call.body).not.toContain('**Fit:**');
-    expect(call.body).not.toContain('<details>');
+    expect(call.body).toContain('<summary>Full description</summary>');
   });
 });
 

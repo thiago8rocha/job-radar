@@ -349,7 +349,7 @@ AI is optional and provider-neutral: any OpenAI-compatible chat completions API,
 - Call limit per run below the provider's quota
 - If the quota runs out or the call fails, the issue is created without a score and collection carries on as normal
 - The workflow passes the key as the `ai-api-key` input and the secret as the `profile` input; the Action sends the profile only to the model. The posting is sent as data inside tags with instructions in the system message to ignore any instruction found in it, and the reply is validated with a schema and sanitized (no mentions, references or HTML) before it reaches an issue
-- With AI on, each issue keeps the full posting text (up to 8,000 characters) in a collapsed block, because `/evaluate` runs later and the link alone is not enough to rebuild it. Only the owner, members and collaborators can trigger `/evaluate`, so a comment from a stranger cannot spend the quota
+- Each issue keeps the full posting text (up to 8,000 characters) in a collapsed block, with or without AI, because `/evaluate` and outside scorers run later and the link alone is not enough to rebuild it. When a posting exceeds the model's input limit, the prompt keeps its start and its end, where requirements usually sit. Only the owner, members and collaborators can trigger `/evaluate`, so a comment from a stranger cannot spend the quota
 
 **Risk:** free tiers change without notice. GitHub Models, the first provider, was retired on 2026-07-30, which is why the provider is configurable.
 
