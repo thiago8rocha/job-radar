@@ -2,7 +2,8 @@
 name: collect
 on:
   schedule:
-    - cron: "0 11 * * 1-5"   # 8 a.m. in Brasília
+    - cron: "23 5 * * 1-5"   # 2:23 a.m. in Brasília, off the top-of-the-hour peak
+    - cron: "41 8 * * 1-5"   # backup 5:41 a.m. in Brasília, only runs if no collect succeeded in the last 6 h
   workflow_dispatch:
     inputs:
       dry-run:
@@ -20,7 +21,28 @@ permissions:
   issues: write
 
 jobs:
+  guard:
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+    outputs:
+      run: ${{ steps.check.outputs.run }}
+    steps:
+      - id: check
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          run=true
+          if [ "${{ github.event.schedule }}" = "41 8 * * 1-5" ]; then
+            since=$(date -u -d '6 hours ago' +%FT%TZ)
+            n=$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/collect.yml/runs" -f status=success -f created=">=$since" --jq .total_count)
+            [ "$n" -gt 0 ] && run=false
+          fi
+          echo "run=$run" >> "$GITHUB_OUTPUT"
+
   collect:
+    needs: guard
+    if: needs.guard.outputs.run == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4          # reads the config, companies.yml and state/seen.json
