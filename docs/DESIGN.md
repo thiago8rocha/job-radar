@@ -171,7 +171,7 @@ The private repo's workflow stays at a few lines:
 ```yaml
 # .github/workflows/collect.yml
 on:
-  schedule: [{ cron: "0 11 * * 1-5" }]   # 8 a.m. in Brasília
+  schedule: [{ cron: "23 5 * * 1-5" }]   # 2:23 a.m. in Brasília, off the peak; examples/ adds a guarded backup run
   workflow_dispatch:
 permissions:
   contents: write
