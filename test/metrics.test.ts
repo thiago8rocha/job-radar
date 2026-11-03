@@ -192,6 +192,33 @@ describe('renderReport', () => {
     expect(report).toContain('| not given | 1 |');
   });
 
+  it('breaks the outcome down by fit score, leaving waiting applications out of the rate', () => {
+    const fit = (number: number, score: string | undefined, overrides: Record<string, unknown> = {}) =>
+      analyzeIssue(
+        facts({
+          number,
+          title: `[Co${number}] QA`,
+          labels: ['status:applied', ...(score ? [`fit:${score}`] : [])],
+          fields: { 'Applied on': '2026-10-10', ...overrides },
+        }),
+      );
+    const report = renderReport(
+      [
+        fit(1, '4', { 'Response date': '2026-10-12' }),
+        fit(2, '4', { 'Applied on': '2026-07-01' }),
+        fit(3, '4'),
+        fit(4, undefined, { 'Response date': '2026-10-12' }),
+        ...[5, 6, 7, 8, 9].map((n) => fit(n, '2', { 'Response date': '2026-10-12' })),
+        fit(10, '2', { 'Applied on': '2026-07-01' }),
+      ],
+      TODAY,
+      60,
+    );
+    expect(report).toContain('| 2 | 6 | 0 | 6 | 5 | 1 | 0 | 83% |');
+    expect(report).toContain('| 4 | 3 | 0 | 3 | 1 | 1 | 1 | 1 of 2 |');
+    expect(report).toContain('| no score | 1 | 0 | 1 | 1 | 0 | 0 | 1 of 1 |');
+  });
+
   it('copes with no data', () => {
     const report = renderReport([], TODAY);
     expect(report).toContain('| Applications | 0 |');

@@ -86,6 +86,29 @@ function breakdown(all: IssueMetrics[], keys: (issue: IssueMetrics) => string[])
     });
 }
 
+const MIN_CASES_FOR_RATE = 5;
+
+/**
+ * Outcome by AI fit score. An application with no answer yet stays out of the rate and is listed on its
+ * own, since counting it as a failure punishes recent ones and counting it as a success inflates the rest.
+ * A band with fewer than `MIN_CASES_FOR_RATE` decided applications shows the count, never a percentage.
+ */
+function byFit(all: IssueMetrics[], todayIso: string, noResponseAfterDays: number): Array<Array<string | number>> {
+  return [1, 2, 3, 4, 5, undefined].flatMap((fit) => {
+    const jobs = all.filter((issue) => issue.fit === fit);
+    if (jobs.length === 0) return [];
+    const applied = jobs.filter((issue) => issue.appliedOn);
+    const responded = applied.filter((issue) => issue.responseDate).length;
+    const noResponse = applied.filter((issue) => isUnanswered(issue, todayIso, noResponseAfterDays)).length;
+    const inProgress = applied.filter(
+      (issue) => !issue.responseDate && !(issue.status && isTerminalStatus(issue.status)) && !isUnanswered(issue, todayIso, noResponseAfterDays),
+    ).length;
+    const decided = responded + noResponse;
+    const rate = decided === 0 ? '—' : decided < MIN_CASES_FOR_RATE ? `${responded} of ${decided}` : pct(responded, decided);
+    return [[fit ?? 'no score', jobs.length, jobs.filter(isDiscarded).length, applied.length, responded, noResponse, inProgress, rate]];
+  });
+}
+
 /** Reasons given on discarded jobs (`discard:*` labels), most common first; jobs without one are "not given". */
 function discardReasons(all: IssueMetrics[]): Array<Array<string | number>> {
   const counts = new Map<string, number>();
@@ -195,6 +218,12 @@ export function renderReport(all: IssueMetrics[], today: Date, noResponseAfterDa
     table(['Scope', 'Jobs', 'Discarded', 'Applied', 'Responded', 'Response rate'], breakdown(all, (issue) => (issue.scope ? [issue.scope] : []))),
     '## By contract',
     table(['Contract', 'Jobs', 'Discarded', 'Applied', 'Responded', 'Response rate'], breakdown(all, (issue) => issue.contracts)),
+    '## By fit score',
+    table(
+      ['Fit', 'Jobs', 'Discarded', 'Applied', 'Responded', 'No response', 'In progress', 'Response rate'],
+      byFit(all, todayIso, noResponseAfterDays),
+    ),
+    '_The rate leaves out applications still waiting and shows a count when fewer than 5 are decided. It only observes: the score is never changed._',
     '## Salary',
     table(['Currency', 'Mean target', 'Targets', 'Mean offered', 'Offers'], salaries),
     `## Stalled applications (${STALLED_AFTER_DAYS} to ${noResponseAfterDays} days without a response)`,

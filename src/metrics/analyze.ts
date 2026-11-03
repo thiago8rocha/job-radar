@@ -41,6 +41,8 @@ export interface IssueMetrics {
   /** Days from application to the final status, for processes that ended. */
   processDuration?: number;
   found?: string;
+  /** AI fit score from the `fit:N` label, 1 to 5. */
+  fit?: number;
   ats?: string;
   scope?: string;
   contracts: string[];
@@ -86,6 +88,11 @@ function num(value: string | number | undefined): number | undefined {
 
 function statusFromTitle(title: string | undefined): Status | undefined {
   return STATUSES.find((status) => STATUS_TITLES[status] === title);
+}
+
+function fitScore(labels: string[]): number | undefined {
+  const score = Number(labelValue(labels, 'fit'));
+  return Number.isInteger(score) && score >= 1 && score <= 5 ? score : undefined;
 }
 
 function labelValue(labels: string[], prefix: string): string | undefined {
@@ -147,6 +154,7 @@ export function analyzeIssue(facts: IssueFacts): IssueMetrics {
     daysToResponse,
     processDuration,
     found: labelValue(facts.labels, 'found'),
+    fit: fitScore(facts.labels),
     ats: labelValue(facts.labels, 'ats'),
     scope: labelValue(facts.labels, 'scope'),
     contracts: facts.labels.filter((name) => name.startsWith('contract:')).map((name) => name.slice('contract:'.length)),
