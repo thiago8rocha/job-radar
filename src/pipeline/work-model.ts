@@ -25,6 +25,9 @@ const ONSITE_BODY: RegExp[] = [
   /\bon ?site (role|position|job|only)\b/,
 ];
 
+/** The word alone as a sentence or a field value ("Contrato: Efetivo. Presencial."), which the normalized text cannot tell from a passing mention. */
+const ONSITE_STANDALONE = /(?:^|[.:;|•\n]\s*)(?:presencial|on-?site|in[- ]office)\s*(?:[.;|•\n]|$)/im;
+
 /** Mentions of remote work close to a match mean the posting offers a choice ("hybrid or remote"). */
 const REMOTE_NEARBY = /\b(remote|remoto|remota|remotely|home office)\b/;
 
@@ -35,6 +38,13 @@ function signal(text: string, patterns: RegExp[]): boolean {
     const around = text.slice(Math.max(0, match.index - 40), match.index + match[0].length + 40);
     return !REMOTE_NEARBY.test(around);
   });
+}
+
+function standaloneOnsite(description: string): boolean {
+  const match = ONSITE_STANDALONE.exec(description);
+  if (!match) return false;
+  const around = normalizeText(description.slice(Math.max(0, match.index - 40), match.index + match[0].length + 40));
+  return !REMOTE_NEARBY.test(around);
 }
 
 export interface WorkModelResult {
@@ -71,7 +81,7 @@ export function resolveWorkModel(
 
   if (ONSITE_HEAD.test(head)) raise('onsite', 'title');
   else if (HYBRID_HEAD.test(head)) raise('hybrid', 'title');
-  if (signal(body, ONSITE_BODY)) raise('onsite', 'description');
+  if (signal(body, ONSITE_BODY) || standaloneOnsite(job.description)) raise('onsite', 'description');
   else if (signal(body, HYBRID_BODY)) raise('hybrid', 'description');
 
   if (model === undefined && /\b(remote|remoto|home office)\b/.test(`${head} ${normalizeText(job.description.slice(0, 2000))}`)) {

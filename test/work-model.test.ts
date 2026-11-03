@@ -25,6 +25,21 @@ describe('work model', () => {
     expect(model({ workModel: 'remote', description: 'Come in 2 days a week at the office.' })).toBe('hybrid');
   });
 
+  it('reads "Presencial" or "On-site" alone as a sentence or a field value', () => {
+    expect(model({ workModel: 'remote', description: 'Contrato: Efetivo. Presencial. Candidatos de Quixeré também são considerados.' })).toBe('onsite');
+    expect(model({ workModel: 'remote', description: `Local: Russas
+Presencial
+Benefícios: VR` })).toBe('onsite');
+    expect(model({ workModel: 'remote', description: 'Regime: On-site; salary on request.' })).toBe('onsite');
+  });
+
+  it('does not read passing mentions of presencial as the work model', () => {
+    expect(model({ workModel: 'remote', description: 'Não é presencial.' })).toBe('remote');
+    expect(model({ workModel: 'remote', description: 'Reuniões presenciais mensais com o time.' })).toBe('remote');
+    expect(model({ workModel: 'remote', description: 'Modalidade: Remoto | Presencial | conforme a equipe.' })).toBe('remote');
+    expect(model({ workModel: 'remote', description: 'Remoto ou presencial, você escolhe.' })).toBe('remote');
+  });
+
   it('keeps the more demanding model when the source and the text disagree', () => {
     expect(model({ workModel: 'hybrid', description: 'Vaga 100% presencial.' })).toBe('onsite');
     expect(model({ workModel: 'onsite', description: 'Remote friendly.' })).toBe('onsite');
