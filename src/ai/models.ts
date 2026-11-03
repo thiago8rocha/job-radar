@@ -44,7 +44,7 @@ export function createModelsClient(options: ModelsClientOptions): ChatClient {
             model: options.model,
             messages,
             temperature: 0.2,
-            max_tokens: options.maxTokens ?? 700,
+            max_tokens: options.maxTokens ?? 1000,
             response_format: { type: 'json_object' },
           },
         });

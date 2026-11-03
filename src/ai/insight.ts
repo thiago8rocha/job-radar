@@ -4,7 +4,7 @@ import { sanitizeForIssue } from '../pipeline/excerpt.js';
 import { stripInvisible, truncate } from '../util/text.js';
 import { AiError, type ChatClient, type ChatMessage } from './models.js';
 
-const MAX_PROFILE = 6000;
+const MAX_PROFILE = 24_000;
 const MAX_DESCRIPTION = 6000;
 
 const SYSTEM = [
