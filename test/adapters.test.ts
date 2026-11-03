@@ -249,6 +249,16 @@ describe('freehire', () => {
     expect(raws).toHaveLength(fixture('freehire.json').data.length);
   });
 
+  it('drops postings whose apply link is a Telegram post', async () => {
+    const [first, ...rest] = fixture('freehire.json').data;
+    const telegram = { ...first, public_slug: 'tg-1', url: 'https://t.me/some_channel/580' };
+    server.use(http.get(SEARCH, () => HttpResponse.json({ data: [telegram, first, ...rest] })));
+    const raws = await freehire.fetch(context().ctx);
+
+    expect(raws).toHaveLength(fixture('freehire.json').data.length);
+    expect(raws.some((raw) => raw.public_slug === 'tg-1')).toBe(false);
+  });
+
   it('splits more than five include terms into several queries and pages until the total', async () => {
     const queries: string[] = [];
     const offsets: string[] = [];

@@ -9,6 +9,7 @@ const SEARCH = 'https://freehire.me/api/v1/agent/jobs/search';
 const PAGE_SIZE = 100;
 const MAX_PAGES = 3;
 const MAX_ALTERNATIVES = 5; // the API rejects a sixth `OR` alternative
+const TELEGRAM_HOSTS = new Set(['t.me', 'telegram.me']);
 
 const envelopeSchema = z.object({
   data: z.array(z.unknown()),
@@ -43,6 +44,15 @@ export type FreehirePosting = z.infer<typeof postingSchema>;
 
 /** The `search.accept_regions` values freehire can filter on; `americas` has no equivalent without pulling in the US. */
 const REGION_FACETS: Record<string, string> = { worldwide: 'global', latam: 'latam' };
+
+// Telegram channel posts have no company behind them and have been scams.
+function isTelegram(url: string): boolean {
+  try {
+    return TELEGRAM_HOSTS.has(new URL(url).hostname);
+  } catch {
+    return false;
+  }
+}
 
 function searchTerms(include: string[]): string[] {
   const seen = new Set<string>();
@@ -95,7 +105,9 @@ export const freehire: SourceAdapter<FreehirePosting> = {
         if (remoteOnly) params.set('work_mode', 'remote');
 
         const { data, meta } = parseEnvelope('freehire', envelopeSchema, await ctx.http.getJson(`${SEARCH}?${params}`));
-        for (const posting of parseItems('freehire', postingSchema, data, ctx)) bySlug.set(posting.public_slug, posting);
+        for (const posting of parseItems('freehire', postingSchema, data, ctx)) {
+          if (!isTelegram(posting.url)) bySlug.set(posting.public_slug, posting);
+        }
         if (data.length === 0 || (page + 1) * PAGE_SIZE >= (meta?.total ?? 0)) break;
       }
     }
