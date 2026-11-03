@@ -46,6 +46,8 @@ interface Overrides {
   existingIssues?: Array<{ title?: string; body: string | null; pull_request?: unknown; [key: string]: unknown }>;
   /** Status events by issue number, as `issues.listEvents` returns them. */
   events?: Record<number, Array<{ event: string; created_at: string; label?: { name: string } }>>;
+  /** Comments by issue number, as `issues.listComments` returns them. */
+  comments?: Record<number, Array<{ body: string }>>;
   /** Project items as the GraphQL `items` query returns them. */
   projectItems?: unknown[];
   existingLabels?: string[];
@@ -72,6 +74,7 @@ export function fakeContext(overrides: Overrides = {}) {
     get: vi.fn(async (_params: unknown) => ({ data: { state: overrides.issueState ?? 'open' } })),
     listForRepo: vi.fn(),
     listEvents: vi.fn(),
+    listComments: vi.fn(),
     listLabelsForRepo: vi.fn(),
   };
 
@@ -101,6 +104,7 @@ export function fakeContext(overrides: Overrides = {}) {
     paginate: vi.fn(async (method: unknown, params: any) => {
       if (method === issues.listLabelsForRepo) return (overrides.existingLabels ?? []).map((name) => ({ name }));
       if (method === issues.listEvents) return overrides.events?.[params.issue_number] ?? [];
+      if (method === issues.listComments) return overrides.comments?.[params.issue_number] ?? [];
       return (overrides.existingIssues ?? []).map((issue) => ({ title: '', ...issue }));
     }),
   };

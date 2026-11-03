@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { AnySourceAdapter } from '../src/adapters/types.js';
-import { metrics } from '../src/commands/metrics.js';
+import { FOLLOW_UP_MARKER, metrics } from '../src/commands/metrics.js';
 import { revalidate } from '../src/commands/revalidate.js';
 import { parseConfig } from '../src/config/load.js';
 import type { Job } from '../src/domain/job.js';
@@ -339,6 +339,65 @@ How to use this board`, { title: 'How to use this board' }),
         ['F_status', { singleSelectOptionId: 'O_Applied' }],
       ]),
     );
+  });
+
+  describe('follow-up reminders', () => {
+    const imported = (n: number) => `<!-- job-radar:id=import:co${n}:aaaaaaa${n} -->`;
+    const board = (comments: Record<number, Array<{ body: string }>> = {}) =>
+      fakeContext({
+        existingIssues: [
+          issue(1, ['status:applied'], imported(1)),
+          issue(2, ['status:applied'], imported(2)),
+          issue(3, ['status:applied'], imported(3)),
+          issue(4, ['status:applied', 'no-response'], imported(4)),
+          issue(5, ['status:screening'], imported(5)),
+          issue(6, ['status:applied'], imported(6), { state: 'closed' }),
+        ],
+        comments,
+        projectItems: [
+          item(1, { 'Applied on': '2026-09-01', Status: 'Applied' }),
+          item(2, { 'Applied on': '2026-10-10', Status: 'Applied' }),
+          item(3, { 'Applied on': '2026-09-01', Status: 'Applied' }),
+          item(4, { 'Applied on': '2026-09-01', Status: 'Applied' }),
+          item(5, { 'Applied on': '2026-09-01', 'Response date': '2026-09-10', Status: 'Screening' }),
+          item(6, { 'Applied on': '2026-09-01', Status: 'Applied' }),
+        ],
+      });
+
+    it('comments once on an unanswered application older than the limit and leaves the others alone', async () => {
+      const { ctx, issues } = board({ 3: [{ body: `${FOLLOW_UP_MARKER}
+earlier reminder` }] });
+      const result = await metrics(ctx, { now: TODAY });
+
+      expect(result.followUps).toBe(1);
+      expect(issues.createComment).toHaveBeenCalledTimes(1);
+      expect(issues.createComment).toHaveBeenCalledWith(
+        expect.objectContaining({ issue_number: 1, body: expect.stringContaining('44 days since you applied (2026-09-01)') }),
+      );
+      expect(issues.createComment).toHaveBeenCalledWith(expect.objectContaining({ body: expect.stringContaining(FOLLOW_UP_MARKER) }));
+    });
+
+    it('posts nothing in a dry run and when the limit is 0', async () => {
+      const dry = board();
+      expect((await metrics(dry.ctx, { now: TODAY, dryRun: true })).followUps).toBe(2);
+      expect(dry.issues.createComment).not.toHaveBeenCalled();
+
+      const off = board();
+      off.ctx.config = parseConfig(`metrics:
+  follow_up_after_days: 0`);
+      expect((await metrics(off.ctx, { now: TODAY })).followUps).toBe(0);
+      expect(off.issues.createComment).not.toHaveBeenCalled();
+    });
+
+    it('keeps going when one comment fails', async () => {
+      const { ctx, issues, log } = board();
+      issues.createComment.mockRejectedValueOnce(new Error('boom'));
+      const result = await metrics(ctx, { now: TODAY });
+
+      expect(result.followUps).toBe(1);
+      expect(issues.createComment).toHaveBeenCalledTimes(2);
+      expect(log.warn).toHaveBeenCalledWith(expect.stringContaining('#1: could not post the follow-up reminder (boom)'));
+    });
   });
 
   it('writes nothing in a dry run', async () => {

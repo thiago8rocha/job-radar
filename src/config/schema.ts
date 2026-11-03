@@ -78,8 +78,10 @@ export const configSchema = z.object({
     .object({
       /** An application with no answer after this many days counts as "no response" in the Metrics issue. */
       no_response_after_days: z.number().int().positive().default(60),
+      /** An application still at `status:applied` with no answer after this many days gets one reminder comment; 0 turns it off. */
+      follow_up_after_days: z.number().int().nonnegative().default(30),
     })
-    .default({ no_response_after_days: 60 }),
+    .default({ no_response_after_days: 60, follow_up_after_days: 30 }),
 
   ai: z
     .object({

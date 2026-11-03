@@ -1,4 +1,4 @@
-import { desiredFields, analyzeIssue, type IssueFacts, type IssueMetrics } from '../metrics/analyze.js';
+import { daysBetween, desiredFields, analyzeIssue, type IssueFacts, type IssueMetrics } from '../metrics/analyze.js';
 import { IGNORE_MARKER, METRICS_MARKER, renderReport } from '../metrics/report.js';
 import { parseStatusLabel, type Status } from '../domain/status.js';
 import { extractMarker } from '../github/issue-body.js';
@@ -16,10 +16,12 @@ export interface MetricsResult {
   issues: number;
   applications: number;
   fieldsWritten: number;
+  followUps: number;
   report: string;
 }
 
 const METRICS_TITLE = 'Metrics';
+export const FOLLOW_UP_MARKER = '<!-- job-radar:follow-up -->';
 
 interface RepoIssue {
   number: number;
@@ -110,11 +112,56 @@ export async function metrics(ctx: Context, options: MetricsOptions = {}): Promi
   } else {
     await upsertMetricsIssue(ctx, metricsIssue, report);
   }
+  const followUps = await remindFollowUps(ctx, results, now, dryRun);
   const applications = results.filter((issue) => issue.appliedOn).length;
   ctx.log.info(
-    `${dryRun ? '[dry-run] ' : ''}Metrics: ${results.length} jobs, ${applications} applications, ${fieldsWritten} Project field(s) ${dryRun ? 'would change' : 'updated'}`,
+    `${dryRun ? '[dry-run] ' : ''}Metrics: ${results.length} jobs, ${applications} applications, ${fieldsWritten} Project field(s) ${dryRun ? 'would change' : 'updated'}, ${followUps} follow-up reminder(s) ${dryRun ? 'would be posted' : 'posted'}`,
   );
-  return { issues: results.length, applications, fieldsWritten, report };
+  return { issues: results.length, applications, fieldsWritten, followUps, report };
+}
+
+/** One reminder per application that is still `status:applied` and unanswered; it only comments, never changes a status. */
+async function remindFollowUps(ctx: Context, results: IssueMetrics[], now: Date, dryRun: boolean): Promise<number> {
+  const after = ctx.config.metrics.follow_up_after_days;
+  if (after === 0) return 0;
+  const today = now.toISOString().slice(0, 10);
+  const due = results.filter(
+    (issue) =>
+      issue.state === 'open' &&
+      issue.status === 'applied' &&
+      issue.appliedOn &&
+      !issue.responseDate &&
+      !issue.markedNoResponse &&
+      daysBetween(issue.appliedOn, today) > after,
+  );
+
+  let posted = 0;
+  for (const issue of due) {
+    try {
+      const comments = await ctx.octokit.paginate(ctx.octokit.rest.issues.listComments, {
+        ...ctx.repo,
+        issue_number: issue.number,
+        per_page: 100,
+      });
+      if (comments.some((comment) => (comment.body ?? '').includes(FOLLOW_UP_MARKER))) continue;
+      if (dryRun) {
+        ctx.log.info(`[dry-run] #${issue.number}: would post a follow-up reminder (applied ${issue.appliedOn})`);
+      } else {
+        await ctx.octokit.rest.issues.createComment({
+          ...ctx.repo,
+          issue_number: issue.number,
+          body: `${FOLLOW_UP_MARKER}
+It has been ${daysBetween(issue.appliedOn!, today)} days since you applied (${issue.appliedOn}) and there is no response yet. Consider following up with the recruiter or the hiring manager. If the posting was taken down, add the \`no-response\` label instead.
+
+This reminder is posted once per issue.`,
+        });
+      }
+      posted++;
+    } catch (error) {
+      ctx.log.warn(`#${issue.number}: could not post the follow-up reminder (${(error as Error).message})`);
+    }
+  }
+  return posted;
 }
 
 async function writeFields(

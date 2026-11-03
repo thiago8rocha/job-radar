@@ -49,6 +49,7 @@ issues:
 
 metrics:
   no_response_after_days: 60  # an application with no answer after this long counts as "no response"
+  follow_up_after_days: 30    # one reminder comment on an unanswered application after this long; 0 turns it off
 
 # Optional AI through any OpenAI-compatible API. Off by default. The key goes in the AI_API_KEY secret.
 # Check the provider's billing settings before turning it on, so only the free tier is used.
