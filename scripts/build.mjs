@@ -8,7 +8,7 @@ await build({
   outExtension: { '.js': '.cjs' },
   bundle: true,
   platform: 'node',
-  target: 'node20',
+  target: 'node24',
   format: 'cjs',
   minify: true,
   sourcemap: false,

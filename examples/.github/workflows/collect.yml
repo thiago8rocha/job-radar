@@ -45,7 +45,7 @@ jobs:
     if: needs.guard.outputs.run == 'true'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4          # reads the config, companies.yml and state/seen.json
+      - uses: actions/checkout@v5          # reads the config, companies.yml and state/seen.json
       - uses: thiago8rocha/job-radar@v1
         with:
           command: collect

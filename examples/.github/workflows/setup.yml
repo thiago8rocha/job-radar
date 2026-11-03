@@ -11,7 +11,7 @@ jobs:
   setup:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4          # reads job-radar.config.yml
+      - uses: actions/checkout@v5          # reads job-radar.config.yml
       - uses: thiago8rocha/job-radar@v1
         with:
           command: setup

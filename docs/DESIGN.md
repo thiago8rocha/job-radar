@@ -180,7 +180,7 @@ jobs:
   collect:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: thiago8rocha/job-radar@v1
         with:
           command: collect
@@ -311,7 +311,7 @@ A weekly workflow reads the issues and their timelines through the API and rewri
 
 The main risk is a source changing its format without notice and the collector carrying on without bringing anything in. The testing strategy is designed to detect that.
 
-**Stack:** Node 20+, TypeScript, zod for schemas, Vitest for tests, msw to mock HTTP and Octokit for the GitHub API.
+**Stack:** Node 24+, TypeScript, zod for schemas, Vitest for tests, msw to mock HTTP and Octokit for the GitHub API.
 
 | Layer | What it covers | When it runs |
 | --- | --- | --- |

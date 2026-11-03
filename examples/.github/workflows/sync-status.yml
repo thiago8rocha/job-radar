@@ -18,7 +18,7 @@ jobs:
     runs-on: ubuntu-latest
     if: startsWith(github.event.label.name, 'status:')
     steps:
-      - uses: actions/checkout@v4          # reads job-radar.config.yml
+      - uses: actions/checkout@v5          # reads job-radar.config.yml
       - uses: thiago8rocha/job-radar@v1
         with:
           command: sync-status

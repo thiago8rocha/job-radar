@@ -13,7 +13,7 @@ jobs:
     runs-on: ubuntu-latest
     if: contains(github.event.issue.labels.*.name, 'manual')
     steps:
-      - uses: actions/checkout@v4          # reads job-radar.config.yml
+      - uses: actions/checkout@v5          # reads job-radar.config.yml
       - uses: thiago8rocha/job-radar@v1
         with:
           command: intake

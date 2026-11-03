@@ -15,7 +15,7 @@ jobs:
     runs-on: ubuntu-latest
     if: ${{ !github.event.issue.pull_request && startsWith(github.event.comment.body, '/evaluate') }}
     steps:
-      - uses: actions/checkout@v4          # reads job-radar.config.yml
+      - uses: actions/checkout@v5          # reads job-radar.config.yml
       - uses: thiago8rocha/job-radar@v1
         with:
           command: evaluate

@@ -14,7 +14,7 @@
 
 ## Project
 - Design lives in docs/DESIGN.md. Build one phase at a time; do not start the next phase unless asked.
-- Stack: Node 20+, TypeScript, zod, Vitest, msw, Octokit.
+- Stack: Node 24+, TypeScript, zod, Vitest, msw, Octokit.
 - Every adapter validates responses with a zod schema and has contract tests with recorded fixtures.
 - Never commit personal data, tokens or a real config; examples live in examples/.
 - License: MIT.
