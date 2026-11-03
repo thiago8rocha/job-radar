@@ -6,11 +6,12 @@ import { gupy } from '../../src/adapters/gupy.js';
 import { himalayas } from '../../src/adapters/himalayas.js';
 import { inhire } from '../../src/adapters/inhire.js';
 import { lever } from '../../src/adapters/lever.js';
+import { parseCards, parseDetail } from '../../src/adapters/linkedin.js';
 import { remoteok } from '../../src/adapters/remoteok.js';
 import type { FetchContext, SourceAdapter } from '../../src/adapters/types.js';
 import { weworkremotely } from '../../src/adapters/weworkremotely.js';
 import { parseConfig } from '../../src/config/load.js';
-import { createHttpClient } from '../../src/util/http.js';
+import { createHttpClient, HttpError } from '../../src/util/http.js';
 
 /**
  * One real request per source, checking only that the response still matches the adapter's schema
@@ -53,5 +54,21 @@ describe('live sources', () => {
   it('gupy', () => check(gupy, []));
   it('remoteok', () => check(remoteok, []));
   it('weworkremotely', () => check(weworkremotely, []));
+  // LinkedIn answers 429 to shared IPs, so a rate limit skips the check instead of failing it; a changed page still fails.
+  it('linkedin', async () => {
+    try {
+      const search = await http.getText('https://www.linkedin.com/jobs-guest/jobs/api/seeMoreJobPostings/search?keywords=QA&location=Brazil&f_WT=2&start=0');
+      const cards = parseCards(search) as Array<{ id: string; title?: string; company?: string }>;
+      expect(cards.length, 'linkedin returned no cards').toBeGreaterThan(0);
+      expect(cards[0]!.title, 'linkedin card has no title').toBeTruthy();
+      expect(cards[0]!.company, 'linkedin card has no company').toBeTruthy();
+
+      const detail = parseDetail(await http.getText(`https://www.linkedin.com/jobs-guest/jobs/api/jobPosting/${cards[0]!.id}`));
+      expect(detail.description.length, 'linkedin detail has no description').toBeGreaterThan(0);
+    } catch (error) {
+      if (!(error instanceof HttpError && error.status === 429)) throw error;
+      console.warn('linkedin: rate limited, check skipped');
+    }
+  });
   // google_jobs and discovery need a SerpAPI key, which CI does not have; they are covered by recorded-shape tests.
 });
