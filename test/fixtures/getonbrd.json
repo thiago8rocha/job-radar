@@ -1,0 +1,108 @@
+{
+  "data": [
+    {
+      "id": "senior-full-stack-java-developer-test-automation-ai-23people-santiago",
+      "type": "job",
+      "attributes": {
+        "title": "Senior Full-Stack Java Developer (SDET & AI) Bilingüe",
+        "remote_modality": "hybrid",
+        "countries": [
+          "Chile"
+        ],
+        "published_at": 1793710042,
+        "seniority": {
+          "data": {
+            "id": 4,
+            "type": "seniority"
+          }
+        },
+        "description": "<ul><li>Experiencia avanzada con Java como lenguaje principal.</li><li>Experiencia práctica comprobable trabajando con Spring Boot (backend) y Angular (frontend).</li><li>Dominio en pruebas de API sob",
+        "functions": "<p>El Senior Full Stack Developer se integrará al equipo \"Credit Health\", participando en todo el ciclo de vida del desarrollo, desde el diseño hasta la puesta en producción. Construirá soluciones end",
+        "desirable": "<ul><li>Experiencia previa en roles o metodologías SRE (Site Reliability Engineering).</li><li>Capacidad y experiencia construyendo frameworks de testing desde cero.<p><strong>¿Qué ofrecemos?</strong>",
+        "company": {
+          "data": {
+            "id": "23people-cl",
+            "type": "company",
+            "attributes": {
+              "name": "23people"
+            }
+          }
+        }
+      },
+      "links": {
+        "public_url": "https://www.getonbrd.com/jobs/senior-full-stack-java-developer-test-automation-ai-23people-santiago"
+      }
+    },
+    {
+      "id": "senior-cloud-engineer-world-wildlife-fund-inc-remote",
+      "type": "job",
+      "attributes": {
+        "title": "Senior Cloud Engineer",
+        "remote_modality": "remote_local",
+        "countries": [
+          "Remote"
+        ],
+        "published_at": 1792703301,
+        "seniority": {
+          "data": {
+            "id": 4,
+            "type": "seniority"
+          }
+        },
+        "description": "<div><strong>Key Competencies</strong></div><ul><li><strong>Ability to Multitask. </strong>Demonstrates strong technical and operational agility, effectively navigating complex business and cloud envi",
+        "functions": "<div><strong>Own Our Azure Infrastructure</strong></div><ul><li>You'll be the architect behind WWF's Azure environment, spinning up subscriptions, provisioning resources, and building/deploying VMs (W",
+        "desirable": "",
+        "company": {
+          "data": {
+            "id": "world-wildlife-fund-inc",
+            "type": "company",
+            "attributes": {
+              "name": "World Wildlife Fund, Inc."
+            }
+          }
+        }
+      },
+      "links": {
+        "public_url": "https://www.getonbrd.com/jobs/senior-cloud-engineer-world-wildlife-fund-inc-remote"
+      }
+    },
+    {
+      "id": "sdet-software-development-engineer-in-test-improving-remote",
+      "type": "job",
+      "attributes": {
+        "title": "SDET (Software Development Engineer in Test)",
+        "remote_modality": "fully_remote",
+        "countries": [
+          "Remote"
+        ],
+        "published_at": 1791348350,
+        "seniority": {
+          "data": {
+            "id": 4,
+            "type": "seniority"
+          }
+        },
+        "description": "<ul><li>Proficiency in TypeScript and JavaScript (ES6+)</li><li>Strong experience with React and modern frontend testing</li><li>Hands-on experience with AWS services and cloud-based testing infrastru",
+        "functions": "<p>Write reusable automated test scripts <br>collaborate with developers, product owners and devops engineers<br>Support regression, integration and end to end testing efforts<br>Contribute to test pl",
+        "desirable": "<ul><li>Experience with containerization (Docker, Kubernetes)</li><li>Familiarity with performance and load testing tools</li><li>Knowledge of testing metrics and reporting</li><li>Experience with Agi",
+        "company": {
+          "data": {
+            "id": "improving",
+            "type": "company",
+            "attributes": {
+              "name": "Improving"
+            }
+          }
+        }
+      },
+      "links": {
+        "public_url": "https://www.getonbrd.com/jobs/sdet-software-development-engineer-in-test-improving-remote"
+      }
+    }
+  ],
+  "meta": {
+    "page": 1,
+    "per_page": 100,
+    "total_pages": 1
+  }
+}

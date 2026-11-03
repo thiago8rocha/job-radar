@@ -2,7 +2,7 @@
 
 Collects job postings, opens one GitHub issue per relevant job, and tracks each hiring process to the end, using GitHub Issues and Projects as the tracker. It runs entirely on GitHub Actions: no server, no database, no cost beyond free Actions minutes.
 
-- **Collector.** Every business day it reads InHire, Greenhouse, Lever, Ashby, Gupy, Himalayas, freehire, Remote OK and We Work Remotely (and Google Jobs, optionally), filters by title, seniority, remote work and region, removes duplicates, and opens one issue per new job.
+- **Collector.** Every business day it reads InHire, Greenhouse, Lever, Ashby, Gupy, Himalayas, freehire, Get on Board, Remote OK and We Work Remotely (and Google Jobs, optionally), filters by title, seniority, remote work and region, removes duplicates, and opens one issue per new job.
 - **Tracker.** You move a job along by changing its `status:*` label. The Project board, the open/closed state and the dates follow.
 - **Metrics.** After every collect and every week, a job rewrites a pinned "Metrics" issue (funnel, response rate, time to response, by source and contract) and fills the calculated Project fields.
 - **Manual jobs.** An issue form covers recruiters and referrals. A spreadsheet importer brings in history.
@@ -98,6 +98,7 @@ When a posting states working hours with a time zone (`9am–5pm ET`), the issue
 | Gupy | global search | The job portal most large Brazilian employers use. Not a documented API: it calls the portal's own search endpoint, so the daily live test watches it. |
 | Himalayas | global search | Public API for remote jobs; the issue links back to the posting. |
 | freehire | global search | Public API of freehire.me, which aggregates about 50 ATS. Searches titles with the region and country facets; a personal project with no SLA, so an outage only costs this source. |
+| Get on Board | global search | Public API, no key, of a tech job board with many LatAm jobs. It has no text search, so it reads the SysAdmin / DevOps / QA category newest first and the title filter does the rest; postings that are remote only for residents of an unnamed country are skipped. |
 | Remote OK | global search | Public JSON feed of the latest remote jobs. Its terms ask for a link back and a mention as the source, which the issue provides. |
 | We Work Remotely | global search | Official RSS feed of the latest remote jobs. |
 | Google Jobs | global search | Through SerpAPI, so it also covers postings that only exist on LinkedIn, Indeed or Glassdoor. Optional, needs a key. |

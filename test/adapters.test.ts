@@ -4,6 +4,7 @@ import { setupServer } from 'msw/node';
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { ashby } from '../src/adapters/ashby.js';
 import { freehire } from '../src/adapters/freehire.js';
+import { getonbrd } from '../src/adapters/getonbrd.js';
 import { greenhouse } from '../src/adapters/greenhouse.js';
 import { himalayas } from '../src/adapters/himalayas.js';
 import { inhire } from '../src/adapters/inhire.js';
@@ -316,6 +317,48 @@ describe('freehire', () => {
     const job = freehire.normalize(fixture('freehire.json').data[5]);
     expect(job.compensation).toBe('USD 5,000 – 6,000 / month');
     expect(job.currency).toBe('USD');
+  });
+});
+
+describe('getonbrd', () => {
+  const CATEGORY = 'https://www.getonbrd.com/api/v0/categories/sysadmin-devops-qa/jobs';
+
+  it('reads the category and drops postings that are remote only for residents of an unnamed country', async () => {
+    const seen: URLSearchParams[] = [];
+    server.use(
+      http.get(CATEGORY, ({ request }) => {
+        seen.push(new URL(request.url).searchParams);
+        return HttpResponse.json(fixture('getonbrd.json'));
+      }),
+    );
+    const raws = await getonbrd.fetch(context().ctx);
+
+    expect(seen).toHaveLength(1);
+    expect(seen[0]!.get('expand[]')).toBe('company');
+    expect(raws.map((raw) => raw.attributes.remote_modality)).toEqual(['hybrid', 'fully_remote']);
+  });
+
+  it('fails the source when the format changes', async () => {
+    server.use(http.get(CATEGORY, () => HttpResponse.json({ jobs: [] })));
+    await expect(getonbrd.fetch(context().ctx)).rejects.toBeInstanceOf(SchemaError);
+  });
+
+  it('normalizes a fully remote senior posting', () => {
+    const job = getonbrd.normalize(fixture('getonbrd.json').data[2]);
+    expect(job.id).toMatch(/^getonbrd:[a-z0-9-]+:[0-9a-f]{8}$/);
+    expect(job.workModel).toBe('remote');
+    expect(job.seniority).toEqual(['senior']);
+    expect(job.restrictions).toEqual([]);
+    expect(job.applyUrl).toContain('https://www.getonbrd.com/jobs/');
+    expect(job.postedAt).toMatch(/^2026-/);
+    expect(checkEligibility(job, ['worldwide', 'latam', 'brazil'], []).ok).toBe(true);
+  });
+
+  it('keeps the country of a hybrid posting, which only passes when its region is accepted', () => {
+    const job = getonbrd.normalize(fixture('getonbrd.json').data[0]);
+    expect(job.workModel).toBe('hybrid');
+    expect(job.restrictions).toEqual(['Chile']);
+    expect(checkEligibility(job, ['worldwide', 'brazil'], []).ok).toBe(false);
   });
 });
 
