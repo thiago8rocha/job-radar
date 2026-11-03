@@ -38,6 +38,9 @@ export const DISCARD_REASONS: Array<{ reason: string; description: string }> = [
   { reason: 'seniority', description: 'Level does not fit' },
   { reason: 'company', description: 'Company or contract type does not fit' },
   { reason: 'expired', description: 'Posting expired or filled' },
+  { reason: 'language', description: 'Requires a language I do not speak' },
+  { reason: 'suspicious', description: 'Suspicious posting, site or channel' },
+  { reason: 'talent-pool', description: 'Talent pool, not a real opening' },
   { reason: 'duplicate', description: 'Same job as another issue' },
   { reason: 'other', description: 'Another reason' },
 ];
