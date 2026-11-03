@@ -10,6 +10,12 @@ const sourceToggle = z.object({
   max_searches: z.number().int().positive().optional(),
   /** Location passed to the source's search, e.g. "Brazil". */
   location: z.string().optional(),
+  /** Places to search, for sources that search by place (LinkedIn). */
+  locations: z.array(z.string()).optional(),
+  /** Pause between two requests, in ms, for sources that must be asked gently (LinkedIn). */
+  delay_ms: z.number().int().nonnegative().optional(),
+  /** Only postings from the last N days, for sources read on every run (LinkedIn). */
+  window_days: z.number().int().positive().optional(),
 });
 
 export const configSchema = z.object({

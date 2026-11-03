@@ -9,6 +9,7 @@ import { greenhouse } from '../src/adapters/greenhouse.js';
 import { himalayas } from '../src/adapters/himalayas.js';
 import { inhire } from '../src/adapters/inhire.js';
 import { lever } from '../src/adapters/lever.js';
+import { linkedin } from '../src/adapters/linkedin.js';
 import { SchemaError, type FetchContext } from '../src/adapters/types.js';
 import { parseConfig } from '../src/config/load.js';
 import { checkEligibility } from '../src/pipeline/eligibility.js';
@@ -359,6 +360,114 @@ describe('getonbrd', () => {
     expect(job.workModel).toBe('hybrid');
     expect(job.restrictions).toEqual(['Chile']);
     expect(checkEligibility(job, ['worldwide', 'brazil'], []).ok).toBe(false);
+  });
+});
+
+describe('linkedin', () => {
+  const SEARCH = 'https://www.linkedin.com/jobs-guest/jobs/api/seeMoreJobPostings/search';
+  const DETAIL = 'https://www.linkedin.com/jobs-guest/jobs/api/jobPosting/:id';
+  const text = (name: string) => readFileSync(new URL(`./fixtures/${name}`, import.meta.url), 'utf8');
+  const linkedinConfig = parseConfig(`
+search:
+  include: ["QA", "Quality"]
+  seniority: [senior]
+  exclude_companies: ["BairesDev"]
+eligibility:
+  accept_regions: [worldwide, brazil]
+sources:
+  linkedin: { enabled: true, delay_ms: 0, locations: ["Brazil"], queries: ["QA"] }
+`);
+
+  function mock(detail: (id: string) => Response | undefined = () => undefined) {
+    const searches: URLSearchParams[] = [];
+    const details: string[] = [];
+    server.use(
+      http.get(SEARCH, ({ request }) => {
+        searches.push(new URL(request.url).searchParams);
+        return new HttpResponse(text('linkedin-search.html'));
+      }),
+      http.get(DETAIL, ({ params }) => {
+        details.push(params.id as string);
+        return detail(params.id as string) ?? new HttpResponse(text('linkedin-detail.html'));
+      }),
+    );
+    return { searches, details };
+  }
+
+  function linkedinContext(overrides: Partial<FetchContext> = {}) {
+    const filter = createFilter(linkedinConfig);
+    return context([], { config: linkedinConfig, worthDetails: (candidate) => filter.worthDetails(candidate), ...overrides });
+  }
+
+  it('asks for remote Mid-Senior jobs of the last few days and reads the detail only of cards that pass the cheap filters', async () => {
+    const { searches, details } = mock();
+    const raws = await linkedin.fetch(linkedinContext().ctx);
+
+    expect(searches).toHaveLength(1);
+    expect(Object.fromEntries(searches[0]!)).toMatchObject({ keywords: 'QA', location: 'Brazil', f_WT: '2', f_E: '4', f_TPR: 'r172800' });
+    // BairesDev is an excluded company and "Product Manager" matches no search term
+    expect(details).toEqual(['4400000001', '4400000004']);
+    expect(raws[0]).toMatchObject({
+      id: '4400000001',
+      title: 'QA Engineer & Automation',
+      company: 'Acme Software',
+      location: 'São Paulo, São Paulo, Brazil',
+      date: '2026-10-14',
+      level: 'Mid-Senior level',
+    });
+    expect(raws[0]!.description).toContain('fully remote, open to people living in Brazil');
+    expect(raws[0]!.description).toContain('• Build and maintain Playwright suites');
+  });
+
+  it('skips the detail of a job whose link already has an issue', async () => {
+    const { details } = mock();
+    await linkedin.fetch(linkedinContext({ isKnownUrl: (url) => url === 'https://www.linkedin.com/jobs/view/4400000004' }).ctx);
+    expect(details).toEqual(['4400000001']);
+  });
+
+  it('keeps what it read when LinkedIn answers 429', async () => {
+    mock((id) => (id === '4400000004' ? new HttpResponse(null, { status: 429 }) : undefined));
+    const { ctx, warnings } = linkedinContext();
+    const raws = await linkedin.fetch(ctx);
+
+    expect(raws.map((raw) => raw.id)).toEqual(['4400000001']);
+    expect(warnings.some((warning) => warning.includes('rate limited'))).toBe(true);
+  });
+
+  it('fails the source when the cards change shape', async () => {
+    server.use(http.get(SEARCH, () => new HttpResponse('<li data-entity-urn="urn:li:jobPosting:4400000009"></li>')));
+    await expect(linkedin.fetch(linkedinContext().ctx)).rejects.toBeInstanceOf(SchemaError);
+  });
+
+  it('normalizes a remote Mid-Senior posting in Brazil', async () => {
+    mock();
+    const [raw] = await linkedin.fetch(linkedinContext().ctx);
+    const job = linkedin.normalize(raw!);
+
+    expect(job.id).toMatch(/^linkedin:acme-software:[0-9a-f]{8}$/);
+    expect(job.workModel).toBe('remote');
+    expect(job.seniority).toEqual(['senior']);
+    expect(job.applyUrl).toBe('https://www.linkedin.com/jobs/view/4400000001');
+    expect(job.postedAt).toBe('2026-10-14T00:00:00.000Z');
+    expect(createFilter(linkedinConfig).check(job, new Date('2026-10-16T12:00:00Z'))).toEqual({ ok: true });
+  });
+
+  it('reads the level of the detail page and counts an unknown level as senior', () => {
+    const base = { id: '1', title: 'QA Engineer', company: 'Acme', location: 'Brazil', date: '2026-10-14', description: 'Remote role.' };
+    expect(linkedin.normalize({ ...base, level: 'Entry level' }).seniority).toEqual(['junior']);
+    expect(linkedin.normalize({ ...base, level: 'Director' }).seniority).toEqual(['lead']);
+    expect(linkedin.normalize({ ...base, level: 'Not Applicable' }).seniority).toEqual(['senior']);
+    expect(linkedin.normalize(base).seniority).toEqual(['senior']);
+  });
+
+  it('opens a posting located abroad only when a sentence about remote work names an accepted region', () => {
+    const base = { id: '2', title: 'Senior QA Analyst', company: 'Globex', location: 'Toronto, Ontario, Canada', date: '2026-10-14', level: 'Mid-Senior level' };
+    const check = (description: string) =>
+      createFilter(linkedinConfig).check(linkedin.normalize({ ...base, description }), new Date('2026-10-16T12:00:00Z')).ok;
+
+    expect(check('This role is fully remote and open to candidates in Latin America.')).toBe(true);
+    expect(check('Our customers worldwide rely on us. Join the Toronto office, three days a week.')).toBe(false);
+    expect(check('Remote role. You must reside in Canada and be authorized to work in Canada. Brazil is not an option.')).toBe(false);
   });
 });
 

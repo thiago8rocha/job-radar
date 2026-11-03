@@ -14,7 +14,9 @@ export interface FetchContext {
    * Cheap check on title and work model, so an adapter can skip a per-job detail request
    * for postings that the filters would discard anyway.
    */
-  worthDetails(candidate: { title: string; workModel?: WorkModel }): boolean;
+  worthDetails(candidate: { title: string; company?: string; workModel?: WorkModel }): boolean;
+  /** True when an issue already exists for this link, so an adapter can skip a detail request it would only repeat. */
+  isKnownUrl?(url: string): boolean;
   /** API key for sources that need one (SerpAPI), from the Action input; undefined when not provided. */
   apiKey?: string;
   /** Records a problem that does not fail the whole source (one company down, one bad entry). */

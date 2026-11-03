@@ -54,7 +54,7 @@ export function inferWorkModel(job: Pick<Job, 'workModel' | 'title' | 'locations
 export interface JobFilter {
   check(job: Job, now: Date): FilterResult;
   /** Title and work model only, so adapters can skip detail requests for jobs that cannot pass. */
-  worthDetails(candidate: { title: string; workModel?: WorkModel }): boolean;
+  worthDetails(candidate: { title: string; company?: string; workModel?: WorkModel }): boolean;
 }
 
 const compactText = (value: string): string => normalizeText(value).replace(/ /g, '');
@@ -74,7 +74,8 @@ export function createFilter(config: Config): JobFilter {
   });
 
   return {
-    worthDetails({ title, workModel }) {
+    worthDetails({ title, company, workModel }) {
+      if (company && blockedCompany(company)) return false;
       const { matched, excluded } = titleResult(title);
       if (excluded || matched.length === 0) return false;
       return workModel === undefined || allowedModels.has(workModel);

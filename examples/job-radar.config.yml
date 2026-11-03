@@ -26,6 +26,7 @@ sources:
   inhire: { enabled: true }
   gupy: { enabled: false }            # Brazilian portal; needs no key
   freehire: { enabled: false }        # aggregator of ~50 ATS; needs no key
+  linkedin: { enabled: false }        # public guest search, slow and rate limited; see the README
   getonbrd: { enabled: false }        # tech jobs, many from LatAm; needs no key
   remoteok: { enabled: false }        # latest ~100 remote jobs; needs no key
   weworkremotely: { enabled: false }  # latest remote jobs from its RSS feed; needs no key

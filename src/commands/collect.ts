@@ -14,6 +14,7 @@ import { ensureLabels } from '../github/labels.js';
 import { addIssueToProject, setFieldValue, type Project } from '../github/project.js';
 import { dedupe, knownFromIssues } from '../pipeline/dedup.js';
 import { regionsOf } from '../pipeline/eligibility.js';
+import { canonicalUrl } from '../pipeline/url.js';
 import { buildExcerpt, sanitizeForIssue } from '../pipeline/excerpt.js';
 import { createFilter, inferWorkModel } from '../pipeline/filter.js';
 import { detectSignals, type Signal } from '../pipeline/signals.js';
@@ -155,6 +156,7 @@ export async function collect(ctx: Context, options: CollectOptions = {}): Promi
       now,
       apiKey,
       worthDetails: (candidate) => filter.worthDetails(candidate),
+      isKnownUrl: (url) => known.urls.has(canonicalUrl(url) ?? url),
       warn: (message) => ctx.log.warn(message),
     };
     try {
