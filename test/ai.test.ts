@@ -137,13 +137,73 @@ describe('job insight', () => {
     expect(plain.hard_blocker).toBeNull();
   });
 
-  it('builds the full evaluation', async () => {
-    const evaluation = await evaluateJob(
-      fixed({ fit: 3, summary: 'Decent.', strengths: ['a', 'b'], gaps: ['c'], interview_questions: ['q1', 'q2'] }),
-      'p',
-      posting,
-    );
-    expect(evaluation).toMatchObject({ fit: 3, strengths: ['a', 'b'], gaps: ['c'], interview_questions: ['q1', 'q2'] });
+  describe('the full evaluation', () => {
+    const description =
+      'We need Playwright and API testing experience. You will report to the QA lead and work with developers. Other duties as needed.';
+    const reply = {
+      fit: 3,
+      summary: 'Decent.',
+      requirements: [
+        { requirement: 'Playwright', importance: 'critical', evidence: 'stated', quote: 'We need Playwright and API testing experience', match: 'strong' },
+        { requirement: 'Go', importance: 'critical', evidence: 'stated', quote: 'Go is mandatory', match: 'missing' },
+        { requirement: 'Kubernetes', importance: 'high', evidence: 'inferred', match: 'missing' },
+        { requirement: 'ISTQB', importance: 'low_signal', evidence: 'structural', match: 'partial' },
+      ],
+      doubts: ['Hours are not stated'],
+      clarity: [
+        { point: 'reports_to', status: 'present', quote: 'You will report to the QA lead' },
+        { point: 'scope', status: 'present', quote: 'Owns the whole quality strategy', question: 'What is the scope?' },
+        { point: 'deliverables', status: 'missing', question: 'What do you deliver?' },
+        { point: 'collaboration', status: 'partial', quote: 'work with developers', question: 'Who else is on the team?' },
+        { point: 'success_measure', status: 'missing', question: 'How is success measured?' },
+      ],
+      interview_questions: ['q1', 'q2'],
+    };
+
+    it('weighs a requirement by its evidence: a guess never counts as critical or high', async () => {
+      const evaluation = await evaluateJob(fixed(reply), 'p', { ...posting, description });
+
+      expect(evaluation.requirements).toEqual([
+        { requirement: 'Playwright', importance: 'critical', evidence: 'stated', quote: 'We need Playwright and API testing experience', match: 'strong' },
+        { requirement: 'Go', importance: 'meaningful', evidence: 'inferred', quote: null, match: 'missing' },
+        { requirement: 'Kubernetes', importance: 'meaningful', evidence: 'inferred', quote: null, match: 'missing' },
+        { requirement: 'ISTQB', importance: 'low_signal', evidence: 'structural', quote: null, match: 'partial' },
+      ]);
+      expect(evaluation).toMatchObject({ fit: 3, doubts: ['Hours are not stated'], interview_questions: ['q1', 'q2'] });
+    });
+
+    it('counts a clarity point as covered only with a quote the posting contains, and asks the recruiter when several are open', async () => {
+      const evaluation = await evaluateJob(fixed(reply), 'p', { ...posting, description });
+
+      expect(evaluation.clarity).toEqual([
+        { point: 'reports_to', status: 'present', quote: 'You will report to the QA lead' },
+        { point: 'scope', status: 'missing', quote: null },
+        { point: 'deliverables', status: 'missing', quote: null },
+        { point: 'success_measure', status: 'missing', quote: null },
+        { point: 'collaboration', status: 'partial', quote: 'work with developers' },
+        { point: 'pace', status: 'missing', quote: null },
+      ]);
+      expect(evaluation.questions_for_recruiter).toEqual(['What is the scope?', 'What do you deliver?', 'How is success measured?', 'Who else is on the team?']);
+      expect(evaluation.vague_verbs).toEqual(['other duties']);
+
+      const clearPosting = 'Reports to the QA lead. Scope is regression and automation. You deliver weekly reports. You work with developers.';
+      const clear = await evaluateJob(
+        fixed({
+          ...reply,
+          clarity: [
+            { point: 'reports_to', status: 'present', quote: 'Reports to the QA lead' },
+            { point: 'scope', status: 'present', quote: 'Scope is regression and automation', question: 'What is the scope?' },
+            { point: 'deliverables', status: 'present', quote: 'You deliver weekly reports' },
+            { point: 'collaboration', status: 'present', quote: 'You work with developers' },
+            { point: 'success_measure', status: 'missing', question: 'How is success measured?' },
+          ],
+        }),
+        'p',
+        { ...posting, description: clearPosting },
+      );
+      expect(clear.clarity.filter((item) => item.status === 'missing').map((item) => item.point)).toEqual(['success_measure', 'pace']);
+      expect(clear.questions_for_recruiter).toEqual([]);
+    });
   });
 });
 
@@ -249,7 +309,7 @@ describe('/evaluate', () => {
     issue: { number: 7, title: '[Acme] Senior QA', body, labels: [{ name: 'fit:2' }, { name: 'status:new' }], ...extra },
     comment: { body: comment, author_association: association },
   });
-  const ai = (client: ChatClient = fixed({ fit: 4, summary: 'Good fit.', strengths: ['Playwright'], gaps: ['No Go'], interview_questions: ['Flaky tests?'] })) => ({ client, profile: 'p' });
+  const ai = (client: ChatClient = fixed({ fit: 4, summary: 'Good fit.', requirements: [{ requirement: 'Playwright', importance: 'critical', evidence: 'stated', quote: 'Playwright and APIs', match: 'strong' }], doubts: ['No Go'], interview_questions: ['Flaky tests?'] })) => ({ client, profile: 'p' });
   const setup = (aiConfig = 'ai: { enabled: true }') => {
     const fake = fakeContext();
     fake.ctx.config = parseConfig(aiConfig);
@@ -261,7 +321,9 @@ describe('/evaluate', () => {
     await evaluate(ctx, event(), { ai: ai() });
     const comment = (issues.createComment.mock.calls[0]![0] as any).body as string;
     expect(comment).toContain('## Evaluation: fit 4/5');
-    expect(comment).toContain('- Playwright');
+    expect(comment).toContain('- **Playwright**: strong (critical, stated)');
+    expect(comment).toContain('> Playwright and APIs');
+    expect(comment).toContain('- No Go');
     expect(comment).toContain('1. Flaky tests?');
     expect(issues.removeLabel).toHaveBeenCalledWith(expect.objectContaining({ issue_number: 7, name: 'fit:2' }));
     expect(issues.addLabels).toHaveBeenCalledWith(expect.objectContaining({ issue_number: 7, labels: ['fit:4'] }));

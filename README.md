@@ -50,7 +50,7 @@ The Action takes `command` plus `github-token`. The same commands run locally wi
 | `revalidate` | weekly | Closes "New" jobs whose posting left the company's board (`closed-at-source`). |
 | `metrics` | weekly, and after each `collect` | Writes the calculated fields, repairs `Status` cards that no longer match their label, and rewrites the Metrics issue. |
 | `discover` | weekly, optional | Searches Google through SerpAPI for career pages on the supported ATS and opens a pull request that adds the new companies to `companies.yml`. |
-| `evaluate` | on `/evaluate` comment, optional | Posts a full AI analysis of the job (strengths, gaps, likely interview questions) and refreshes its `fit:*` label. |
+| `evaluate` | on `/evaluate` comment, optional | Posts a full AI analysis of the job (each requirement weighed by importance and evidence, what the posting leaves open with questions for the recruiter, likely interview questions) and refreshes its `fit:*` label. |
 | `import` | once, local | Creates issues from a spreadsheet: `npm run cli -- import --xlsx file.xlsx --repo you/job-search`. See `src/import/xlsx.ts` for the expected columns. |
 
 `collect`, `import`, `metrics`, `revalidate` and `discover` accept `dry-run` and write nothing.

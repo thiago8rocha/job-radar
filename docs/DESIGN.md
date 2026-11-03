@@ -340,7 +340,7 @@ AI is optional and provider-neutral: any OpenAI-compatible chat completions API,
 1. Extracts what rules can't catch: contract, salary range, required hours, stack and whether the remote is really remote
 2. Gives a fit score for the profile, as a `fit:1` to `fit:5` label, with two or three lines of justification in the issue body. The score sorts and highlights, but doesn't discard anything
 
-**On demand:** an `/evaluate` comment on the issue generates a full analysis: strengths, gaps and likely interview questions.
+**On demand:** an `/evaluate` comment on the issue generates a full analysis: each requirement weighed by importance and evidence (a guess never counts as critical, and a quote must be in the posting to count as stated), what the posting leaves open, with questions for the recruiter, and likely interview questions.
 
 **Rules**
 
