@@ -219,6 +219,29 @@ describe('renderReport', () => {
     expect(report).toContain('| no score | 1 | 0 | 1 | 1 | 0 | 0 | 1 of 1 |');
   });
 
+  it('compares applications with and without a tailored CV, only once one exists', () => {
+    const cv = (number: number, tailored: boolean, overrides: Record<string, unknown> = {}) =>
+      analyzeIssue(
+        facts({
+          number,
+          title: `[Co${number}] QA`,
+          labels: ['status:applied', ...(tailored ? ['tailored'] : [])],
+          fields: { 'Applied on': '2026-10-10', ...overrides },
+        }),
+      );
+    const without = renderReport([cv(1, false), cv(2, false, { 'Response date': '2026-10-12' })], TODAY, 60);
+    expect(without).not.toContain('## By CV');
+
+    const report = renderReport(
+      [cv(1, true, { 'Response date': '2026-10-12' }), cv(2, true), cv(3, false), cv(4, false, { 'Response date': '2026-10-12' })],
+      TODAY,
+      60,
+    );
+    expect(report).toContain('## By CV');
+    expect(report).toContain('| Tailored CV | 2 | 1 | 0 | 1 | 1 of 1 |');
+    expect(report).toContain('| Generic CV | 2 | 1 | 0 | 1 | 1 of 1 |');
+  });
+
   it('copes with no data', () => {
     const report = renderReport([], TODAY);
     expect(report).toContain('| Applications | 0 |');

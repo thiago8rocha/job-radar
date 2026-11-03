@@ -98,15 +98,28 @@ function byFit(all: IssueMetrics[], todayIso: string, noResponseAfterDays: numbe
     const jobs = all.filter((issue) => issue.fit === fit);
     if (jobs.length === 0) return [];
     const applied = jobs.filter((issue) => issue.appliedOn);
-    const responded = applied.filter((issue) => issue.responseDate).length;
-    const noResponse = applied.filter((issue) => isUnanswered(issue, todayIso, noResponseAfterDays)).length;
-    const inProgress = applied.filter(
-      (issue) => !issue.responseDate && !(issue.status && isTerminalStatus(issue.status)) && !isUnanswered(issue, todayIso, noResponseAfterDays),
-    ).length;
-    const decided = responded + noResponse;
-    const rate = decided === 0 ? '—' : decided < MIN_CASES_FOR_RATE ? `${responded} of ${decided}` : pct(responded, decided);
-    return [[fit ?? 'no score', jobs.length, jobs.filter(isDiscarded).length, applied.length, responded, noResponse, inProgress, rate]];
+    return [[fit ?? 'no score', jobs.length, jobs.filter(isDiscarded).length, applied.length, ...outcome(applied, todayIso, noResponseAfterDays)]];
   });
+}
+
+/** Responded, no response, still waiting and the response rate of a group of applications. */
+function outcome(applied: IssueMetrics[], todayIso: string, noResponseAfterDays: number): Array<string | number> {
+  const responded = applied.filter((issue) => issue.responseDate).length;
+  const noResponse = applied.filter((issue) => isUnanswered(issue, todayIso, noResponseAfterDays)).length;
+  const inProgress = applied.filter(
+    (issue) => !issue.responseDate && !(issue.status && isTerminalStatus(issue.status)) && !isUnanswered(issue, todayIso, noResponseAfterDays),
+  ).length;
+  const decided = responded + noResponse;
+  const rate = decided === 0 ? '—' : decided < MIN_CASES_FOR_RATE ? `${responded} of ${decided}` : pct(responded, decided);
+  return [responded, noResponse, inProgress, rate];
+}
+
+/** Applications with and without a tailored CV, so the effect of tailoring can be seen once there are enough of them. */
+function byTailoring(applications: IssueMetrics[], todayIso: string, noResponseAfterDays: number): Array<Array<string | number>> {
+  return [
+    ['Tailored CV', applications.filter((issue) => issue.tailored)],
+    ['Generic CV', applications.filter((issue) => !issue.tailored)],
+  ].map(([label, group]) => [label as string, (group as IssueMetrics[]).length, ...outcome(group as IssueMetrics[], todayIso, noResponseAfterDays)]);
 }
 
 /** Reasons given on discarded jobs (`discard:*` labels), most common first; jobs without one are "not given". */
@@ -224,6 +237,13 @@ export function renderReport(all: IssueMetrics[], today: Date, noResponseAfterDa
       byFit(all, todayIso, noResponseAfterDays),
     ),
     '_The rate leaves out applications still waiting and shows a count when fewer than 5 are decided. It only observes: the score is never changed._',
+    ...(applications.some((issue) => issue.tailored)
+      ? [
+          '## By CV',
+          table(['CV', 'Applied', 'Responded', 'No response', 'In progress', 'Response rate'], byTailoring(applications, todayIso, noResponseAfterDays)),
+          '_The rate leaves out applications still waiting and shows a count when fewer than 5 are decided._',
+        ]
+      : []),
     '## Salary',
     table(['Currency', 'Mean target', 'Targets', 'Mean offered', 'Offers'], salaries),
     `## Stalled applications (${STALLED_AFTER_DAYS} to ${noResponseAfterDays} days without a response)`,

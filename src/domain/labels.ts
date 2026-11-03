@@ -10,6 +10,7 @@ export const LABEL = {
   manual: 'manual',
   closedAtSource: 'closed-at-source',
   noResponse: 'no-response',
+  tailored: 'tailored',
 } as const;
 
 const STATUS_COLORS: Record<string, string> = {
@@ -74,6 +75,7 @@ export const STATIC_LABELS: LabelDef[] = [
   { name: LABEL.manual, color: 'd4c5f9', description: 'Entered by hand (recruiter, referral...)' },
   { name: LABEL.closedAtSource, color: 'cccccc', description: 'The posting disappeared from its source' },
   { name: LABEL.noResponse, color: 'cccccc', description: 'Applied, and the company never answered' },
+  { name: LABEL.tailored, color: 'c5def5', description: 'A CV tailored to this job was generated' },
 ];
 
 const PREFIX_COLORS: Record<string, string> = {

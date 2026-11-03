@@ -32,6 +32,8 @@ export interface IssueMetrics {
   closedAtSource: boolean;
   /** Marked by hand with `no-response`: applied, and the company never answered. */
   markedNoResponse: boolean;
+  /** A CV tailored to this job was generated (`tailored` label). */
+  tailored: boolean;
   /** `discard:*` labels, without the prefix. */
   discardReasons: string[];
   appliedOn?: string;
@@ -147,6 +149,7 @@ export function analyzeIssue(facts: IssueFacts): IssueMetrics {
     status,
     closedAtSource: facts.labels.includes('closed-at-source'),
     markedNoResponse: facts.labels.includes('no-response'),
+    tailored: facts.labels.includes('tailored'),
     discardReasons: facts.labels.filter((name) => name.startsWith('discard:')).map((name) => name.slice('discard:'.length)),
     appliedOn,
     furthestStage,
