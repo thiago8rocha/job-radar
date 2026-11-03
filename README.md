@@ -106,6 +106,8 @@ When a posting states working hours with a time zone (`9am–5pm ET`), the issue
 | We Work Remotely | global search | Official RSS feed of the latest remote jobs. |
 | Google Jobs | global search | Through SerpAPI, so it also covers postings that only exist on LinkedIn, Indeed or Glassdoor. Optional, needs a key. |
 
+**About LinkedIn.** It has no public API: the source reads the HTML of its guest pages, and LinkedIn's terms forbid automated access, so turn it on knowing that and keep the volume low. It can also stop working without a change on your side: GitHub's runners use datacenter IPs that LinkedIn often answers with HTTP 429, and a change in its HTML makes the schema check fail. Either way the collect log carries a warning (`linkedin: rate limited` or `linkedin: failed`) and the other sources carry on.
+
 Each adapter validates what it receives with a zod schema, so a source that changes its format fails on its own, with a warning, without stopping the others. A source that returns nothing for three runs in a row is flagged in the run summary. LinkedIn, Indeed and Glassdoor are not scraped: their terms forbid it.
 
 ## Optional: SerpAPI
