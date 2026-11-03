@@ -1,0 +1,36 @@
+# Scores the golden cases with a real model and fails when it agrees with the author's decisions less than the minimum.
+# Runs only by hand: it spends API calls. Needs the secrets AI_API_KEY and GOLDEN_PROFILE (the candidate profile, as text).
+name: eval-golden
+on:
+  workflow_dispatch:
+    inputs:
+      base-url:
+        description: "Base URL of an OpenAI-compatible API"
+        required: true
+      model:
+        description: "Model name"
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  eval:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Score the golden cases
+        env:
+          AI_BASE_URL: ${{ inputs.base-url }}
+          AI_MODEL: ${{ inputs.model }}
+          AI_API_KEY: ${{ secrets.AI_API_KEY }}
+          PROFILE: ${{ secrets.GOLDEN_PROFILE }}
+        run: |
+          printf '%s' "$PROFILE" > "$RUNNER_TEMP/profile.md"
+          npm run eval:golden -- --profile "$RUNNER_TEMP/profile.md"

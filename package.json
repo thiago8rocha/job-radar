@@ -16,7 +16,8 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "cli": "tsx src/cli.ts",
-    "test:live": "vitest run --config vitest.live.config.ts"
+    "test:live": "vitest run --config vitest.live.config.ts",
+    "eval:golden": "tsx scripts/eval-golden.ts"
   },
   "dependencies": {
     "exceljs": "^4.4.0",
