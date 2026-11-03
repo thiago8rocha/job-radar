@@ -35,7 +35,7 @@ jobs:
           run=true
           if [ "${{ github.event.schedule }}" = "41 8 * * 1-5" ]; then
             since=$(date -u -d '6 hours ago' +%FT%TZ)
-            n=$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/collect.yml/runs" -f status=success -f created=">=$since" --jq .total_count)
+            n=$(gh api -X GET "repos/$GITHUB_REPOSITORY/actions/workflows/collect.yml/runs" -f status=success -f created=">=$since" --jq .total_count)
             [ "$n" -gt 0 ] && run=false
           fi
           echo "run=$run" >> "$GITHUB_OUTPUT"
