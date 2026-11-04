@@ -72,6 +72,7 @@ export const STATIC_LABELS: LabelDef[] = [
   { name: 'scope:international', color: '0052cc', description: 'International job' },
   { name: 'work:remote', color: 'c2e0c6', description: 'Fully remote' },
   { name: 'work:hybrid', color: 'fef2c0', description: 'Hybrid work model' },
+  { name: 'work:onsite', color: 'f9d0c4', description: 'On-site work model' },
   { name: LABEL.manual, color: 'd4c5f9', description: 'Entered by hand (recruiter, referral...)' },
   { name: LABEL.closedAtSource, color: 'cccccc', description: 'The posting disappeared from its source' },
   { name: LABEL.noResponse, color: 'cccccc', description: 'Applied, and the company never answered' },

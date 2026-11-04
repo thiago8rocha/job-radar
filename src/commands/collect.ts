@@ -98,7 +98,7 @@ function labelsFor(job: Job, signals: Signal[]): { names: string[]; dynamic: Lab
     statusLabel('new'),
     ...dynamic.map((label) => label.name),
     brazilian ? 'scope:brazil' : 'scope:international',
-    ...(job.workModel === 'remote' || job.workModel === 'hybrid' ? [`work:${job.workModel}`] : []),
+    ...(job.workModel ? [`work:${job.workModel}`] : []),
   ];
   return { names, dynamic };
 }

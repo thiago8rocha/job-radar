@@ -237,7 +237,7 @@ The hidden marker at the end ties the issue to its source job, for dedup and rev
 
 Separating where you saw a job from where you applied fixes a bias in the spreadsheet: almost everything has Source "LinkedIn", but the application was made on the company's ATS.
 
-**Supporting labels:** `scope:brazil` / `scope:international`, `work:remote` / `work:hybrid`, and `manual` for jobs entered by hand.
+**Supporting labels:** `scope:brazil` / `scope:international`, `work:remote` / `work:hybrid` / `work:onsite`, and `manual` for jobs entered by hand.
 
 **Jobs outside the collector.** An issue form (`.github/ISSUE_TEMPLATE/job.yml`) covers recruiters, referrals and anything found by hand. It has structured fields for company, role, link, contract, compensation, currency and contact channel. The `intake` command runs on `issues: [opened]` for issues labeled `manual`: it rewrites the title and body to the collector's format and fills in labels and Project fields, just like the collector. Notes become the first comment.
 
