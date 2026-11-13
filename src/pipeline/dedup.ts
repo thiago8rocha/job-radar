@@ -10,11 +10,11 @@ const COMPANY_SUFFIX =
 /** "Banco Plata" on one source is "Plata" on another. */
 const COMPANY_PREFIX = /^(?:banco|bank|grupo|group|the)\s+/;
 
-/** Sources append the legal entity after a comma ("Banco Plata, S.A., Institución de Banca Múltiple"). */
+/** Spaces are dropped and "&" read as "and", so "CI&T" and the slug "ciandt" match. Sources append the legal entity after a comma ("Banco Plata, S.A., Institución de Banca Múltiple"). */
 export function companyKey(company: string): string {
-  const name = normalizeText(company.split(',')[0] ?? company);
+  const name = normalizeText((company.split(',')[0] ?? company).replace(/&/g, ' and '));
   const stripped = name.replace(COMPANY_SUFFIX, ' ').replace(/\s+/g, ' ').trim().replace(COMPANY_PREFIX, '');
-  return stripped || normalizeText(company);
+  return (stripped || normalizeText(company)).replace(/\s+/g, '');
 }
 
 /** Company + title, normalized: the same job shows up on its ATS, Himalayas, Gupy and Google Jobs. */

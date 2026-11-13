@@ -365,8 +365,8 @@ describe('dedup', () => {
   });
 
   it('reads the code from a leading tag such as "[Job - 32255]"', () => {
-    expect(jobKeys('CI&T', '[Job - 32255] Senior SDET, Brazil')).toContain('ci t|code:32255');
-    expect(jobKeys('CI&T', 'Senior SDET, Brazil (job 32255)')).toContain('ci t|code:32255');
+    expect(jobKeys('CI&T', '[Job - 32255] Senior SDET, Brazil')).toContain('ciandt|code:32255');
+    expect(jobKeys('CI&T', 'Senior SDET, Brazil (job 32255)')).toContain('ciandt|code:32255');
   });
 
   it('pairs a posting code with the title when the company is named differently', () => {
@@ -374,12 +374,22 @@ describe('dedup', () => {
     const { fresh, duplicates } = dedupe(
       [
         job({ id: 'l:1', company: 'ciandt', title: '[Job - 32255]  Senior SDET, Brazil', applyUrl: 'https://jobs.lever.co/ciandt/1' }),
-        job({ id: 'l:2', company: 'ciandt', title: '[Job - 32255] Senior QA Lead', applyUrl: 'https://jobs.lever.co/ciandt/2' }),
+        job({ id: 'l:2', company: 'ciandt', title: '[Job - 32256] Senior QA Lead', applyUrl: 'https://jobs.lever.co/ciandt/2' }),
       ],
       known,
     );
     expect(duplicates.map((item) => item.job.id)).toEqual(['l:1']);
     expect(fresh.map((item) => item.id)).toEqual(['l:2']);
+  });
+
+  it('matches an aggregator listing without a code against a known "[Job - N]" issue of the same company', () => {
+    const known = knownFromIssues([{ title: '[ciandt] [Job - 32613] QA Mid/Senior', body: '' }]);
+    const { fresh, duplicates } = dedupe(
+      [job({ id: 'linkedin:ci-t:1', company: 'CI&T', title: 'QA Mid/Senior', applyUrl: 'https://www.linkedin.com/jobs/view/1' })],
+      known,
+    );
+    expect(fresh).toEqual([]);
+    expect(duplicates.map((item) => item.reason)).toEqual(['company and title']);
   });
 
   it('keeps distinct roles apart when only a meaningful qualifier differs', () => {
