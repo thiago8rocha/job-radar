@@ -60,7 +60,7 @@ describe('gupy', () => {
     const job = gupy.normalize(first);
     expect(job.title).not.toMatch(/^\d+\s*-/);
     expect(job.company).toBe(first.careerPageName.trim());
-    expect(job.applyUrl).toContain('.gupy.io/job/');
+    expect(job.applyUrl).toMatch(/\.gupy\.io\/jobs\/\d+$/);
     expect(job.applyUrl).not.toContain('jobBoardSource');
     expect(job.locations).toContain('Brazil');
     expect(job.workModel).toBe('remote');

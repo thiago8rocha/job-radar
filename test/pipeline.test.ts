@@ -306,6 +306,23 @@ describe('dedup', () => {
     expect(dedupe([otherLink], known).duplicates).toEqual([{ job: otherLink, reason: 'company and title' }]);
   });
 
+  it('matches a Gupy portal link against the same posting from an aggregator even when the company names differ', () => {
+    const known = knownFromIssues([
+      {
+        title: '[VENHA SER #SANGUELARANJA] Engenheiro de Qualidade (QA)- Sênior',
+        body: '**Apply:** https://fcamara.gupy.io/job/eyJqb2JJZCI6MTI5MTIzNzksInNvdXJjZSI6Imd1cHlfcG9ydGFsIn0=\n',
+      },
+    ]);
+    const aggregated = job({
+      id: 'freehire:fcamara:1',
+      source: 'freehire',
+      company: 'FCamara',
+      title: 'Engenheiro de Qualidade (QA)- Sênior',
+      applyUrl: 'https://fcamara.gupy.io/jobs/12912379',
+    });
+    expect(dedupe([aggregated], known).duplicates).toEqual([{ job: aggregated, reason: 'url' }]);
+  });
+
   it('treats company name variants as the same company', () => {
     const plata = jobKey('Plata', 'QA Engineer - Backend (Golang) Senior [Core Banking Systems]');
     expect(jobKey('Banco Plata, S.A., Institución de Banca Múltiple', 'QA Engineer - Backend (Golang) Senior [Core Banking Systems]')).toBe(plata);
