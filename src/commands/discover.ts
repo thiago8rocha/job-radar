@@ -5,6 +5,7 @@ import { emptyByAts } from '../adapters/ats.js';
 import type { Companies } from '../config/schema.js';
 import { addCompanies, listedSlugs, parseCompaniesText } from '../discovery/companies-file.js';
 import { companiesFromLinks, type DiscoveredCompanies } from '../discovery/links.js';
+import { archivedLinks } from '../discovery/wayback.js';
 import { createHttpClient, type HttpClient } from '../util/http.js';
 import { DEFAULT_COMPANIES_STATE_PATH, harvestedCandidates, loadCompaniesState } from '../state/companies.js';
 import type { Context } from './context.js';
@@ -54,12 +55,19 @@ export async function discover(ctx: Context, options: DiscoverOptions = {}): Pro
   const harvested = harvestedCandidates(await loadCompaniesState(options.companiesStatePath ?? DEFAULT_COMPANIES_STATE_PATH));
   const searching = Boolean(options.serpapiKey) && discovery.queries.length > 0;
   if (!searching) {
-    if (!options.serpapiKey) ctx.log.info('No SerpAPI key (the serpapi-key input); only the boards harvested from collected jobs are checked');
-    else ctx.log.warn('discovery.queries is empty; only the boards harvested from collected jobs are checked');
-    if (count(harvested) === 0) return { found: empty };
+    if (!options.serpapiKey) ctx.log.info('No SerpAPI key (the serpapi-key input); skipping the Google searches');
+    else ctx.log.warn('discovery.queries is empty; skipping the Google searches');
   }
 
   const http = options.http ?? createHttpClient({ hostDelayMs: 1000 });
+  const archived = await archivedLinks({
+    http,
+    maxQueries: discovery.max_archive_queries,
+    now: options.now ?? new Date(),
+    warn: (message) => ctx.log.warn(message),
+  });
+  if (!searching && count(harvested) === 0 && archived.length === 0) return { found: empty };
+
   const adapters = options.adapters ?? ADAPTERS;
   const path = options.companiesPath ?? 'companies.yml';
 
@@ -69,7 +77,7 @@ export async function discover(ctx: Context, options: DiscoverOptions = {}): Pro
   const current = await readFileOnBranch(ctx, path, base);
   const listed = listedSlugs(parseCompaniesText(current?.text ?? ''));
 
-  const links: string[] = [];
+  const links: string[] = [...archived];
   for (const query of searching ? discovery.queries.slice(0, discovery.max_searches) : []) {
     const response = await serpApiSearch(http, options.serpapiKey!, { engine: 'google', q: query, num: '20', hl: 'en' });
     const results = Array.isArray(response.organic_results) ? response.organic_results : [];

@@ -60,7 +60,7 @@ The Action takes `command` plus `github-token`. The same commands run locally wi
 | `metrics` | weekly, and after each `collect` | Writes the calculated fields, repairs `Status` cards that no longer match their label, and rewrites the Metrics issue. |
 | `sweep` | weekly, optional | Walks `companies.directory.yml` (a large cold list of boards) in slices and records which companies have postings that match your search. Creates no issues. Commits `state/companies.json`. |
 | `prune` | weekly | Opens (or updates) one pull request removing from `companies.yml` the boards that were missing or unreadable for 4 weeks in a row. |
-| `discover` | weekly, optional | Searches Google through SerpAPI for career pages on the supported ATS and opens a pull request that adds the new companies to `companies.yml`. It also checks the boards that collected jobs link to, so it is useful without a SerpAPI key. |
+| `discover` | weekly, optional | Searches Google through SerpAPI for career pages on the supported ATS and opens a pull request that adds the new companies to `companies.yml`. It also checks the boards that collected jobs link to and the tenants the Wayback Machine has seen for ATS with no search of their own (`discovery.max_archive_queries`), so it is useful without a SerpAPI key. |
 | `evaluate` | on `/evaluate` comment, optional | Posts a full AI analysis of the job (each requirement weighed by importance and evidence, what the posting leaves open with questions for the recruiter, likely interview questions) and refreshes its `fit:*` label. |
 | `import` | once, local | Creates issues from a spreadsheet: `npm run cli -- import --xlsx file.xlsx --repo you/job-search`. See `src/import/xlsx.ts` for the expected columns. |
 

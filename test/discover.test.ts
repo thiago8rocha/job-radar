@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -11,8 +12,11 @@ import { ATS, emptyByAts } from '../src/adapters/ats.js';
 import { buildCompaniesSchema, companyRefs } from '../src/config/schema.js';
 import { addCompanies, listedSlugs, parseCompaniesText } from '../src/discovery/companies-file.js';
 import { companiesFromLinks } from '../src/discovery/links.js';
+import { archivedLinks } from '../src/discovery/wayback.js';
 import { createHttpClient } from '../src/util/http.js';
 import { fakeContext } from './fake-github.js';
+
+const fixture = (name: string): any => JSON.parse(readFileSync(new URL(`./fixtures/${name}`, import.meta.url), 'utf8'));
 
 const server = setupServer();
 beforeAll(() => server.listen({ onUnhandledRequest: 'error' }));
@@ -70,6 +74,7 @@ describe('discover', () => {
 discovery:
   enabled: true
   queries: ['site:boards.greenhouse.io "QA" remote', 'site:inhire.app/vagas QA']
+  max_archive_queries: 0
 `;
 
   function setup(configText = CONFIG, current: string | null = COMPANIES, openPulls: Array<{ number: number; head: { ref: string } }> = []) {
@@ -170,7 +175,7 @@ discovery:
     expect(noKey.rest.repos.get).not.toHaveBeenCalled();
     expect(noKey.log.info).toHaveBeenCalledWith(expect.stringContaining('No SerpAPI key'));
 
-    const noQueries = setup('discovery: { enabled: true }');
+    const noQueries = setup('discovery: { enabled: true, max_archive_queries: 0 }');
     await discover(noQueries.ctx, options());
     expect(noQueries.log.warn).toHaveBeenCalledWith(expect.stringContaining('queries is empty'));
   });
@@ -197,6 +202,49 @@ discovery:
     } finally {
       await rm(dir, { recursive: true, force: true });
     }
+  });
+
+  describe('through the Wayback Machine', () => {
+    const WAYBACK = CONFIG.replace('max_archive_queries: 0', 'max_archive_queries: 10');
+    const cdx = (hosts: string[]) => [['original'], ...hosts.map((host) => [`https://${host}.inhire.app/vagas/1`]), ['https://inhire.app/']];
+
+    it('proposes only the archived tenants that are new and have postings', async () => {
+      server.use(
+        http.get('https://web.archive.org/cdx/search/cdx', ({ request }) => {
+          const query = new URL(request.url).searchParams;
+          expect(query.get('url')).toBe('*.inhire.app');
+          expect(query.get('collapse')).toBe('urlkey');
+          expect(query.get('from')).toBe('20251016');
+          return HttpResponse.json(cdx(['luby', 'newco', 'ghostco']));
+        }),
+        http.get('https://api.inhire.app/job-posts/public/pages', ({ request }) =>
+          request.headers.get('x-tenant') === 'newco' ? HttpResponse.json(fixture('inhire-list.json')) : new HttpResponse(null, { status: 404 }),
+        ),
+      );
+      const { ctx } = setup(WAYBACK);
+      const result = await discover(ctx, options({ serpapiKey: undefined, companiesStatePath: 'no-such-state.json' }));
+      expect(result.found.inhire).toEqual(['newco']);
+      expect(result.pullRequest).toBe(7);
+    });
+
+    it('still works when the archive is down', async () => {
+      server.use(http.get('https://web.archive.org/cdx/search/cdx', () => new HttpResponse(null, { status: 404 })));
+      const { ctx, log } = setup(WAYBACK);
+      const result = await discover(ctx, options({ serpapiKey: undefined, companiesStatePath: 'no-such-state.json' }));
+      expect(result.found.inhire).toEqual([]);
+      expect(log.warn).toHaveBeenCalledWith(expect.stringContaining('Wayback *.inhire.app'));
+    });
+
+    it('reads the CDX rows of a recorded response', async () => {
+      server.use(http.get('https://web.archive.org/cdx/search/cdx', () => HttpResponse.json(fixture('wayback-cdx-inhire.json'))));
+      const links = await archivedLinks({ http: createHttpClient({ retries: 0 }), maxQueries: 5, now: new Date('2026-11-25T00:00:00Z') });
+      expect(companiesFromLinks(links).inhire).toContain('2bizcompany');
+      expect(companiesFromLinks(links).inhire).not.toContain('app');
+    });
+
+    it('makes no request when the cap is zero', async () => {
+      expect(await archivedLinks({ http: createHttpClient({ retries: 0 }), maxQueries: 0, now: new Date() })).toEqual([]);
+    });
   });
 
   it('creates companies.yml when the repository has none', async () => {

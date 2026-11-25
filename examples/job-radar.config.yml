@@ -42,6 +42,7 @@ directory:
 discovery:
   enabled: false             # needs the SERPAPI_KEY secret; the weekly `discover` workflow opens a pull request
   max_searches: 8
+  max_archive_queries: 10    # Wayback Machine lookups for ATS with no search of their own (no key needed); 0 turns them off
   queries:
     - 'site:inhire.app/vagas QA'
     - 'site:boards.greenhouse.io "QA" remote'
