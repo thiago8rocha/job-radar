@@ -10,6 +10,7 @@ import { himalayas } from '../src/adapters/himalayas.js';
 import { inhire } from '../src/adapters/inhire.js';
 import { lever } from '../src/adapters/lever.js';
 import { linkedin } from '../src/adapters/linkedin.js';
+import { recruitee } from '../src/adapters/recruitee.js';
 import { smartrecruiters } from '../src/adapters/smartrecruiters.js';
 import { workable } from '../src/adapters/workable.js';
 import { SchemaError, type FetchContext } from '../src/adapters/types.js';
@@ -225,6 +226,45 @@ describe('workable', () => {
   it('fails when the response has no jobs list', async () => {
     server.use(http.get('https://apply.workable.com/api/v1/widget/accounts/huggingface', () => HttpResponse.json({ name: 'x' })));
     await expect(workable.fetch(context(['huggingface']).ctx)).rejects.toBeInstanceOf(SchemaError);
+  });
+});
+
+describe('recruitee', () => {
+  it('reads the whole board from the public career site API', async () => {
+    let calls = 0;
+    server.use(
+      http.get('https://bunq.recruitee.com/api/offers/', () => {
+        calls++;
+        return HttpResponse.json(fixture('recruitee.json'));
+      }),
+    );
+    const jobs = (await recruitee.fetch(context(['bunq']).ctx)).map((raw) => recruitee.normalize(raw));
+
+    expect(calls).toBe(1);
+    expect(jobs).toHaveLength(2);
+    expect(jobs[0]!.company).toBe('bunq');
+    expect(jobs[0]!.workModel).toBe('remote');
+    expect(jobs[0]!.locations).toEqual(['Paris, France']);
+    expect(jobs[0]!.postedAt).toBe('2026-11-10T07:45:05.000Z');
+    expect(jobs[0]!.applyUrl).toBe('https://careers.bunq.com/o/reporting-agent-france-3');
+    expect(jobs[1]!.workModel).toBe('hybrid');
+    expect(jobs[1]!.locations).toEqual(['Amsterdam, Noord-Holland, Netherlands']);
+  });
+
+  it('shows the salary when the offer publishes one and skips offers that are not published', async () => {
+    const body = fixture('recruitee.json');
+    body.offers[0].salary = { min: '4000', max: '5000', currency: 'EUR', period: 'month' };
+    body.offers[1].status = 'archived';
+    server.use(http.get('https://bunq.recruitee.com/api/offers/', () => HttpResponse.json(body)));
+    const jobs = (await recruitee.fetch(context(['bunq']).ctx)).map((raw) => recruitee.normalize(raw));
+
+    expect(jobs).toHaveLength(1);
+    expect(jobs[0]!.compensation).toBe('EUR 4,000 – 5,000 / month');
+  });
+
+  it('fails when the response has no offers list', async () => {
+    server.use(http.get('https://bunq.recruitee.com/api/offers/', () => HttpResponse.json({ error: 'Not Found' })));
+    await expect(recruitee.fetch(context(['bunq']).ctx)).rejects.toBeInstanceOf(SchemaError);
   });
 });
 
