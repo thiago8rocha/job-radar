@@ -13,6 +13,7 @@ import { linkedin } from '../src/adapters/linkedin.js';
 import { quickin } from '../src/adapters/quickin.js';
 import { recruitee } from '../src/adapters/recruitee.js';
 import { smartrecruiters } from '../src/adapters/smartrecruiters.js';
+import { solides } from '../src/adapters/solides.js';
 import { teamtailor } from '../src/adapters/teamtailor.js';
 import { workable } from '../src/adapters/workable.js';
 import { SchemaError, type FetchContext } from '../src/adapters/types.js';
@@ -228,6 +229,46 @@ describe('workable', () => {
   it('fails when the response has no jobs list', async () => {
     server.use(http.get('https://apply.workable.com/api/v1/widget/accounts/huggingface', () => HttpResponse.json({ name: 'x' })));
     await expect(workable.fetch(context(['huggingface']).ctx)).rejects.toBeInstanceOf(SchemaError);
+  });
+});
+
+describe('solides', () => {
+  it('reads the company vacancies in pages of 25 and links to the public vacancy page', async () => {
+    const pages: string[] = [];
+    server.use(
+      http.get('https://apigw.solides.com.br/jobs/v3/companies/solides/vacancies', ({ request }) => {
+        const url = new URL(request.url);
+        pages.push(`${url.searchParams.get('take')}|${url.searchParams.get('page')}`);
+        return HttpResponse.json(fixture('solides.json'));
+      }),
+    );
+    const jobs = (await solides.fetch(context(['solides']).ctx)).map((raw) => solides.normalize(raw));
+    const remote = jobs.find((job) => /CIBERN/.test(job.title))!;
+
+    expect(pages).toEqual(['25|1']);
+    expect(jobs).toHaveLength(3);
+    expect(remote.company).toBe('Sólides Tecnologia');
+    expect(remote.workModel).toBe('remote');
+    expect(remote.contracts).toEqual(['CLT']);
+    expect(remote.locations).toEqual(['Belo Horizonte, MG']);
+    expect(remote.applyUrl).toMatch(/^https:\/\/solides\.vagas\.solides\.com\.br\/vaga\/\d+$/);
+    expect(jobs.find((job) => /JOVEM/.test(job.title))!.workModel).toBe('onsite');
+  });
+
+  it('shows the pay range only when the posting makes it public', async () => {
+    const body = fixture('solides.json');
+    body.data[0].salary = { showRangeToApplicant: true, initialRange: 5000, finalRange: 7000 };
+    body.data[1].salary = { showRangeToApplicant: false, initialRange: 9000, finalRange: 9500 };
+    server.use(http.get('https://apigw.solides.com.br/jobs/v3/companies/solides/vacancies', () => HttpResponse.json(body)));
+    const jobs = (await solides.fetch(context(['solides']).ctx)).map((raw) => solides.normalize(raw));
+
+    expect(jobs[0]!.compensation).toBe('BRL 5,000 – 7,000');
+    expect(jobs[1]!.compensation).toBeUndefined();
+  });
+
+  it('fails when the response has no data list', async () => {
+    server.use(http.get('https://apigw.solides.com.br/jobs/v3/companies/solides/vacancies', () => HttpResponse.json({ message: 'x' })));
+    await expect(solides.fetch(context(['solides']).ctx)).rejects.toBeInstanceOf(SchemaError);
   });
 });
 

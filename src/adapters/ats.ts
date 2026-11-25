@@ -37,6 +37,14 @@ export const ATS = [
     ],
   },
   { id: 'ashby', urls: [{ pattern: /^https?:\/\/jobs\.ashbyhq\.com\/([a-z0-9_.-]+)/i }] },
+  {
+    id: 'solides',
+    urls: [
+      { pattern: /^https?:\/\/([a-z0-9-]+)\.vagas\.solides\.com\.br(?:\/|$)/i, ignore: ['www', 'vagas'] },
+      { pattern: /^https?:\/\/(?:www\.)?vagas\.solides\.com\.br\/empresa\/([a-z0-9_-]+)/i },
+    ],
+    archive: ['*.vagas.solides.com.br'],
+  },
   { id: 'quickin', urls: [{ pattern: /^https?:\/\/jobs\.quickin\.io\/([a-z0-9_-]+)/i, ignore: ['jobs', 'api', 'login'] }], archive: ['jobs.quickin.io/*'] },
   {
     id: 'teamtailor',
