@@ -40,10 +40,14 @@ describe('company links', () => {
         'https://job-boards.greenhouse.io/embed/job_board?for=x',
         'https://jobs.lever.co/palantir/abc',
         'https://jobs.ashbyhq.com/ramp',
+        'https://apply.workable.com/huggingface/j/81B46579FE',
+        'https://huggingface.workable.com/',
+        'https://apply.workable.com/j/81B46579FE',
+        'https://www.workable.com/pricing',
         'https://acme.inhire.app/vagas/456',
         'https://example.com/careers',
       ]),
-    ).toEqual({ inhire: ['acme'], greenhouse: ['gitlab'], lever: ['palantir'], ashby: ['ramp'] });
+    ).toEqual({ inhire: ['acme'], greenhouse: ['gitlab'], lever: ['palantir'], ashby: ['ramp'], workable: ['huggingface'] });
   });
 });
 
@@ -127,7 +131,7 @@ discovery:
     const { ctx, rest } = setup();
     const result = await discover(ctx, options());
 
-    expect(result.found).toEqual({ inhire: [], greenhouse: ['gitlab'], lever: [], ashby: [] });
+    expect(result.found).toEqual({ inhire: [], greenhouse: ['gitlab'], lever: [], ashby: [], workable: [] });
     expect(result.pullRequest).toBe(7);
     expect(rest.git.createRef).toHaveBeenCalledWith(expect.objectContaining({ ref: 'refs/heads/job-radar/discovery-2026-10-16', sha: 'BASE_SHA' }));
     const commit = rest.repos.createOrUpdateFileContents.mock.calls[0]![0];
@@ -141,7 +145,7 @@ discovery:
     mockSearch(['https://boards.greenhouse.io/airbnb/jobs/2']);
     const { ctx, rest } = setup();
     const result = await discover(ctx, options());
-    expect(result.found).toEqual({ inhire: [], greenhouse: [], lever: [], ashby: [] });
+    expect(result.found).toEqual({ inhire: [], greenhouse: [], lever: [], ashby: [], workable: [] });
     expect(rest.pulls.create).not.toHaveBeenCalled();
   });
 

@@ -10,9 +10,10 @@ import { lever } from './lever.js';
 import { linkedin } from './linkedin.js';
 import { remoteok } from './remoteok.js';
 import { weworkremotely } from './weworkremotely.js';
+import { workable } from './workable.js';
 import type { AnySourceAdapter } from './types.js';
 
 /** Every adapter available in this version, by source id (the keys of `sources:` in the config). */
 export const ADAPTERS: Record<string, AnySourceAdapter> = Object.fromEntries(
-  [inhire, himalayas, freehire, getonbrd, linkedin, greenhouse, lever, ashby, gupy, remoteok, weworkremotely, googleJobs].map((adapter) => [adapter.id, adapter]),
+  [inhire, himalayas, freehire, getonbrd, linkedin, greenhouse, lever, ashby, workable, gupy, remoteok, weworkremotely, googleJobs].map((adapter) => [adapter.id, adapter]),
 );

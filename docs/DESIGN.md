@@ -75,6 +75,7 @@ Each source is an independent adapter, switched on or off by the config. There a
 | Greenhouse | Per company | `boards-api.greenhouse.io/v1/boards/{company}/jobs` | v1 | Documented public API |
 | Lever | Per company | `api.lever.co/v0/postings/{company}` | v1 | Documented public API |
 | Ashby | Per company | Public per-company job board API | v1 | Common in startups that hire remotely |
+| Workable | Per company | `apply.workable.com/api/v1/widget/accounts/{slug}?details=true`, the widget API of the career page | v2 | Whole board in one request; `{slug}.workable.com` and `apply.workable.com/{slug}` are the same board |
 | Gupy | Global search | `portal.gupy.io/api/job-search/jobs?jobName=…&workplaceType=remote`, up to 100 per page. The `employability-portal.gupy.io/api/v1/jobs` address this document first listed answers 404; the portal's own search page calls the endpoint above | v2 | Undocumented endpoint, found by reading the portal's code; the daily live contract watches it |
 | GitHub job repos | Global search | GitHub issues API (backend-br/vagas, frontendbr/vagas, DevOps-Brazil/Vagas and similar) | v2 | Jobs published as issues; no repo is dedicated to QA, so it filters by term |
 | RemoteOK | Global search | Public JSON API by tag | v2 | Lower volume |

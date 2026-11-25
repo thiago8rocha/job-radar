@@ -10,6 +10,7 @@ import { himalayas } from '../src/adapters/himalayas.js';
 import { inhire } from '../src/adapters/inhire.js';
 import { lever } from '../src/adapters/lever.js';
 import { linkedin } from '../src/adapters/linkedin.js';
+import { workable } from '../src/adapters/workable.js';
 import { SchemaError, type FetchContext } from '../src/adapters/types.js';
 import { parseConfig } from '../src/config/load.js';
 import { checkEligibility } from '../src/pipeline/eligibility.js';
@@ -182,6 +183,47 @@ describe('ashby', () => {
     expect(paid.company).toBe('Ramp');
     expect(paid.applyUrl).toMatch(/^https:\/\/jobs\.ashbyhq\.com\/ramp\//);
     expect(jobs.every((job) => job.postedAt)).toBe(true);
+  });
+});
+
+describe('workable', () => {
+  it('reads the whole board in one request and maps locations and remote work', async () => {
+    let calls = 0;
+    server.use(
+      http.get('https://apply.workable.com/api/v1/widget/accounts/huggingface', ({ request }) => {
+        calls++;
+        expect(new URL(request.url).searchParams.get('details')).toBe('true');
+        return HttpResponse.json(fixture('workable.json'));
+      }),
+    );
+    const jobs = (await workable.fetch(context(['huggingface']).ctx)).map((raw) => workable.normalize(raw));
+
+    expect(calls).toBe(1);
+    expect(jobs).toHaveLength(3);
+    expect(jobs[0]!.company).toBe('Hugging Face');
+    expect(jobs[0]!.workModel).toBe('remote');
+    expect(jobs[0]!.locations).toEqual(['Paris, Île-de-France, France']);
+    expect(jobs[0]!.contracts).toEqual(['Full-time']);
+    expect(jobs[0]!.postedAt).toBe('2026-05-29');
+    expect(jobs[0]!.applyUrl).toMatch(/^https:\/\/apply\.workable\.com\/j\//);
+  });
+
+  it('reads a board listed by its URL', async () => {
+    let requested = '';
+    server.use(
+      http.get('https://apply.workable.com/api/v1/widget/accounts/:slug', ({ params }) => {
+        requested = String(params.slug);
+        return HttpResponse.json(fixture('workable.json'));
+      }),
+    );
+    const { ctx } = context([], { companies: [{ slug: 'hf', url: 'https://huggingface.workable.com/' }] });
+    await workable.fetch(ctx);
+    expect(requested).toBe('huggingface');
+  });
+
+  it('fails when the response has no jobs list', async () => {
+    server.use(http.get('https://apply.workable.com/api/v1/widget/accounts/huggingface', () => HttpResponse.json({ name: 'x' })));
+    await expect(workable.fetch(context(['huggingface']).ctx)).rejects.toBeInstanceOf(SchemaError);
   });
 });
 
