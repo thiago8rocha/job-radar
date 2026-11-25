@@ -205,7 +205,7 @@ describe('google_jobs', () => {
       expect(params.get('engine')).toBe('google_jobs');
       expect(params.get('location')).toBe('Brazil');
       expect(params.get('gl')).toBe('br');
-      expect(params.get('hl')).toBe('en');
+      expect(params.get('hl')).toBe('pt-br');
       expect(params.get('api_key')).toBe('secret-key');
       for (const never of ['start', 'chips', 'ltype', 'no_cache', 'lrad', 'uule', 'uds', 'next_page_token']) expect(params.has(never), never).toBe(false);
     }
@@ -266,6 +266,13 @@ describe('google_jobs', () => {
     expect(seen[1]!.get('q')).toBe('QA Engineer remote');
     expect(seen[1]!.get('location')).toBe('Brazil');
     expect(raws.map((raw) => raw.company_name)).toEqual(['Delta Labs', 'Echo Systems']);
+  });
+
+  it('asks for the English page when Brazil is not an accepted region', async () => {
+    const seen = serve({});
+    await googleJobs.fetch(context(one.replace('[brazil, worldwide]', '[worldwide]'), { apiKey: 'k' }).ctx);
+    expect(seen[0]!.get('hl')).toBe('en');
+    expect(seen[0]!.has('gl')).toBe(false);
   });
 
   it('reads one page by default', async () => {

@@ -13,7 +13,7 @@ const sourceToggle = z.object({
   location: z.string().optional(),
   /** Google Jobs: country code of the search (`br`); defaults to `br` when Brazil is an accepted region. */
   gl: z.string().optional(),
-  /** Google Jobs: language of the search; `en` skips SerpAPI's language fallback. */
+  /** Google Jobs: language of the search; defaults to `pt-br` when Brazil is an accepted region, else `en`. */
   hl: z.string().optional(),
   /** Google Jobs: result pages read per query, 10 jobs each; every page is one search (default 1). */
   max_pages: z.number().int().positive().optional(),
