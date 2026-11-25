@@ -2,6 +2,9 @@ import type { HttpClient } from '../util/http.js';
 
 const ENDPOINT = 'https://serpapi.com/search.json';
 
+// A Google Jobs search can take longer than the client's default timeout.
+const TIMEOUT_MS = 60_000;
+
 /** SerpAPI answers 200 with `error` for a query that simply has no results; that is not a failure. */
 const NO_RESULTS = /hasn't returned any results|no results/i;
 
@@ -19,11 +22,11 @@ export async function serpApiSearch(
   const query = new URLSearchParams({ ...params, api_key: apiKey });
   let body: unknown;
   try {
-    body = await http.getJson(`${ENDPOINT}?${query}`);
+    body = await http.getJson(`${ENDPOINT}?${query}`, { timeoutMs: TIMEOUT_MS });
   } catch (error) {
     // HttpError messages carry the URL, which holds the key
     const status = (error as { status?: number }).status;
-    throw new SerpApiError(status ? `SerpAPI returned HTTP ${status}` : 'SerpAPI request failed');
+    throw new SerpApiError(status ? `SerpAPI returned HTTP ${status}` : `SerpAPI request failed (${(error as Error).name})`);
   }
   if (typeof body !== 'object' || body === null) throw new SerpApiError('SerpAPI returned an unexpected response');
   const result = body as Record<string, unknown>;

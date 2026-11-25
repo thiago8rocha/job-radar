@@ -18,6 +18,8 @@ export interface RequestOptions {
   method?: 'GET' | 'POST';
   headers?: Record<string, string>;
   body?: unknown;
+  /** Overrides the client's timeout for this request. */
+  timeoutMs?: number;
 }
 
 export interface HttpClient {
@@ -73,7 +75,7 @@ export function createHttpClient(options: HttpClientOptions = {}): HttpClient {
           ...request.headers,
         },
         body: request.body !== undefined ? JSON.stringify(request.body) : undefined,
-        signal: AbortSignal.timeout(timeoutMs),
+        signal: AbortSignal.timeout(request.timeoutMs ?? timeoutMs),
       });
 
       if (response.ok) return response;
