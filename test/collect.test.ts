@@ -280,3 +280,37 @@ describe('source contribution', () => {
     expect((await loadState(statePath)).stats).toEqual({});
   });
 });
+
+describe('near misses', () => {
+  const noLevel = (id: string, overrides: Partial<Job> = {}) =>
+    job({ id, source: 'alpha', title: 'QA Engineer', applyUrl: `https://a.test/${id}`, ...overrides });
+
+  it('keeps a job that fails one soft rule out of the issues and in the state', async () => {
+    const fake = setup();
+    const result = await run(fake, {
+      alpha: adapter('alpha', [
+        noLevel('alpha:1'),
+        noLevel('alpha:2', { company: 'Two', postedAt: '2026-01-01T00:00:00Z' }),
+        noLevel('alpha:3', { company: 'Three', title: 'QA Intern' }),
+      ]),
+    });
+    expect(result.created).toBe(0);
+    const { nearMiss } = await loadState(statePath);
+    expect(nearMiss.map((entry) => [entry.id, entry.reason])).toEqual([['alpha:1', 'seniority: not stated']]);
+  });
+
+  it('ignores a job that is already an issue and does not repeat one already listed', async () => {
+    const known = { title: '[Acme] QA Engineer', body: '**Apply:** https://x.test/1\n' };
+    await run(setup(CONFIG, { existingIssues: [known] }), { alpha: adapter('alpha', [noLevel('alpha:1')]) });
+    expect((await loadState(statePath)).nearMiss).toEqual([]);
+
+    await run(setup(), { alpha: adapter('alpha', [noLevel('alpha:1')]) });
+    await run(setup(), { alpha: adapter('alpha', [noLevel('alpha:1')]) });
+    expect((await loadState(statePath)).nearMiss).toHaveLength(1);
+  });
+
+  it('does not write near misses on a dry run', async () => {
+    await run(setup(), { alpha: adapter('alpha', [noLevel('alpha:1')]) }, { dryRun: true });
+    expect((await loadState(statePath)).nearMiss).toEqual([]);
+  });
+});

@@ -1,6 +1,7 @@
 import { STAGES, STATUSES, STATUS_TITLES, isTerminalStatus, stageNumber, type Status } from '../domain/status.js';
 import type { SeenState } from '../state/seen.js';
 import { isoWeek } from '../state/seen.js';
+import { sanitizeForIssue } from '../pipeline/excerpt.js';
 import { daysBetween, isDiscarded, isUnanswered, type IssueMetrics } from './analyze.js';
 
 export const METRICS_MARKER = '<!-- job-radar:metrics -->';
@@ -220,6 +221,7 @@ export function renderReport(
   noResponseAfterDays = DEFAULT_NO_RESPONSE_AFTER_DAYS,
   lastCollect?: Date,
   sourceStats: SeenState['stats'] = {},
+  nearMisses: SeenState['nearMiss'] = [],
 ): string {
   const todayIso = today.toISOString().slice(0, 10);
   const total = totals(all, todayIso, noResponseAfterDays);
@@ -259,6 +261,9 @@ export function renderReport(
     .map((issue) => ({ issue, days: daysBetween(issue.appliedOn!, todayIso) }))
     .filter(({ days }) => days > STALLED_AFTER_DAYS)
     .sort((a, b) => b.days - a.days);
+
+  const weekAgo = today.getTime() - 7 * 86_400_000;
+  const recentMisses = nearMisses.filter((miss) => Date.parse(miss.date) >= weekAgo);
 
   const sections = [
     METRICS_MARKER,
@@ -320,6 +325,19 @@ export function renderReport(
       : []),
     '## Salary',
     table(['Currency', 'Mean target', 'Targets', 'Mean offered', 'Offers'], salaries),
+    ...(recentMisses.length > 0
+      ? [
+          '## Near misses this week',
+          [
+            `<details><summary>${recentMisses.length} job(s) dropped by a single soft rule</summary>`,
+            '',
+            ...recentMisses.map((miss) => `- [${sanitizeForIssue(miss.company)}: ${sanitizeForIssue(miss.title)}](${miss.link}) (${miss.reason})`),
+            '',
+            '</details>',
+          ].join('\n'),
+          '_To follow one up, open an issue for it with the job form._',
+        ]
+      : []),
     `## Stalled applications (${STALLED_AFTER_DAYS} to ${noResponseAfterDays} days without a response)`,
     stalled.length === 0
       ? '_None._'

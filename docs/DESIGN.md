@@ -283,6 +283,8 @@ A weekly workflow reads the issues and their timelines through the API and rewri
 
 **Unique contribution per source.** `dedupe` reports, for each duplicate, the source of the job it matched in the same run, or `known` when it matched an existing issue or seen id. `collect` adds `fetched`, `passedFilters`, `unique` (became an issue) and `duplicateOf` to `state/seen.json` under `stats.<source>.<ISO week>`, keeping 12 weeks, and the Metrics issue turns the last 4 weeks into a "Sources" table. This is what tells whether a direct adapter adds anything over `freehire`, which already aggregates about 50 ATS. `known` is left out of the overlap column: a job stays on its board for weeks and is re-recognized on every run. Dry runs write nothing, so their counts only appear in the log and the report.
 
+**Near misses.** The filters are strict by design, so a job dropped by a single soft rule is the likeliest false negative. `createFilter().checkAll` evaluates every rule (`check` stays first-failure for the hot path). A reason is *soft* when the posting is silent rather than contradicting the search: `seniority: not stated`, `work model: not stated`, and `eligibility: region not accepted` for a job that lists no location. A job that fails exactly one soft rule, and is not already an issue, goes to `nearMiss` in `state/seen.json` (capped at 50, kept 14 days) and never becomes an issue. The Metrics issue shows the last week's in a collapsed block; to follow one up, open the issue by hand with the job form.
+
 **Parity with the spreadsheet's Metrics tab**
 
 | Spreadsheet indicator | In job-radar |

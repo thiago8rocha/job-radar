@@ -9,6 +9,8 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 
 const WEEK_MS = 7 * DAY_MS;
 const STATS_WEEKS = 12;
+const NEAR_MISS_DAYS = 14;
+const NEAR_MISS_CAP = 50;
 
 const weekStatsSchema = z.object({
   fetched: z.number().int().nonnegative().default(0),
@@ -35,6 +37,17 @@ export function weekStats(state: SeenState, source: string, now: Date): WeekStat
   return (weeks[isoWeek(now)] ??= weekStatsSchema.parse({}));
 }
 
+const nearMissSchema = z.object({
+  id: z.string(),
+  title: z.string(),
+  company: z.string(),
+  link: z.string(),
+  reason: z.string(),
+  date: z.string(),
+});
+
+export type NearMiss = z.infer<typeof nearMissSchema>;
+
 const seenSchema = z.object({
   version: z.literal(1),
   /** Jobs that became an issue, by id. */
@@ -43,12 +56,14 @@ const seenSchema = z.object({
   sources: z.record(z.string(), z.object({ zeroRuns: z.number().int().nonnegative() })).default({}),
   /** Per source, then per ISO week: what each source contributed. Absent in files written by older versions. */
   stats: z.record(z.string(), z.record(z.string(), weekStatsSchema)).default({}),
+  /** Jobs dropped by exactly one soft rule: never issues, listed in the Metrics issue for a second look. */
+  nearMiss: z.array(nearMissSchema).default([]),
 });
 
 export type SeenState = z.infer<typeof seenSchema>;
 
 export function emptyState(): SeenState {
-  return { version: 1, jobs: {}, sources: {}, stats: {} };
+  return { version: 1, jobs: {}, sources: {}, stats: {}, nearMiss: [] };
 }
 
 /** Reads `state/seen.json`; a missing file is a first run. A corrupt file fails loudly rather than re-creating every issue. */
@@ -76,7 +91,18 @@ export async function saveState(path: string, state: SeenState, now: Date): Prom
     .map(([source, weeks]) => [source, Object.fromEntries(Object.entries(weeks).filter(([week]) => week >= oldestWeek).sort(([a], [b]) => a.localeCompare(b)))] as const)
     .filter(([, weeks]) => Object.keys(weeks).length > 0)
     .sort(([a], [b]) => a.localeCompare(b));
-  const output: SeenState = { version: 1, jobs: Object.fromEntries(jobs), sources: Object.fromEntries(sources), stats: Object.fromEntries(stats) };
+  const nearMissCutoff = now.getTime() - NEAR_MISS_DAYS * DAY_MS;
+  const nearMiss = state.nearMiss
+    .filter((entry) => Date.parse(entry.date) >= nearMissCutoff)
+    .sort((a, b) => b.date.localeCompare(a.date))
+    .slice(0, NEAR_MISS_CAP);
+  const output: SeenState = {
+    version: 1,
+    jobs: Object.fromEntries(jobs),
+    sources: Object.fromEntries(sources),
+    stats: Object.fromEntries(stats),
+    nearMiss,
+  };
   await mkdir(dirname(path), { recursive: true });
   await writeFile(path, `${JSON.stringify(output, null, 2)}\n`);
 }
