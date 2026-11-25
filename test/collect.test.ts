@@ -1,6 +1,6 @@
-import { mkdtemp, readFile, rm } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import type { AnySourceAdapter } from '../src/adapters/types.js';
 import { collect, describeLocation } from '../src/commands/collect.js';
@@ -242,5 +242,41 @@ describe('describeLocation', () => {
     expect(describeLocation(base, NOW)).toBe('Remote · Brazil · 9am-5pm ET → 10am–6pm Brasília time');
     expect(describeLocation(job({ locations: ['Remote - Brazil'], description: '' }), NOW)).toBe('Remote - Brazil');
     expect(describeLocation(job({ locations: [], workModel: 'hybrid', description: '' }), NOW)).toBe('Hybrid');
+  });
+});
+
+describe('source contribution', () => {
+  const acme = (id: string, source: string, url: string) =>
+    job({ id, source, company: 'Acme', title: 'Senior QA Engineer', applyUrl: url });
+  const adapters = () => ({
+    alpha: adapter('alpha', [acme('alpha:1', 'alpha', 'https://a.test/1')]),
+    beta: adapter('beta', [acme('beta:1', 'beta', 'https://b.test/1')]),
+  });
+
+  it('records which source a duplicate matched and gives the same counts on a repeated dry run', async () => {
+    const first = await run(setup(), adapters(), { dryRun: true });
+    const second = await run(setup(), adapters(), { dryRun: true });
+    expect(first.sources).toEqual(second.sources);
+    expect(first.sources.map((report) => [report.source, report.passedFilters, report.created, report.duplicateOf])).toEqual([
+      ['alpha', 1, 1, {}],
+      ['beta', 1, 0, { alpha: 1 }],
+    ]);
+  });
+
+  it('keeps the weekly counters in the state and adds them up across runs', async () => {
+    const fake = setup();
+    await run(fake, adapters());
+    const state = await loadState(statePath);
+    expect(state.stats.alpha).toEqual({ '2026-W42': { fetched: 1, passedFilters: 1, unique: 1, duplicateOf: {} } });
+    expect(state.stats.beta!['2026-W42']).toMatchObject({ unique: 0, duplicateOf: { alpha: 1 } });
+
+    await run(setup(), adapters());
+    expect((await loadState(statePath)).stats.alpha!['2026-W42']).toMatchObject({ fetched: 2, unique: 1, duplicateOf: { known: 1 } });
+  });
+
+  it('loads a state file written before the counters existed', async () => {
+    await mkdir(dirname(statePath), { recursive: true });
+    await writeFile(statePath, JSON.stringify({ version: 1, jobs: {}, sources: {} }));
+    expect((await loadState(statePath)).stats).toEqual({});
   });
 });

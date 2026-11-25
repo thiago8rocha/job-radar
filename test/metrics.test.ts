@@ -541,3 +541,21 @@ describe('last collect line', () => {
     expect(renderReport([], THURSDAY, 60)).not.toContain('Last successful collect');
   });
 });
+
+describe('sources section', () => {
+  const stats = {
+    greenhouse: { '2026-W42': { fetched: 10, passedFilters: 4, unique: 3, duplicateOf: { known: 20 } } },
+    himalayas: { '2026-W42': { fetched: 8, passedFilters: 3, unique: 1, duplicateOf: { greenhouse: 2, known: 9 } }, '2026-W20': { fetched: 1, passedFilters: 1, unique: 9, duplicateOf: {} } },
+  };
+
+  it('shows issues created in the last 4 weeks, their share, the main overlap and outcomes per source', () => {
+    const applied = analyzeIssue(facts({ labels: ['status:screening', 'found:greenhouse'], fields: { 'Applied on': '2026-10-01', 'Response date': '2026-10-05' } }));
+    const report = renderReport([applied], TODAY, 60, undefined, stats);
+    expect(report).toContain('| greenhouse | 3 | 75% | — | 1 | 1 |');
+    expect(report).toContain('| himalayas | 1 | 25% | greenhouse (2) | 0 | 0 |');
+  });
+
+  it('is left out without counters', () => {
+    expect(renderReport([], TODAY)).not.toContain('## Sources');
+  });
+});

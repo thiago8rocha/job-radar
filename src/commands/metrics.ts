@@ -3,6 +3,7 @@ import { IGNORE_MARKER, METRICS_MARKER, renderReport } from '../metrics/report.j
 import { parseStatusLabel, type Status } from '../domain/status.js';
 import { extractMarker } from '../github/issue-body.js';
 import { listProjectItems, setFieldValue, type Project, type ProjectItem } from '../github/project.js';
+import { DEFAULT_STATE_PATH, loadState } from '../state/seen.js';
 import { loadProject, type Context } from './context.js';
 import { reconcileStatusField } from './reconcile.js';
 
@@ -10,6 +11,8 @@ export interface MetricsOptions {
   /** Print the report and the field changes instead of writing them. */
   dryRun?: boolean;
   now?: Date;
+  /** Where `state/seen.json` is, for the per-source contribution. */
+  statePath?: string;
 }
 
 export interface MetricsResult {
@@ -106,7 +109,7 @@ export async function metrics(ctx: Context, options: MetricsOptions = {}): Promi
   );
   fieldsWritten += statusFixes;
 
-  const report = renderReport(results, now, ctx.config.metrics.no_response_after_days, await lastSuccessfulCollect(ctx));
+  const report = renderReport(results, now, ctx.config.metrics.no_response_after_days, await lastSuccessfulCollect(ctx), (await loadState(options.statePath ?? DEFAULT_STATE_PATH)).stats);
   if (dryRun) {
     ctx.log.info(`[dry-run] Would update the Metrics issue with:\n${report}`);
   } else {

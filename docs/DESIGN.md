@@ -281,6 +281,8 @@ The metrics job writes these values to Project fields, so they show up on the bo
 
 A weekly workflow reads the issues and their timelines through the API and rewrites a pinned "Metrics" issue, with tables and a Mermaid funnel chart. Project Insights stays as support: on the Free plan, only 2 saved charts on a private project, and no historical charts for a personal account.
 
+**Unique contribution per source.** `dedupe` reports, for each duplicate, the source of the job it matched in the same run, or `known` when it matched an existing issue or seen id. `collect` adds `fetched`, `passedFilters`, `unique` (became an issue) and `duplicateOf` to `state/seen.json` under `stats.<source>.<ISO week>`, keeping 12 weeks, and the Metrics issue turns the last 4 weeks into a "Sources" table. This is what tells whether a direct adapter adds anything over `freehire`, which already aggregates about 50 ATS. `known` is left out of the overlap column: a job stays on its board for weeks and is re-recognized on every run. Dry runs write nothing, so their counts only appear in the log and the report.
+
 **Parity with the spreadsheet's Metrics tab**
 
 | Spreadsheet indicator | In job-radar |
