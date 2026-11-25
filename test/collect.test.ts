@@ -344,6 +344,13 @@ describe('reposts', () => {
     expect((fake.issues.createComment.mock.calls[0]![0] as any).body).toContain('back at `status:new`');
   });
 
+  it('does not treat another source listing the same job as a repost, even with a newer date', async () => {
+    const fake = setup(CONFIG, { existingIssues: [issue(15, 'open', ['status:applied'])] });
+    await run(fake, { beta: adapter('beta', [{ ...reposted(), id: 'beta:acme:newnewne', source: 'beta', postedAt: '2026-10-14T00:00:00Z' }]) });
+    expect(fake.issues.createComment).not.toHaveBeenCalled();
+    expect(fake.issues.addLabels).not.toHaveBeenCalled();
+  });
+
   it('does not treat the same posting seen through another source as a repost', async () => {
     const fake = await repost(issue(13, 'closed', ['status:discarded']), [reposted()].map((entry) => ({ ...entry, postedAt: '2026-08-20T00:00:00Z' })));
     expect(fake.issues.create).not.toHaveBeenCalled();

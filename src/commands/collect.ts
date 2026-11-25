@@ -16,7 +16,7 @@ import { addLabels, ensureLabels, removeLabel } from '../github/labels.js';
 import { addIssueToProject, setFieldValue, type Project } from '../github/project.js';
 import { companiesFromLinks } from '../discovery/links.js';
 import { dedupe, KNOWN_SOURCE, knownFromIssues, type Duplicate, type KnownJobs } from '../pipeline/dedup.js';
-import { isNewerThan, priorIssuesByKey, repostAction, repostMarker, type PriorIssue } from '../pipeline/repost.js';
+import { isRepost, priorIssuesByKey, repostAction, repostMarker, type PriorIssue } from '../pipeline/repost.js';
 import { regionsOf } from '../pipeline/eligibility.js';
 import { canonicalUrl } from '../pipeline/url.js';
 import { buildExcerpt, sanitizeForIssue } from '../pipeline/excerpt.js';
@@ -339,7 +339,7 @@ interface Repost {
 function repostsOf(duplicates: Duplicate[], prior: Map<string, PriorIssue>): Repost[] {
   return duplicates.flatMap((duplicate) => {
     const issue = duplicate.key && duplicate.of === KNOWN_SOURCE ? prior.get(duplicate.key) : undefined;
-    return issue && repostAction(issue) && isNewerThan(duplicate.job, issue) ? [{ job: duplicate.job, prior: issue }] : [];
+    return issue && repostAction(issue) && isRepost(duplicate.job, issue) ? [{ job: duplicate.job, prior: issue }] : [];
   });
 }
 
