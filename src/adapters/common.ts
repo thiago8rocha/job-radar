@@ -31,28 +31,45 @@ export function jobId(source: string, company: string, sourceJobId: string | num
   return `${source}:${slugify(company)}:${shortHash(source, company, String(sourceJobId))}`;
 }
 
+export const DEFAULT_COMPANY_CONCURRENCY = 4;
+
 /**
- * Runs `fetchCompany` for each configured company, in sequence. One company failing (wrong slug,
- * temporary outage) is reported as a warning and does not stop the others; the source only fails
- * when every company fails.
+ * Runs `fetchCompany` for each configured company, a few at a time (the HTTP client still spaces
+ * requests to the same host). One company failing (wrong slug, temporary outage) is reported as a
+ * warning and does not stop the others; the source only fails when every company it tried fails.
+ * Once `ctx.deadline` passes no new company starts, and the skipped ones are reported.
  */
 export async function forEachCompany<T>(
   source: string,
   ctx: FetchContext,
   fetchCompany: (company: CompanyRef) => Promise<T[]>,
 ): Promise<T[]> {
-  const results: T[] = [];
+  const results: T[][] = ctx.companies.map(() => []);
   const failures: Error[] = [];
-  for (const company of ctx.companies) {
-    try {
-      results.push(...(await fetchCompany(company)));
-    } catch (error) {
-      failures.push(error as Error);
-      ctx.warn(`${source}/${company.slug}: ${(error as Error).message}`);
+  let next = 0;
+  let attempted = 0;
+
+  async function worker(): Promise<void> {
+    while (next < ctx.companies.length && !(ctx.deadline !== undefined && Date.now() >= ctx.deadline)) {
+      const index = next++;
+      const company = ctx.companies[index]!;
+      attempted++;
+      try {
+        results[index] = await fetchCompany(company);
+      } catch (error) {
+        failures.push(error as Error);
+        ctx.warn(`${source}/${company.slug}: ${(error as Error).message}`);
+      }
     }
   }
-  if (ctx.companies.length > 0 && failures.length === ctx.companies.length) throw failures[0];
-  return results;
+
+  const workers = Math.min(ctx.concurrency ?? DEFAULT_COMPANY_CONCURRENCY, ctx.companies.length);
+  await Promise.all(Array.from({ length: workers }, worker));
+
+  const skipped = ctx.companies.length - attempted;
+  if (skipped > 0) ctx.warn(`${source}: out of time, skipped ${skipped} of ${ctx.companies.length} companies`);
+  if (attempted > 0 && failures.length === attempted) throw failures[0];
+  return results.flat();
 }
 
 export function isoFromEpoch(value: number | undefined, unit: 's' | 'ms'): string | undefined {

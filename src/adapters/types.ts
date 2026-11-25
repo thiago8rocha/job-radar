@@ -10,6 +10,10 @@ export interface FetchContext {
   companies: CompanyRef[];
   /** Today, for adapters that stop paging at the age limit. */
   now: Date;
+  /** Epoch ms after which a per-company adapter starts no new company; it returns what it has. */
+  deadline?: number;
+  /** Companies fetched at the same time (default 4). */
+  concurrency?: number;
   /**
    * Cheap check on title and work model, so an adapter can skip a per-job detail request
    * for postings that the filters would discard anyway.

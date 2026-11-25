@@ -17,6 +17,8 @@ const sourceToggle = z.object({
   delay_ms: z.number().int().nonnegative().optional(),
   /** Only postings from the last N days, for sources read on every run (LinkedIn). */
   window_days: z.number().int().positive().optional(),
+  /** Minutes this source may run before it stops with what it has (default 5). */
+  timeout_minutes: z.number().positive().optional(),
 });
 
 export const configSchema = z.object({
@@ -60,6 +62,13 @@ export const configSchema = z.object({
   work_model: z.array(z.enum(['remote', 'hybrid', 'onsite'])).default(['remote']),
 
   sources: z.record(z.string(), sourceToggle).default({}),
+
+  run: z
+    .object({
+      /** Minutes the whole collection may take; sources still running at the end stop with what they have. */
+      budget_minutes: z.number().positive().default(20),
+    })
+    .default({ budget_minutes: 20 }),
 
   discovery: z
     .object({

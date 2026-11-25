@@ -27,7 +27,10 @@ import { loadProject, type Context } from './context.js';
 
 /** A source that returns nothing this many runs in a row, without an error, is probably broken. */
 const ZERO_RUN_ALERT = 3;
-const SOURCE_TIMEOUT_MS = 5 * 60 * 1000;
+const DEFAULT_SOURCE_TIMEOUT_MINUTES = 5;
+/** A source that ignores its deadline is cut off this long after it. */
+const DEADLINE_GRACE_MS = 30_000;
+const MINUTE_MS = 60_000;
 
 export interface CollectOptions {
   /** Run the whole pipeline but write nothing: no issues and no state file. */
@@ -128,9 +131,12 @@ export async function collect(ctx: Context, options: CollectOptions = {}): Promi
   const known = knownFromIssues(issues.filter((issue) => !issue.pull_request));
   for (const id of Object.keys(state.jobs)) known.ids.add(id);
 
-  // 1-3. Collection, validation and normalization, one source at a time.
+  // 1-3. Collection (sources run side by side: they hit different hosts), validation and normalization.
   const reports: SourceReport[] = [];
   const candidates: Job[] = [];
+  const startedAt = Date.now();
+  const budgetEnd = startedAt + ctx.config.run.budget_minutes * MINUTE_MS;
+  const running: Array<{ id: string; adapter: AnySourceAdapter; report: SourceReport; outcome: Promise<{ raws?: unknown[]; error?: Error }> }> = [];
   for (const [id, toggle] of Object.entries(ctx.config.sources)) {
     if (!toggle.enabled) continue;
     const adapter = adapters[id];
@@ -162,11 +168,26 @@ export async function collect(ctx: Context, options: CollectOptions = {}): Promi
       worthDetails: (candidate) => filter.worthDetails(candidate),
       isKnownUrl: (url) => known.urls.has(canonicalUrl(url) ?? url),
       warn: (message) => ctx.log.warn(message),
+      deadline: Math.min(budgetEnd, startedAt + (toggle.timeout_minutes ?? DEFAULT_SOURCE_TIMEOUT_MINUTES) * MINUTE_MS),
     };
+    const hardLimit = Math.max(fetchContext.deadline! + DEADLINE_GRACE_MS - Date.now(), DEADLINE_GRACE_MS);
+    running.push({
+      id,
+      adapter,
+      report,
+      outcome: withTimeout(adapter.fetch(fetchContext), hardLimit, id).then(
+        (raws) => ({ raws }),
+        (error: Error) => ({ error }),
+      ),
+    });
+  }
+
+  for (const { id, adapter, report, outcome } of running) {
+    const { raws, error } = await outcome;
     try {
-      const raws = await withTimeout(adapter.fetch(fetchContext), SOURCE_TIMEOUT_MS, id);
+      if (error) throw error;
       let broken = 0;
-      for (const raw of raws) {
+      for (const raw of raws!) {
         try {
           const job = adapter.normalize(raw);
           candidates.push({
@@ -180,9 +201,9 @@ export async function collect(ctx: Context, options: CollectOptions = {}): Promi
         }
       }
       if (broken > 0) ctx.log.warn(`${id}: ${broken} postings could not be normalized and were skipped`);
-      report.fetched = raws.length - broken;
-    } catch (error) {
-      report.error = (error as Error).message;
+      report.fetched = raws!.length - broken;
+    } catch (failure) {
+      report.error = (failure as Error).message;
       ctx.log.warn(`${id}: failed, other sources carry on (${report.error})`);
     }
     updateHealth(ctx, state, report);

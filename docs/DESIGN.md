@@ -98,7 +98,7 @@ interface SourceAdapter {
 
 Collection runs once a day, on business days. Company discovery and metrics run once a week, in separate workflows.
 
-1. **Collection.** Each active adapter runs in isolation, with a timeout and retry on HTTP 429. A source with an error is recorded in the run summary and does not interrupt the others.
+1. **Collection.** Each active adapter runs in isolation, side by side with the others (they hit different hosts), with retry on HTTP 429. Per-company adapters fetch 4 companies at a time; the HTTP client still spaces requests to the same host. Each source has a deadline, the earlier of `sources.<id>.timeout_minutes` (default 5) and the run's `run.budget_minutes` (default 20): when it passes, no new company starts, the source returns what it has and the log says how many companies were skipped. A source with an error is recorded in the run summary and does not interrupt the others.
 2. **Validation.** The raw response goes through a schema (zod). A format change fails only that source, with a warning.
 3. **Normalization.** Everything becomes the `Job` type: stable id, source, company, title, location, geographic eligibility, work model, contract, salary when available, publication date, application URL and a description excerpt.
 4. **Filter.**

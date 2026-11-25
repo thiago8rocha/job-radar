@@ -88,6 +88,7 @@ The Action takes `command` plus `github-token`. The same commands run locally wi
 | `ai.*` | `enabled`, `base_url`, `model` and `max_calls_per_run`. See "Optional: AI". |
 | `metrics.no_response_after_days` | Days after which an unanswered application counts as "no response" (default 60). |
 | `metrics.follow_up_after_days` | Days after which an application still at `status:applied` gets one reminder comment on its issue (default 30, 0 turns it off). |
+| `run.budget_minutes` | Minutes the whole collection may take (default 20). A source that is still working stops with what it has and logs how many companies it skipped. `sources.<id>.timeout_minutes` (default 5) sets a tighter limit for one source. |
 | `issues.max_per_run` | At most this many new issues per run, newest first. The rest wait for the next run. |
 | `issues.project_number`, `issues.project_owner` | Which Project to use. |
 | `issues.close_on_final_status` | Close issues on `rejected`, `withdrawn` and `hired` (default `true`). |
