@@ -10,6 +10,7 @@ import { himalayas } from '../src/adapters/himalayas.js';
 import { inhire } from '../src/adapters/inhire.js';
 import { lever } from '../src/adapters/lever.js';
 import { linkedin } from '../src/adapters/linkedin.js';
+import { quickin } from '../src/adapters/quickin.js';
 import { recruitee } from '../src/adapters/recruitee.js';
 import { smartrecruiters } from '../src/adapters/smartrecruiters.js';
 import { teamtailor } from '../src/adapters/teamtailor.js';
@@ -227,6 +228,54 @@ describe('workable', () => {
   it('fails when the response has no jobs list', async () => {
     server.use(http.get('https://apply.workable.com/api/v1/widget/accounts/huggingface', () => HttpResponse.json({ name: 'x' })));
     await expect(workable.fetch(context(['huggingface']).ctx)).rejects.toBeInstanceOf(SchemaError);
+  });
+});
+
+describe('quickin', () => {
+  const page = readFileSync(new URL('./fixtures/quickin-page.html', import.meta.url), 'utf8');
+  const ACCOUNT = '686d6f9812b3d7001359e95c';
+
+  it('resolves the account id from the career page once, then reads the jobs API', async () => {
+    let pageCalls = 0;
+    server.use(
+      http.get('https://jobs.quickin.io/quickin', () => (pageCalls++, HttpResponse.text(page))),
+      http.get(`https://api.quickin.io/public/${ACCOUNT}/jobs`, ({ request }) => {
+        expect(new URL(request.url).searchParams.get('sort')).toBe('-created_at');
+        return HttpResponse.json(fixture('quickin.json'));
+      }),
+    );
+    const resolved: Record<string, string> = {};
+    const first = (await quickin.fetch(context(['quickin'], { resolved }).ctx)).map((raw) => quickin.normalize(raw));
+    await quickin.fetch(context(['quickin'], { resolved }).ctx);
+
+    expect(pageCalls).toBe(1);
+    expect(resolved).toEqual({ 'quickin:quickin': ACCOUNT });
+    expect(first).toHaveLength(2);
+    expect(first[0]!.company).toBe('Quickin');
+    expect(first[0]!.workModel).toBe('hybrid');
+    expect(first[0]!.locations).toEqual(['São Paulo, SP, BR']);
+    expect(first[0]!.postedAt).toBe('2026-07-08T13:34:36.097Z');
+    expect(first[0]!.applyUrl).toBe('https://jobs.quickin.io/quickin/jobs/6a4e51ec02c66d001271132a');
+    expect(first[0]!.description).toContain('Sobre a vaga');
+  });
+
+  it('takes an account id written as the slug without loading the page', async () => {
+    server.use(http.get(`https://api.quickin.io/public/${ACCOUNT}/jobs`, () => HttpResponse.json(fixture('quickin.json'))));
+    expect(await quickin.fetch(context([ACCOUNT]).ctx)).toHaveLength(2);
+  });
+
+  it('fails when the career page does not carry an account id', async () => {
+    server.use(http.get('https://jobs.quickin.io/ghost', () => HttpResponse.text('<html></html>')));
+    await expect(quickin.fetch(context(['ghost']).ctx)).rejects.toBeInstanceOf(SchemaError);
+  });
+
+  it('reads the salary the posting states', async () => {
+    const body = fixture('quickin.json');
+    body.docs[0].remuneration = '8.000';
+    body.docs[0].currency = 'BRL';
+    server.use(http.get(`https://api.quickin.io/public/${ACCOUNT}/jobs`, () => HttpResponse.json(body)));
+    const jobs = (await quickin.fetch(context([ACCOUNT]).ctx)).map((raw) => quickin.normalize(raw));
+    expect(jobs[0]!.compensation).toBe('BRL 8,000');
   });
 });
 

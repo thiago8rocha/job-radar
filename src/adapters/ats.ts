@@ -37,6 +37,7 @@ export const ATS = [
     ],
   },
   { id: 'ashby', urls: [{ pattern: /^https?:\/\/jobs\.ashbyhq\.com\/([a-z0-9_.-]+)/i }] },
+  { id: 'quickin', urls: [{ pattern: /^https?:\/\/jobs\.quickin\.io\/([a-z0-9_-]+)/i, ignore: ['jobs', 'api', 'login'] }], archive: ['jobs.quickin.io/*'] },
   {
     id: 'teamtailor',
     urls: [{ pattern: /^https?:\/\/([a-z0-9-]+)\.teamtailor\.com(?:\/|$)/i, ignore: ['www', 'app', 'api', 'support', 'docs', 'blog', 'partner'] }],

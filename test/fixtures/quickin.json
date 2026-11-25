@@ -1,0 +1,38 @@
+{
+  "docs": [
+    {
+      "_id": "6a4e51ec02c66d001271132a",
+      "publicate": "published",
+      "title": "Desenvolvedor(a) Front-End Pleno — Vue / Nuxt / React",
+      "description": "<p>## Sobre a vaga</p>\n<p>Buscamos uma pessoa Desenvolvedora Front-End Pleno para atuar na manuten&ccedil;&atilde;o e evolu&ccedil;&atilde;o de uma plataforma SaaS, al&eacute;m de contribuir em projetos paralelos desenvolvidos em Nuxt e React.</p>\n<p>A pessoa ir&aacute; trabalhar em um produto maduro, com autonomia para entregar features de ponta a ponta, colaborando com o time t&eacute;cnico e contribuindo para a qualidade da experi&ecirc;ncia do usu&aacute;rio. &Eacute; importante ter boa no&c",
+      "requirements": "<p><strong>## Requisitos obrigat&oacute;rios</strong></p>\n<p>* 2+ anos de experi&ecirc;ncia com desenvolvimento Front-End em produ&ccedil;&atilde;o.<br />* Experi&ecirc;ncia s&oacute;lida com Vue.js, especialmente Options API, Vuex e Vue Router.<br />* Conhecimento de React e Redux, incluindo arquit",
+      "city": "São Paulo",
+      "region": "SP",
+      "country": "BR",
+      "position_category": "it",
+      "workplace_type": "hybrid",
+      "code": "BTJ8928",
+      "career_url": "https://jobs.quickin.io/quickin/jobs/6a4e51ec02c66d001271132a",
+      "created_at": "2026-07-08T13:34:36.097Z"
+    },
+    {
+      "_id": "68a6509c7fe23b0013882691",
+      "publicate": "published",
+      "title": "Banco de Talentos",
+      "description": "<p>Estamos construindo uma HR Tech inovadora, com foco em transformar a forma como recrutamento e sele&ccedil;&atilde;o acontece, trazendo mais tecnologia, agilidade e experi&ecirc;ncia para empresas e candidatos.</p>\n<p>&nbsp;Aqui, voc&ecirc; ter&aacute; a oportunidade de:</p>\n<p>✨ Contribuir diretamente para a constru&ccedil;&atilde;o de um produto que est&aacute; revolucionando o mercado;<br />✨ Trabalhar em um ambiente colaborativo, din&acirc;mico e com autonomia;<br />✨ Crescer junto com a ",
+      "requirements": "<p>Venha fazer parte do nosso time!</p>",
+      "city": "São Paulo",
+      "region": "SP",
+      "country": "BR",
+      "position_category": "it",
+      "workplace_type": "hybrid",
+      "code": "DDX5286",
+      "career_url": "https://jobs.quickin.io/quickin/jobs/68a6509c7fe23b0013882691",
+      "created_at": "2025-08-20T22:47:56.091Z"
+    }
+  ],
+  "total": 2,
+  "limit": 30,
+  "page": 1,
+  "pages": 1
+}

@@ -29,13 +29,15 @@ const companiesStateSchema = z.object({
   cursor: z.number().int().nonnegative().default(0),
   /** Boards seen in the apply links of collected jobs that are in neither list yet, keyed `<ats>:<slug>`. */
   candidates: z.record(z.string(), z.object({ firstSeen: z.string(), lastSeen: z.string(), count: z.number().int().positive() })).default({}),
+  /** Values adapters looked up once, keyed `<ats>:<slug>`. */
+  resolved: z.record(z.string(), z.string()).default({}),
 });
 
 export type CompanyHealth = z.infer<typeof healthSchema>;
 export type CompaniesState = z.infer<typeof companiesStateSchema>;
 
 export function emptyCompaniesState(): CompaniesState {
-  return { version: 1, companies: {}, cursor: 0, candidates: {} };
+  return { version: 1, companies: {}, cursor: 0, candidates: {}, resolved: {} };
 }
 
 /** A missing file is a first run; a corrupt one fails loudly. */
@@ -55,8 +57,9 @@ export async function loadCompaniesState(path: string): Promise<CompaniesState> 
 export async function saveCompaniesState(path: string, state: CompaniesState): Promise<void> {
   const companies = Object.fromEntries(Object.entries(state.companies).sort(([a], [b]) => a.localeCompare(b)));
   const candidates = Object.fromEntries(Object.entries(state.candidates).sort(([a], [b]) => a.localeCompare(b)));
+  const resolved = Object.fromEntries(Object.entries(state.resolved).sort(([a], [b]) => a.localeCompare(b)));
   await mkdir(dirname(path), { recursive: true });
-  await writeFile(path, `${JSON.stringify({ ...state, companies, candidates }, null, 2)}\n`);
+  await writeFile(path, `${JSON.stringify({ ...state, companies, candidates, resolved }, null, 2)}\n`);
 }
 
 export function healthKey(ats: string, slug: string, table: AtsTable = ATS): string {

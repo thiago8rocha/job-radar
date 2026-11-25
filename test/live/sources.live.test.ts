@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { ashby } from '../../src/adapters/ashby.js';
+import { quickin } from '../../src/adapters/quickin.js';
 import { recruitee } from '../../src/adapters/recruitee.js';
 import { smartrecruiters } from '../../src/adapters/smartrecruiters.js';
 import { teamtailor } from '../../src/adapters/teamtailor.js';
@@ -53,6 +54,7 @@ describe('live sources', () => {
   it('greenhouse', () => check(greenhouse, ['airbnb']));
   it('lever', () => check(lever, ['palantir']));
   it('ashby', () => check(ashby, ['ramp']));
+  it('quickin', () => check(quickin, ['quickin']));
   it('teamtailor', () => check(teamtailor, ['career']));
   it('recruitee', () => check(recruitee, ['bunq']));
   it('smartrecruiters', () => check(smartrecruiters, ['BoschGroup']));
