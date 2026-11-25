@@ -75,6 +75,7 @@ Each source is an independent adapter, switched on or off by the config. There a
 | Greenhouse | Per company | `boards-api.greenhouse.io/v1/boards/{company}/jobs` | v1 | Documented public API |
 | Lever | Per company | `api.lever.co/v0/postings/{company}` | v1 | Documented public API |
 | Ashby | Per company | Public per-company job board API | v1 | Common in startups that hire remotely |
+| Career pages | Per company | Generic reader for a company's own site: ATS link, `JobPosting` JSON-LD, job sitemap | v2 | See "Career pages on company sites" below |
 | Workday | Per company | `POST {origin}/wday/cxs/{tenant}/{site}/jobs`, detail at `.../wday/cxs/{tenant}/{site}{externalPath}` | v2 | Verified live; the site's `robots.txt` allows `/{site}/`. Page size is 20. Searched per include term (5 pages at most) because employers like NVIDIA have thousands of postings. The list gives only `Posted N Days Ago`, so the date is approximate until the detail is read, and `30+` has none. The company name comes from the config entry: `hiringOrganization` is a legal entity. Entries must be URLs, so link discovery skips Workday (`urlOnly` in the registry) |
 | Sólides | Per company | `apigw.solides.com.br/jobs/v3/companies/{slug}/vacancies?take=25&page=N` | v2 | Verified live. Per-company only: other projects report the portal-wide search stopped answering after the portal moved to Next.js, and reading the page's embedded data would depend on markup, so neither is used. `take` above 25 is rejected. The `redirectLink` field is broken (`https://solides./...`), so the apply link is built as `https://{slug}.vagas.solides.com.br/vaga/{id}`. The pay range is shown only when the posting makes it public. Seniority is left to the title because the API's names (`Especialista`) do not map to the filter's levels |
 | Quickin | Per company | `api.quickin.io/public/{account id}/jobs?sort=-created_at` | v2 | Verified live. The API wants the account id, not the URL slug. The career page (`robots.txt` allows it) carries the id in its Nuxt payload, right after the slug, so it is read once and kept in `state/companies.json` under `resolved`. The salary (`remuneration`, `currency`) is shown when the posting states one |
@@ -110,6 +111,18 @@ interface SourceAdapter {
   normalize(raw: RawJob): Job;         // validates with a schema first
 }
 ```
+
+**Career pages on company sites.** For a company on its own career site (`carreiras.*`, `careers.*`) or on an ATS with no adapter, `companies.yml` has a `careers:` list of `{ url, name }` entries. They are never guessed. The `careers` adapter resolves each one cheapest first:
+
+1. The URL is a board of a supported ATS: that ATS's adapter reads it.
+2. The page links to a supported ATS (a link, an iframe or the Greenhouse embed script): same, and the board then shows up as a candidate for the next discovery run, so the entry can move to the ATS list. Harvesting works on the apply links of the jobs it returns.
+3. The page carries schema.org `JobPosting` JSON-LD: every `application/ld+json` block is read, looking through arrays, `@graph` and `ItemList`; a posting past its `validThrough` is dropped.
+4. `robots.txt` lists a sitemap (or the entry itself is a `.xml` URL): same-host URLs only, capped (`sources.careers.max_urls`, default 100), and the JSON-LD of a posting is read only for URLs whose last path segment could pass the filters, which saves requests on a site with hundreds of postings.
+5. Nothing found: the company fails with a warning. There is no headless browser.
+
+Rules that come with it: `robots.txt` is read first for every origin and respected (a missing file allows, an unreadable one forbids, as RFC 9309 asks). **Zero postings on a page that loaded is a failure, not an empty board**, otherwise a site redesign would make `revalidate` close every open "New" issue of that company; a sitemap that lists posting URLs but none that look relevant is the one case that returns an empty list. Each job records how it was found (`ats`, `jsonld`, `sitemap`), shown in the issue's source line, and `revalidate` trusts only results read straight from an ATS or the page's JSON-LD: a sitemap read is capped and filtered, so it cannot prove a job is gone.
+
+**ATS left for later.** Personio, BambooHR, Breezy, Pinpoint, Rippling, HiringRoom, and Recrutei (reports conflict: one project found only an admin-token API). A company on one of them can still be read through `careers:` when its page carries JSON-LD.
 
 ## Execution pipeline
 

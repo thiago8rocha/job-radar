@@ -8,6 +8,8 @@ export interface Job {
   id: string;
   /** Adapter id: `greenhouse`, `himalayas`... */
   source: string;
+  /** How a generic source found the job (`ats`, `jsonld`, `sitemap`), shown next to the source in the issue. */
+  foundBy?: string;
   /** True when the application URL is the company's own ATS page (not an aggregator). */
   atsApply: boolean;
   company: string;

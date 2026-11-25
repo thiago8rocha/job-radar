@@ -507,6 +507,16 @@ describe('revalidate', () => {
     expect(empty.log.warn).toHaveBeenCalledWith(expect.stringContaining('outage'));
   });
 
+  it('closes nothing when the source only gives a partial view of the board', async () => {
+    const partial: AnySourceAdapter = { ...board([job({ id: 'greenhouse:acme:bbbbbbbb' })]), provesAbsence: () => false };
+    const { ctx, issues, log } = setup([issue(1, ['status:new'], marker('greenhouse:acme:aaaaaaaa'))]);
+    const result = await revalidate(ctx, { companies, adapters: { greenhouse: partial, himalayas: search } });
+
+    expect(result.closed).toBe(0);
+    expect(issues.update).not.toHaveBeenCalled();
+    expect(log.info).toHaveBeenCalledWith(expect.stringContaining('partial view'));
+  });
+
   it('only reports in a dry run', async () => {
     const { ctx, issues } = setup([issue(1, ['status:new'], marker('greenhouse:acme:aaaaaaaa'))]);
     const result = await revalidate(ctx, { dryRun: true, companies, adapters: { greenhouse: board([job({ id: 'greenhouse:acme:other' })]), himalayas: search } });

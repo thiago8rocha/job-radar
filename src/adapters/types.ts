@@ -43,6 +43,8 @@ export interface SourceAdapter<Raw = unknown> {
   /** True when the source only works with an API key; without one it is skipped, not failed. */
   requiresKey?: boolean;
   fetch(ctx: FetchContext): Promise<Raw[]>;
+  /** For company sources: whether these results prove a job missing from them is gone. Default: yes. */
+  provesAbsence?(raws: Raw[]): boolean;
   normalize(raw: Raw): Job;
 }
 

@@ -30,6 +30,7 @@ sources:
   quickin: { enabled: true }
   solides: { enabled: true }
   workday: { enabled: true }
+  careers: { enabled: true }          # companies.yml `careers:`; max_urls caps the pages read per company (default 100)
   inhire: { enabled: true }
   gupy: { enabled: false }            # Brazilian portal; needs no key
   freehire: { enabled: false }        # aggregator of ~50 ATS; needs no key

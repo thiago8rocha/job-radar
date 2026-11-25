@@ -5,6 +5,7 @@
 #   lever:      https://jobs.lever.co/<slug>
 #   ashby:      https://jobs.ashbyhq.com/<slug>
 #   workable:   https://apply.workable.com/<slug>
+#   careers:    { url: https://careers.example.com, name: Example }   (a company's own site; always a URL)
 #   workday:    { url: https://<tenant>.wd5.myworkdayjobs.com/<site>, name: Acme }   (always a URL)
 #   solides:    https://<slug>.vagas.solides.com.br
 #   quickin:    https://jobs.quickin.io/<slug>
@@ -23,3 +24,4 @@ teamtailor: []
 quickin: []
 solides: []
 workday: []
+careers: []
