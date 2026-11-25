@@ -24,7 +24,7 @@ import { createFilter, inferWorkModel, type JobFilter } from '../pipeline/filter
 import { detectSignals, type Signal } from '../pipeline/signals.js';
 import { brasiliaHours } from '../pipeline/timezone.js';
 import { DEFAULT_COMPANIES_STATE_PATH, harvestCandidates, healthKey, hotDirectory, loadCompaniesState, recordOutcome, saveCompaniesState } from '../state/companies.js';
-import { DEFAULT_STATE_PATH, loadState, saveState, weekStats, type SeenState } from '../state/seen.js';
+import { BACKLOG_LIMIT, DEFAULT_STATE_PATH, loadState, saveState, weekStats, type SeenState } from '../state/seen.js';
 import { createHttpClient, type HttpClient } from '../util/http.js';
 import { truncate } from '../util/text.js';
 import { loadProject, type Context } from './context.js';
@@ -35,6 +35,7 @@ const DEFAULT_SOURCE_TIMEOUT_MINUTES = 5;
 /** A source that ignores its deadline is cut off this long after it. */
 const DEADLINE_GRACE_MS = 30_000;
 const MINUTE_MS = 60_000;
+const DAY_MS = 24 * 60 * MINUTE_MS;
 
 export interface CollectOptions {
   /** Run the whole pipeline but write nothing: no issues and no state file. */
@@ -271,10 +272,24 @@ export async function collect(ctx: Context, options: CollectOptions = {}): Promi
 
   if (reposts.length > 0) await signalReposts(ctx, state, reposts, now, dryRun);
 
-  // 6. Writing: newest first, capped per run so a first run cannot flood the board.
-  const ordered = fresh.sort((a, b) => Date.parse(b.postedAt ?? '') - Date.parse(a.postedAt ?? '') || 0);
+  // 6. Writing, capped per run so a first run cannot flood the board. What did not fit waits in the backlog and goes first next time.
+  const ai = { calls: 0, stopped: false };
+  const insights = new Map<string, JobInsight>();
+  const pool = poolOf(fresh, state, known, ctx.config.search.max_age_days, now, adapters);
+  if (options.ai && !dryRun) {
+    for (const job of pool) {
+      const insight = await insightFor(ctx, options.ai, ai, job);
+      if (insight) insights.set(job.id, insight);
+      if (ai.stopped) break;
+    }
+  }
+  const ordered = insights.size > 0 ? [...pool].sort((a, b) => (insights.get(b.id)?.fit ?? 0) - (insights.get(a.id)?.fit ?? 0)) : pool;
   const batch = ordered.slice(0, ctx.config.issues.max_per_run);
   const deferred = ordered.length - batch.length;
+  if (!dryRun) {
+    const since = new Map(state.backlog.map((entry) => [entry.job.id, entry.queuedAt]));
+    state.backlog = ordered.slice(0, BACKLOG_LIMIT).map((job) => ({ job: { ...job, description: truncate(job.description, 8000) }, queuedAt: since.get(job.id) ?? now.toISOString() }));
+  }
 
   let created = 0;
   if (dryRun) {
@@ -290,12 +305,11 @@ export async function collect(ctx: Context, options: CollectOptions = {}): Promi
         (label) => label.name,
       ),
     );
-    const ai = { calls: 0, stopped: false };
     try {
       for (const [index, job] of batch.entries()) {
-        const insight = await insightFor(ctx, options.ai, ai, job);
-        const issue = await writeIssue(ctx, project, labelNames, job, now, insight);
+        const issue = await writeIssue(ctx, project, labelNames, job, now, insights.get(job.id));
         state.jobs[job.id] = { issue, seenAt: now.toISOString() };
+        state.backlog = state.backlog.filter((entry) => entry.job.id !== job.id);
         weekStats(state, job.source, now).unique++;
         bySource.get(job.source)!.created++;
         created++;
@@ -360,6 +374,22 @@ async function signalReposts(ctx: Context, state: SeenState, reposts: Repost[], 
     }
     await ctx.octokit.rest.issues.createComment({ ...target, body });
   }
+}
+
+/**
+ * The jobs this run may write: the backlog from earlier runs still inside the age limit and not known by now,
+ * then the new ones. Each group is ordered with the company's own ATS link first, then jobs read from a
+ * company's board before aggregators, then newest first.
+ */
+function poolOf(fresh: Job[], state: SeenState, known: KnownJobs, maxAgeDays: number, now: Date, adapters: Record<string, AnySourceAdapter>): Job[] {
+  const oldest = now.getTime() - maxAgeDays * DAY_MS;
+  const direct = (job: Job) => Number(adapters[job.source]?.mode === 'company');
+  const byPriority = (a: Job, b: Job) =>
+    Number(b.atsApply) - Number(a.atsApply) || direct(b) - direct(a) || Date.parse(b.postedAt ?? '') - Date.parse(a.postedAt ?? '') || 0;
+  const waiting = state.backlog.filter((entry) => Date.parse(entry.job.postedAt ?? entry.queuedAt) >= oldest).map((entry) => entry.job);
+  const freshIds = new Set(fresh.map((job) => job.id));
+  const queued = dedupe(waiting.filter((job) => !freshIds.has(job.id)), known).fresh;
+  return [...queued.sort(byPriority), ...[...fresh].sort(byPriority)];
 }
 
 function companyRefsFromEmpty(): Companies {

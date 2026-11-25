@@ -48,6 +48,34 @@ const nearMissSchema = z.object({
 
 export type NearMiss = z.infer<typeof nearMissSchema>;
 
+const jobSchema = z.object({
+  id: z.string(),
+  source: z.string(),
+  foundBy: z.string().optional(),
+  atsApply: z.boolean(),
+  company: z.string(),
+  title: z.string(),
+  locations: z.array(z.string()),
+  restrictions: z.array(z.string()).optional(),
+  workModel: z.enum(['remote', 'hybrid', 'onsite']).optional(),
+  seniority: z.array(z.string()),
+  contracts: z.array(z.string()),
+  compensation: z.string().optional(),
+  currency: z.enum(['BRL', 'USD', 'EUR']).optional(),
+  salaryAmount: z.number().optional(),
+  postedAt: z.string().optional(),
+  applyUrl: z.string(),
+  description: z.string(),
+});
+
+/** A job that passed every filter but had no room in its run: the whole job, so the issue can be written later without fetching it again. */
+const backlogSchema = z.object({ job: jobSchema, queuedAt: z.string() });
+
+export type BacklogEntry = z.infer<typeof backlogSchema>;
+
+/** The most jobs kept for later; the oldest are the ones that would expire first. */
+export const BACKLOG_LIMIT = 200;
+
 const seenSchema = z.object({
   version: z.literal(1),
   /** Jobs that became an issue, by id. */
@@ -58,12 +86,14 @@ const seenSchema = z.object({
   stats: z.record(z.string(), z.record(z.string(), weekStatsSchema)).default({}),
   /** Jobs dropped by exactly one soft rule: never issues, listed in the Metrics issue for a second look. */
   nearMiss: z.array(nearMissSchema).default([]),
+  /** Jobs waiting for a free slot under `issues.max_per_run`. Absent in files written by older versions. */
+  backlog: z.array(backlogSchema).default([]),
 });
 
 export type SeenState = z.infer<typeof seenSchema>;
 
 export function emptyState(): SeenState {
-  return { version: 1, jobs: {}, sources: {}, stats: {}, nearMiss: [] };
+  return { version: 1, jobs: {}, sources: {}, stats: {}, nearMiss: [], backlog: [] };
 }
 
 /** Reads `state/seen.json`; a missing file is a first run. A corrupt file fails loudly rather than re-creating every issue. */
@@ -102,6 +132,7 @@ export async function saveState(path: string, state: SeenState, now: Date): Prom
     sources: Object.fromEntries(sources),
     stats: Object.fromEntries(stats),
     nearMiss,
+    backlog: state.backlog.slice(0, BACKLOG_LIMIT),
   };
   await mkdir(dirname(path), { recursive: true });
   await writeFile(path, `${JSON.stringify(output, null, 2)}\n`);

@@ -274,6 +274,21 @@ ai: { enabled: true, max_calls_per_run: 2 }
     expect(fake.issues.create).toHaveBeenCalledTimes(3);
   });
 
+  it('scores the whole pool first and writes the best fits first', async () => {
+    const fits = [2, 5, 3];
+    const client: ChatClient = { complete: vi.fn(async () => JSON.stringify({ ...INSIGHT, fit: fits.shift() })) };
+    const small = CONFIG.replace('max_calls_per_run: 2', 'max_calls_per_run: 3');
+    const fake = fakeContext();
+    fake.ctx.config = parseConfig(small);
+    fake.ctx.config.issues.max_per_run = 2;
+    await collect(fake.ctx, { adapters: { alpha: adapter(jobs) }, statePath: `${process.env.TEMP}/job-radar-ai-${Math.random()}.json`, companiesStatePath: `${process.env.TEMP}/job-radar-ai-companies-${Math.random()}.json`, now: new Date('2026-10-16T12:00:00Z'), delayMs: 0, ai: { client, profile: 'p' } });
+
+    expect(client.complete).toHaveBeenCalledTimes(3);
+    const created = fake.issues.create.mock.calls.map((call) => ({ title: (call[0] as any).title, fit: ((call[0] as any).labels as string[]).find((name) => name.startsWith('fit:')) }));
+    expect(created.map((entry) => entry.title)).toEqual(['[C2] Senior QA Engineer', '[C1] Senior QA Engineer']);
+    expect(created.map((entry) => entry.fit)).toEqual(['fit:5', 'fit:3']);
+  });
+
   it('keeps going without a score when the quota runs out or a reply is unusable', async () => {
     const quota: ChatClient = { complete: vi.fn(async () => { throw new AiQuotaError('quota'); }) };
     const fake = await run({ client: quota, profile: 'p' });
