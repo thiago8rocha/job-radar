@@ -1,0 +1,43 @@
+# Once a week: walks companies.directory.yml in slices and records which companies have postings that
+# match your search, so the daily collect only reads the ones that do. Creates no issues.
+# Does nothing without companies.directory.yml.
+name: sweep
+on:
+  schedule:
+    - cron: "17 14 * * 6"    # Saturdays, 11:17 a.m. in Brasília
+  workflow_dispatch:
+    inputs:
+      dry-run:
+        description: "Report what would be checked, without writing the state"
+        type: boolean
+        default: false
+
+# Shares the collect group so the two never push state/companies.json at the same time.
+concurrency:
+  group: collect
+  cancel-in-progress: false
+
+permissions:
+  contents: write            # to commit state/companies.json
+  issues: read
+
+jobs:
+  sweep:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5          # reads the config, the directory and state/companies.json
+      - uses: thiago8rocha/job-radar@v1
+        with:
+          command: sweep
+          github-token: ${{ secrets.JOB_RADAR_TOKEN }}
+          dry-run: ${{ inputs.dry-run || false }}
+      - name: Commit state
+        if: ${{ always() && !inputs.dry-run }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add state/companies.json
+          if ! git diff --cached --quiet; then
+            git commit -m "chore(state): update company health"
+            git push
+          fi

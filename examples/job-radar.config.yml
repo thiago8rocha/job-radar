@@ -33,6 +33,12 @@ sources:
   # Needs the SERPAPI_KEY secret (free plan: 100 searches a month). Each run spends up to max_searches.
   google_jobs: { enabled: false, api_key_secret: SERPAPI_KEY, max_searches: 3 }
 
+run:
+  budget_minutes: 20         # the whole collection stops here with what it has
+
+directory:
+  hot_days: 45               # a companies.directory.yml company joins the daily run after a relevant posting this recently
+
 discovery:
   enabled: false             # needs the SERPAPI_KEY secret; the weekly `discover` workflow opens a pull request
   max_searches: 8

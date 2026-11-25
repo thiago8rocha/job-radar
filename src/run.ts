@@ -7,6 +7,8 @@ import { createHttpClient } from './util/http.js';
 import { collect } from './commands/collect.js';
 import { discover } from './commands/discover.js';
 import { metrics } from './commands/metrics.js';
+import { prune } from './commands/prune.js';
+import { sweep } from './commands/sweep.js';
 import { revalidate } from './commands/revalidate.js';
 import { consoleLogger, type Context, type Logger } from './commands/context.js';
 import { intake, type OpenedEvent } from './commands/intake.js';
@@ -16,7 +18,9 @@ import { createClient, parseRepo } from './github/client.js';
 import { runImport } from './import/run.js';
 import { parseXlsx } from './import/xlsx.js';
 
-export const COMMANDS = ['setup', 'sync-status', 'intake', 'import', 'collect', 'metrics', 'revalidate', 'discover', 'evaluate'] as const;
+const DEFAULT_DIRECTORY_PATH = 'companies.directory.yml';
+
+export const COMMANDS = ['setup', 'sync-status', 'intake', 'import', 'collect', 'metrics', 'revalidate', 'discover', 'evaluate', 'sweep', 'prune'] as const;
 export type Command = (typeof COMMANDS)[number];
 
 export interface RunOptions {
@@ -33,6 +37,10 @@ export interface RunOptions {
   companiesPath?: string;
   /** `state/seen.json` for `collect`. */
   statePath?: string;
+  /** `companies.directory.yml`, the cold list read by `collect` and `sweep`. */
+  directoryPath?: string;
+  /** `state/companies.json`, the company health read and written by `collect`, `sweep` and `prune`. */
+  companiesStatePath?: string;
   /** SerpAPI key (Google Jobs, discovery). */
   serpapiKey?: string;
   /** API key of the AI provider named by `ai.base_url`, from a secret. */
@@ -87,6 +95,8 @@ export async function run(options: RunOptions): Promise<void> {
       await collect(ctx, {
         dryRun: options.dryRun,
         companies,
+        directory: await loadCompanies(options.directoryPath ?? DEFAULT_DIRECTORY_PATH),
+        companiesStatePath: options.companiesStatePath,
         statePath: options.statePath,
         serpapiKey: options.serpapiKey,
         ai: options.dryRun ? undefined : aiOf(options, ctx.config, log),
@@ -100,6 +110,16 @@ export async function run(options: RunOptions): Promise<void> {
       return;
     case 'discover':
       await discover(ctx, { dryRun: options.dryRun, companiesPath: options.companiesPath, serpapiKey: options.serpapiKey });
+      return;
+    case 'sweep':
+      await sweep(ctx, {
+        dryRun: options.dryRun,
+        directory: await loadCompanies(options.directoryPath ?? DEFAULT_DIRECTORY_PATH),
+        companiesStatePath: options.companiesStatePath,
+      });
+      return;
+    case 'prune':
+      await prune(ctx, { dryRun: options.dryRun, companiesPath: options.companiesPath, companiesStatePath: options.companiesStatePath });
       return;
     case 'revalidate': {
       const companies = await loadCompanies(options.companiesPath ?? 'companies.yml');

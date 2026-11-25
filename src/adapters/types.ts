@@ -14,6 +14,8 @@ export interface FetchContext {
   deadline?: number;
   /** Companies fetched at the same time (default 4). */
   concurrency?: number;
+  /** Called after each company is fetched, with what it returned or why it failed. */
+  onCompany?(result: { company: CompanyRef; items: unknown[]; error?: Error }): void;
   /**
    * Cheap check on title and work model, so an adapter can skip a per-job detail request
    * for postings that the filters would discard anyway.

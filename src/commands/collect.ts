@@ -5,6 +5,7 @@ import type { AnySourceAdapter, FetchContext } from '../adapters/types.js';
 import { analyzeJob, type JobInsight } from '../ai/insight.js';
 import { AiQuotaError, type ChatClient } from '../ai/models.js';
 import { emptyByAts } from '../adapters/ats.js';
+import { isRelevantPosting } from '../adapters/common.js';
 import { companyRefs, type Companies } from '../config/schema.js';
 import { FIELD } from '../domain/fields.js';
 import type { Job } from '../domain/job.js';
@@ -20,6 +21,7 @@ import { buildExcerpt, sanitizeForIssue } from '../pipeline/excerpt.js';
 import { createFilter, inferWorkModel, type JobFilter } from '../pipeline/filter.js';
 import { detectSignals, type Signal } from '../pipeline/signals.js';
 import { brasiliaHours } from '../pipeline/timezone.js';
+import { DEFAULT_COMPANIES_STATE_PATH, healthKey, hotDirectory, loadCompaniesState, recordOutcome, saveCompaniesState } from '../state/companies.js';
 import { DEFAULT_STATE_PATH, loadState, saveState, weekStats, type SeenState } from '../state/seen.js';
 import { createHttpClient, type HttpClient } from '../util/http.js';
 import { truncate } from '../util/text.js';
@@ -37,6 +39,9 @@ export interface CollectOptions {
   dryRun?: boolean;
   statePath?: string;
   companies?: Companies;
+  /** The cold list (`companies.directory.yml`): its companies join the run once a `sweep` finds them relevant. */
+  directory?: Companies;
+  companiesStatePath?: string;
   /** Adapters to run; defaults to every adapter in this version. Tests inject their own. */
   adapters?: Record<string, AnySourceAdapter>;
   http?: HttpClient;
@@ -123,6 +128,9 @@ export async function collect(ctx: Context, options: CollectOptions = {}): Promi
   const filter = createFilter(ctx.config);
 
   const state = await loadState(statePath);
+  const companiesStatePath = options.companiesStatePath ?? DEFAULT_COMPANIES_STATE_PATH;
+  const companiesState = await loadCompaniesState(companiesStatePath);
+  const hotDirectoryCompanies = options.directory ? hotDirectory(options.directory, companiesState, ctx.config.directory.hot_days, now) : emptyByAts<never>();
   const issues = await ctx.octokit.paginate(ctx.octokit.rest.issues.listForRepo, {
     ...ctx.repo,
     state: 'all',
@@ -145,7 +153,13 @@ export async function collect(ctx: Context, options: CollectOptions = {}): Promi
       continue;
     }
     const entries = (companies as Partial<Record<string, Companies['inhire']>>)[id];
-    const refs = companyRefs(entries);
+    const listed = new Set(companyRefs(entries).map((ref) => healthKey(id, ref.slug)));
+    const refs = [
+      ...companyRefs(entries),
+      ...companyRefs((hotDirectoryCompanies as Partial<Record<string, Companies['inhire']>>)[id])
+        .filter((ref) => !listed.has(healthKey(id, ref.slug)))
+        .map((ref) => ({ ...ref, light: true })),
+    ];
     if (adapter.mode === 'company' && refs.length === 0) {
       ctx.log.info(`${id}: no companies listed in companies.yml; skipped`);
       continue;
@@ -168,6 +182,13 @@ export async function collect(ctx: Context, options: CollectOptions = {}): Promi
       worthDetails: (candidate) => filter.worthDetails(candidate),
       isKnownUrl: (url) => known.urls.has(canonicalUrl(url) ?? url),
       warn: (message) => ctx.log.warn(message),
+      onCompany: ({ company, items, error }) =>
+        recordOutcome(
+          companiesState,
+          healthKey(id, company.slug),
+          { error, postings: items.length, relevant: items.some((raw) => isRelevantPosting(adapter, filter, raw)) },
+          now,
+        ),
       deadline: Math.min(budgetEnd, startedAt + (toggle.timeout_minutes ?? DEFAULT_SOURCE_TIMEOUT_MINUTES) * MINUTE_MS),
     };
     const hardLimit = Math.max(fetchContext.deadline! + DEADLINE_GRACE_MS - Date.now(), DEADLINE_GRACE_MS);
@@ -233,7 +254,10 @@ export async function collect(ctx: Context, options: CollectOptions = {}): Promi
     report.duplicates++;
     report.duplicateOf[duplicate.of] = (report.duplicateOf[duplicate.of] ?? 0) + 1;
   }
-  if (!dryRun) recordStats(state, reports, now);
+  if (!dryRun) {
+    recordStats(state, reports, now);
+    await saveCompaniesState(companiesStatePath, companiesState);
+  }
 
   // 6. Writing: newest first, capped per run so a first run cannot flood the board.
   const ordered = fresh.sort((a, b) => Date.parse(b.postedAt ?? '') - Date.parse(a.postedAt ?? '') || 0);

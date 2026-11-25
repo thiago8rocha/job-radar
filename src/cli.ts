@@ -11,6 +11,8 @@ Options:
   --xlsx <path>         Spreadsheet to import (import only)
   --companies <path>    Companies file (default: companies.yml; collect and revalidate)
   --state <path>        State file (default: state/seen.json; collect only)
+  --directory <path>    Cold company list (default: companies.directory.yml; collect and sweep)
+  --companies-state <path>  Company health file (default: state/companies.json; collect, sweep and prune)
   --event <path>        GitHub event payload (event-driven commands)
   --dry-run             Report what would happen without writing (import, collect, metrics, revalidate and discover)
   -h, --help            Show this help
@@ -26,6 +28,8 @@ async function main(): Promise<void> {
       xlsx: { type: 'string' },
       companies: { type: 'string' },
       state: { type: 'string' },
+      directory: { type: 'string' },
+      'companies-state': { type: 'string' },
       event: { type: 'string' },
       'dry-run': { type: 'boolean' },
       help: { type: 'boolean', short: 'h' },
@@ -52,6 +56,8 @@ async function main(): Promise<void> {
     xlsxPath: values.xlsx,
     companiesPath: values.companies,
     statePath: values.state,
+    directoryPath: values.directory,
+    companiesStatePath: values['companies-state'],
     serpapiKey: process.env.SERPAPI_KEY,
     aiApiKey: process.env.AI_API_KEY,
     profile: process.env.JOB_RADAR_PROFILE,

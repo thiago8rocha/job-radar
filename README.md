@@ -58,11 +58,17 @@ The Action takes `command` plus `github-token`. The same commands run locally wi
 | `intake` | on `opened` | Normalizes issues made with the form. |
 | `revalidate` | weekly | Closes "New" jobs whose posting left the company's board (`closed-at-source`). |
 | `metrics` | weekly, and after each `collect` | Writes the calculated fields, repairs `Status` cards that no longer match their label, and rewrites the Metrics issue. |
+| `sweep` | weekly, optional | Walks `companies.directory.yml` (a large cold list of boards) in slices and records which companies have postings that match your search. Creates no issues. Commits `state/companies.json`. |
+| `prune` | weekly | Opens (or updates) one pull request removing from `companies.yml` the boards that were missing or unreadable for 4 weeks in a row. |
 | `discover` | weekly, optional | Searches Google through SerpAPI for career pages on the supported ATS and opens a pull request that adds the new companies to `companies.yml`. |
 | `evaluate` | on `/evaluate` comment, optional | Posts a full AI analysis of the job (each requirement weighed by importance and evidence, what the posting leaves open with questions for the recruiter, likely interview questions) and refreshes its `fit:*` label. |
 | `import` | once, local | Creates issues from a spreadsheet: `npm run cli -- import --xlsx file.xlsx --repo you/job-search`. See `src/import/xlsx.ts` for the expected columns. |
 
-`collect`, `import`, `metrics`, `revalidate` and `discover` accept `dry-run` and write nothing.
+`collect`, `import`, `metrics`, `revalidate`, `discover`, `sweep` and `prune` accept `dry-run` and write nothing.
+
+### Hot and cold company lists
+
+`companies.yml` is read on every `collect`. For a long list of boards (a public directory of Greenhouse, Lever and Ashby companies, say), put them in `companies.directory.yml` instead, with the same shape. The weekly `sweep` checks them in slices and `collect` then reads only the directory companies that had a posting matching your search in the last `directory.hot_days` (default 45). Entries in `companies.yml` can also be a board URL, `{ url: https://jobs.eu.lever.co/acme }`, which is how an EU-region Lever board is listed.
 
 ## Configuration
 

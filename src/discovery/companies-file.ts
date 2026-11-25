@@ -1,6 +1,6 @@
 import { isSeq, parseDocument } from 'yaml';
 import { ATS, slugKey, type AtsId, type AtsTable } from '../adapters/ats.js';
-import { companiesSchema, companyRefs, type Companies } from '../config/schema.js';
+import { companiesSchema, companyRefs, type CompanyEntry, type Companies } from '../config/schema.js';
 
 /** Slugs already listed per ATS (lower case), whether written as `slug` or `{ slug, name }`. */
 export function listedSlugs(companies: Companies, table: AtsTable = ATS): Record<AtsId, Set<string>> {
@@ -13,6 +13,22 @@ export function parseCompaniesText(text: string): Companies {
   const parsed = companiesSchema.safeParse(parseDocument(text || '{}').toJS() ?? {});
   if (!parsed.success) throw new Error(`companies.yml is not valid: ${parsed.error.issues[0]?.message}`);
   return parsed.data;
+}
+
+/** Removes the listed slugs (any entry form), keeping comments and the rest as they were. */
+export function removeCompanies(text: string, removals: Partial<Record<AtsId, string[]>>, table: AtsTable = ATS): string {
+  const doc = parseDocument(text || '{}\n');
+  for (const [ats, slugs] of Object.entries(removals)) {
+    const def = table.find((entry) => entry.id === ats);
+    const list = doc.get(ats, true);
+    if (!def || !slugs || !isSeq(list)) continue;
+    const doomed = new Set(slugs.map((slug) => slugKey(def, slug)));
+    list.items = list.items.filter((item) => {
+      const [ref] = companyRefs([(item as { toJSON(): CompanyEntry }).toJSON()]);
+      return !(ref && doomed.has(slugKey(def, ref.slug)));
+    });
+  }
+  return doc.toString({ flowCollectionPadding: false });
 }
 
 /**

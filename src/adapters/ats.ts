@@ -37,6 +37,17 @@ export type AtsId = (typeof ATS)[number]['id'];
 
 export type AtsTable = readonly AtsDefinition[];
 
+/** The slug and region of a company entry: read from its board URL when it has one, else the slug as written. */
+export function resolveBoard(atsId: string, ref: { slug: string; url?: string }, table: AtsTable = ATS): { slug: string; region?: 'eu' } {
+  if (!ref.url) return { slug: ref.slug };
+  const def = table.find((entry) => entry.id === atsId);
+  for (const { pattern, region } of def?.urls ?? []) {
+    const slug = pattern.exec(ref.url)?.[1];
+    if (slug) return { slug, region };
+  }
+  return { slug: ref.slug };
+}
+
 export function slugKey(def: AtsDefinition, slug: string): string {
   return def.caseSensitive ? slug : slug.toLowerCase();
 }
