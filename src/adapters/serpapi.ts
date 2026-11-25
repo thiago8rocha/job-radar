@@ -21,17 +21,22 @@ export async function serpApiSearch(
 ): Promise<Record<string, unknown>> {
   const query = new URLSearchParams({ ...params, api_key: apiKey });
   let body: unknown;
-  try {
-    body = await http.getJson(`${ENDPOINT}?${query}`, { timeoutMs: TIMEOUT_MS });
-  } catch (error) {
-    // HttpError messages carry the URL, which holds the key
-    const status = (error as { status?: number }).status;
-    throw new SerpApiError(status ? `SerpAPI returned HTTP ${status}` : `SerpAPI request failed (${(error as Error).name})`);
+  for (let attempt = 0; ; attempt++) {
+    try {
+      body = await http.getJson(`${ENDPOINT}?${query}`, { timeoutMs: TIMEOUT_MS });
+      break;
+    } catch (error) {
+      // HttpError messages carry the URL, which holds the key
+      const status = (error as { status?: number }).status;
+      if (status || attempt >= 1) {
+        throw new SerpApiError(status ? `SerpAPI returned HTTP ${status}` : `SerpAPI request failed (${(error as Error).name})`);
+      }
+    }
   }
   if (typeof body !== 'object' || body === null) throw new SerpApiError('SerpAPI returned an unexpected response');
   const result = body as Record<string, unknown>;
   if (typeof result.error === 'string') {
-    if (NO_RESULTS.test(result.error)) return {};
+    if (NO_RESULTS.test(result.error)) return { ...result, error: undefined };
     throw new SerpApiError(`SerpAPI: ${result.error}`);
   }
   return result;

@@ -190,7 +190,7 @@ describe('google_jobs', () => {
     expect(await googleJobs.fetch(context(CONFIG).ctx)).toEqual([]);
   });
 
-  it('runs one search for the include terms, with the key and location, and normalizes the results', async () => {
+  it('runs one plain search per include term, with the key, location and country, and normalizes the results', async () => {
     const seen: URLSearchParams[] = [];
     server.use(
       http.get('https://serpapi.com/search.json', ({ request }) => {
@@ -200,11 +200,15 @@ describe('google_jobs', () => {
     );
     const raws = await googleJobs.fetch(context(CONFIG, { apiKey: 'secret-key' }).ctx);
 
-    expect(seen).toHaveLength(1);
-    expect(seen[0]!.get('engine')).toBe('google_jobs');
-    expect(seen[0]!.get('q')).toBe('QA OR "Quality Assurance" OR SDET remote');
-    expect(seen[0]!.get('location')).toBe('Brazil');
-    expect(seen[0]!.get('api_key')).toBe('secret-key');
+    expect(seen.map((params) => params.get('q'))).toEqual(['QA remote', 'Quality Assurance remote', 'SDET remote']);
+    for (const params of seen) {
+      expect(params.get('engine')).toBe('google_jobs');
+      expect(params.get('location')).toBe('Brazil');
+      expect(params.get('gl')).toBe('br');
+      expect(params.get('hl')).toBe('en');
+      expect(params.get('api_key')).toBe('secret-key');
+      for (const never of ['start', 'chips', 'ltype', 'no_cache', 'lrad', 'uule', 'uds', 'next_page_token']) expect(params.has(never), never).toBe(false);
+    }
 
     expect(raws.map((raw) => raw.company_name)).toEqual(['Acme Brasil', 'Beta Corp', 'Gamma Tech']); // JobLeads-only posting dropped
     const [first, second, third] = raws.map((raw) => googleJobs.normalize(raw));
@@ -237,7 +241,90 @@ describe('google_jobs', () => {
   });
 
   it('builds the default query from the first include terms', () => {
-    expect(defaultQueries(['QA', 'Test Automation'])).toEqual(['QA OR "Test Automation" remote']);
+    expect(defaultQueries(['QA', 'Test Automation'])).toEqual(['QA remote', 'Test Automation remote']);
     expect(defaultQueries([])).toEqual([]);
+  });
+
+  const serve = (...responses: unknown[]) => {
+    const seen: URLSearchParams[] = [];
+    server.use(
+      http.get('https://serpapi.com/search.json', ({ request }) => {
+        seen.push(new URL(request.url).searchParams);
+        return HttpResponse.json(responses[Math.min(seen.length, responses.length) - 1] as object);
+      }),
+    );
+    return seen;
+  };
+  const one = CONFIG.replace('google_jobs: {', 'google_jobs: { queries: ["QA Engineer remote"],');
+
+  it('follows next_page_token with the same parameters and stops on the last page', async () => {
+    const seen = serve(json('google-jobs.page-1.json'), json('google-jobs.page-2.json'));
+    const raws = await googleJobs.fetch(context(one.replace('google_jobs: {', 'google_jobs: { max_pages: 5,'), { apiKey: 'k' }).ctx);
+
+    expect(seen).toHaveLength(2);
+    expect(seen[1]!.get('next_page_token')).toBe('token-2');
+    expect(seen[1]!.get('q')).toBe('QA Engineer remote');
+    expect(seen[1]!.get('location')).toBe('Brazil');
+    expect(raws.map((raw) => raw.company_name)).toEqual(['Delta Labs', 'Echo Systems']);
+  });
+
+  it('reads one page by default', async () => {
+    const seen = serve(json('google-jobs.page-1.json'));
+    await googleJobs.fetch(context(one, { apiKey: 'k' }).ctx);
+    expect(seen).toHaveLength(1);
+  });
+
+  it('runs the query again through the Remote filter, with its uds and q and no old token', async () => {
+    const seen = serve(json('google-jobs.page-1.json'), json('google-jobs.page-2.json'));
+    await googleJobs.fetch(context(one.replace('google_jobs: {', 'google_jobs: { remote_filter: true, max_pages: 2,'), { apiKey: 'k' }).ctx);
+
+    expect(seen).toHaveLength(2);
+    expect(seen[1]!.get('uds')).toBe('opaque-remote');
+    expect(seen[1]!.get('q')).toBe('QA Engineer remote Remote');
+    expect(seen[1]!.has('next_page_token')).toBe(false);
+    expect(seen[1]!.get('gl')).toBe('br');
+  });
+
+  it('counts a fully empty answer as no jobs, not as a failure, and does not retry it', async () => {
+    const seen = serve(json('google-jobs.empty.json'));
+    const { ctx } = context(one, { apiKey: 'k' });
+    const logs: string[] = [];
+    ctx.info = (message) => logs.push(message);
+
+    expect(await googleJobs.fetch(ctx)).toEqual([]);
+    expect(seen).toHaveLength(1);
+    expect(logs[0]).toContain('"QA Engineer remote"');
+    expect(logs[0]).toContain('used Brazil');
+  });
+
+  it('treats an answer without jobs_results as no jobs', async () => {
+    serve({ search_metadata: { id: 'x', status: 'Success' } });
+    expect(await googleJobs.fetch(context(one, { apiKey: 'k' }).ctx)).toEqual([]);
+  });
+
+  it('reads remote from the extensions list when detected_extensions is empty', async () => {
+    serve(json('google-jobs.page-1.json'));
+    const [posting] = await googleJobs.fetch(context(one, { apiKey: 'k' }).ctx);
+    expect(googleJobs.normalize(posting!).workModel).toBe('remote');
+  });
+
+  it('takes the queries in turn across runs and stops at the monthly cap', async () => {
+    const seen = serve({});
+    const config = CONFIG.replace('google_jobs: {', 'google_jobs: { queries: ["a", "b", "c"], max_searches: 2, monthly_cap: 3,');
+    const resolved: Record<string, string> = {};
+
+    await googleJobs.fetch(context(config, { apiKey: 'k', resolved }).ctx);
+    await googleJobs.fetch(context(config, { apiKey: 'k', resolved }).ctx);
+    const third = context(config, { apiKey: 'k', resolved });
+    await googleJobs.fetch(third.ctx);
+
+    expect(seen.map((params) => params.get('q'))).toEqual(['a', 'b', 'c']);
+    expect(resolved['google_jobs:searches:2026-10']).toBe('3');
+    expect(third.warnings[0]).toContain('monthly search cap');
+  });
+
+  it('fails the source on an error that is not an empty answer, such as an exhausted quota', async () => {
+    serve({ error: 'Your account has run out of searches.' });
+    await expect(googleJobs.fetch(context(one, { apiKey: 'k' }).ctx)).rejects.toThrow('SerpAPI: Your account has run out of searches.');
   });
 });

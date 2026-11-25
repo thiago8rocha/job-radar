@@ -11,6 +11,16 @@ const sourceToggle = z.object({
   max_searches: z.number().int().positive().optional(),
   /** Location passed to the source's search, e.g. "Brazil". */
   location: z.string().optional(),
+  /** Google Jobs: country code of the search (`br`); defaults to `br` when Brazil is an accepted region. */
+  gl: z.string().optional(),
+  /** Google Jobs: language of the search; `en` skips SerpAPI's language fallback. */
+  hl: z.string().optional(),
+  /** Google Jobs: result pages read per query, 10 jobs each; every page is one search (default 1). */
+  max_pages: z.number().int().positive().optional(),
+  /** Google Jobs: searches allowed per calendar month, counted across runs (default 100). */
+  monthly_cap: z.number().int().positive().optional(),
+  /** Google Jobs: also run each query through Google's own "Remote" filter, one extra search per query. */
+  remote_filter: z.boolean().optional(),
   /** Places to search, for sources that search by place (LinkedIn). */
   locations: z.array(z.string()).optional(),
   /** Pause between two requests, in ms, for sources that must be asked gently (LinkedIn). */

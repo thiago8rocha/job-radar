@@ -187,6 +187,7 @@ export async function collect(ctx: Context, options: CollectOptions = {}): Promi
       resolved: companiesState.resolved,
       github: ctx.octokit,
       warn: (message) => ctx.log.warn(message),
+      info: (message) => ctx.log.info(message),
       onCompany: ({ company, items, error }) =>
         recordOutcome(
           companiesState,

@@ -41,8 +41,9 @@ sources:
   github_repos: { enabled: false }    # open issues of backend-br/vagas, frontendbr/vagas and qa-brasil/vagas; set `repos: [owner/name]` to choose
   jobicy: { enabled: false }          # remote jobs by region and term; needs no key
   weworkremotely: { enabled: false }  # latest remote jobs from its RSS feed; needs no key
-  # Needs the SERPAPI_KEY secret (free plan: 100 searches a month). Each run spends up to max_searches.
-  google_jobs: { enabled: false, api_key_secret: SERPAPI_KEY, max_searches: 3 }
+  # Needs the SERPAPI_KEY secret. Every request is one search of the monthly quota: a run spends up to
+  # max_searches (queries are taken in turn) and the source stops at monthly_cap.
+  google_jobs: { enabled: false, api_key_secret: SERPAPI_KEY, max_searches: 3, monthly_cap: 100 }
 
 run:
   budget_minutes: 20         # the whole collection stops here with what it has

@@ -30,6 +30,8 @@ export interface FetchContext {
   github?: GitHub;
   /** API key for sources that need one (SerpAPI), from the Action input; undefined when not provided. */
   apiKey?: string;
+  /** Progress worth reading in the run log, not a problem. */
+  info?(message: string): void;
   /** Records a problem that does not fail the whole source (one company down, one bad entry). */
   warn(message: string): void;
 }

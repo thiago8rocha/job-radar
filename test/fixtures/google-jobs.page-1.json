@@ -1,0 +1,62 @@
+{
+  "search_metadata": {
+    "id": "synthetic-page-1",
+    "status": "Success"
+  },
+  "search_parameters": {
+    "engine": "google_jobs",
+    "q": "QA Engineer remote",
+    "location_requested": "Brazil",
+    "location_used": "Brazil",
+    "google_domain": "google.com",
+    "hl": "en",
+    "gl": "br"
+  },
+  "filters": [
+    {
+      "name": "Date posted",
+      "options": [
+        {
+          "name": "Last week",
+          "parameters": {
+            "uds": "opaque-date",
+            "q": "QA Engineer remote Last week"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Remote",
+      "parameters": {
+        "uds": "opaque-remote",
+        "q": "QA Engineer remote Remote"
+      }
+    }
+  ],
+  "jobs_results": [
+    {
+      "title": "QA Engineer",
+      "company_name": "Delta Labs",
+      "location": "Anywhere",
+      "via": "via LinkedIn",
+      "description": "Remote QA role.",
+      "extensions": [
+        "2 days ago",
+        "Work from home"
+      ],
+      "detected_extensions": {},
+      "job_id": "job-p1",
+      "apply_options": [
+        {
+          "title": "Apply",
+          "link": "https://job-boards.greenhouse.io/deltalabs/jobs/1"
+        }
+      ],
+      "share_link": "https://www.google.com/search?q=qa&ibp=htl;jobs#fpstate=tldetail&htidocid=p1"
+    }
+  ],
+  "serpapi_pagination": {
+    "next_page_token": "token-2",
+    "next": "https://serpapi.com/search.json?next_page_token=token-2"
+  }
+}
