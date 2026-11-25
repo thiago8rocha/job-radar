@@ -1,0 +1,39 @@
+{
+  "search_metadata": {
+    "id": "synthetic-page-2",
+    "status": "Success"
+  },
+  "search_parameters": {
+    "engine": "google_jobs",
+    "q": "QA Engineer remote",
+    "location_requested": "Brazil",
+    "location_used": "Brazil",
+    "google_domain": "google.com",
+    "hl": "en",
+    "gl": "br"
+  },
+  "jobs_results": [
+    {
+      "title": "SDET",
+      "company_name": "Echo Systems",
+      "location": "Anywhere",
+      "via": "via LinkedIn",
+      "description": "Remote QA role.",
+      "extensions": [
+        "1 day ago"
+      ],
+      "detected_extensions": {
+        "posted_at": "1 day ago",
+        "work_from_home": true
+      },
+      "job_id": "job-p2",
+      "apply_options": [
+        {
+          "title": "Apply",
+          "link": "https://jobs.lever.co/echo/2"
+        }
+      ],
+      "share_link": "https://www.google.com/search?q=qa&ibp=htl;jobs#fpstate=tldetail&htidocid=p2"
+    }
+  ]
+}

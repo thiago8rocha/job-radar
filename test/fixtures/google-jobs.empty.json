@@ -1,0 +1,19 @@
+{
+  "search_metadata": {
+    "id": "synthetic-empty",
+    "status": "Success"
+  },
+  "search_parameters": {
+    "engine": "google_jobs",
+    "q": "QA Engineer remote",
+    "location_requested": "Brazil",
+    "location_used": "Brazil",
+    "google_domain": "google.com",
+    "hl": "en",
+    "gl": "br"
+  },
+  "search_information": {
+    "jobs_results_state": "Fully empty"
+  },
+  "error": "Google hasn't returned any results for this query."
+}
