@@ -42,6 +42,17 @@ export function isRelevantPosting(adapter: AnySourceAdapter, filter: JobFilter, 
   }
 }
 
+/** Terms to search, de-duplicated ignoring case. */
+export function searchTerms(include: string[]): string[] {
+  const seen = new Set<string>();
+  return include.filter((term) => {
+    const key = term.trim().toLowerCase();
+    if (!key || seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
 export const DEFAULT_COMPANY_CONCURRENCY = 4;
 
 /**

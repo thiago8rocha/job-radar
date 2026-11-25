@@ -10,6 +10,7 @@ import { himalayas } from '../src/adapters/himalayas.js';
 import { inhire } from '../src/adapters/inhire.js';
 import { lever } from '../src/adapters/lever.js';
 import { linkedin } from '../src/adapters/linkedin.js';
+import { smartrecruiters } from '../src/adapters/smartrecruiters.js';
 import { workable } from '../src/adapters/workable.js';
 import { SchemaError, type FetchContext } from '../src/adapters/types.js';
 import { parseConfig } from '../src/config/load.js';
@@ -224,6 +225,61 @@ describe('workable', () => {
   it('fails when the response has no jobs list', async () => {
     server.use(http.get('https://apply.workable.com/api/v1/widget/accounts/huggingface', () => HttpResponse.json({ name: 'x' })));
     await expect(workable.fetch(context(['huggingface']).ctx)).rejects.toBeInstanceOf(SchemaError);
+  });
+});
+
+describe('smartrecruiters', () => {
+  function mock(onList?: (url: URL) => void) {
+    const detailCalls: string[] = [];
+    server.use(
+      http.get('https://api.smartrecruiters.com/v1/companies/BoschGroup/postings', ({ request }) => {
+        onList?.(new URL(request.url));
+        return HttpResponse.json(fixture('smartrecruiters-list.json'));
+      }),
+      http.get('https://api.smartrecruiters.com/v1/companies/BoschGroup/postings/:id', ({ params }) => {
+        detailCalls.push(String(params.id));
+        return HttpResponse.json(fixture('smartrecruiters-detail.json'));
+      }),
+    );
+    return detailCalls;
+  }
+
+  it('searches each include term with the case-sensitive company id and reads detail only for likely matches', async () => {
+    const queries: string[] = [];
+    const detailCalls = mock((url) => queries.push(`${url.searchParams.get('q')}|${url.searchParams.get('limit')}|${url.searchParams.get('offset')}`));
+    const raws = await smartrecruiters.fetch(context(['BoschGroup']).ctx);
+    const jobs = raws.map((raw) => smartrecruiters.normalize(raw));
+
+    expect(queries).toEqual(['QA|100|0', 'Quality|100|0']);
+    expect(jobs).toHaveLength(3);
+    expect(detailCalls).toEqual(['744000162542319', '744000162238119']);
+    const qa = jobs.find((job) => /QA Engineer/.test(job.title))!;
+    expect(qa.company).toBe('Bosch Group');
+    expect(qa.applyUrl).toBe('https://jobs.smartrecruiters.com/BoschGroup/744000162238119-qa-engineer-tester-servicenow-platform');
+    expect(qa.contracts).toEqual(['Full-time']);
+    expect(qa.description.length).toBeGreaterThan(0);
+    const skipped = jobs.find((job) => /Android/.test(job.title))!;
+    expect(skipped.applyUrl).toMatch(/^https:\/\/jobs\.smartrecruiters\.com\/BoschGroup\/744000162493309$/);
+  });
+
+  it('pages with offset until totalFound', async () => {
+    const offsets: number[] = [];
+    const one = fixture('smartrecruiters-list.json').content.slice(0, 1);
+    server.use(
+      http.get('https://api.smartrecruiters.com/v1/companies/BoschGroup/postings', ({ request }) => {
+        const offset = Number(new URL(request.url).searchParams.get('offset'));
+        offsets.push(offset);
+        return HttpResponse.json({ offset, limit: 100, totalFound: 150, content: one });
+      }),
+    );
+    const config = parseConfig('search:\n  include: ["QA"]\n');
+    await smartrecruiters.fetch(context(['BoschGroup'], { config, worthDetails: () => false }).ctx);
+    expect(offsets).toEqual([0, 100]);
+  });
+
+  it('fails when the response has no content list', async () => {
+    server.use(http.get('https://api.smartrecruiters.com/v1/companies/BoschGroup/postings', () => HttpResponse.json({ error: 'x' })));
+    await expect(smartrecruiters.fetch(context(['BoschGroup']).ctx)).rejects.toBeInstanceOf(SchemaError);
   });
 });
 
