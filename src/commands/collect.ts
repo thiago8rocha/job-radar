@@ -447,7 +447,7 @@ ${job.description}`);
       location: describeLocation(job, today),
       postedOn: job.postedAt?.slice(0, 10),
       compensation: job.compensation ?? aiCompensation,
-      source: job.source,
+      source: job.foundBy ? `${job.source} (${job.foundBy})` : job.source,
       extraLines: [...(insight ? insightLines(insight, today) : []), ...signals.map(signalLine)],
       excerpt: buildExcerpt(job.description, ctx.config.search.highlight),
       fullDescription: sanitizeForIssue(truncate(job.description, 8000)),

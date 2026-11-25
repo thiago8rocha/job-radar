@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { ashby } from '../../src/adapters/ashby.js';
+import { careers } from '../../src/adapters/careers.js';
 import { quickin } from '../../src/adapters/quickin.js';
 import { recruitee } from '../../src/adapters/recruitee.js';
 import { smartrecruiters } from '../../src/adapters/smartrecruiters.js';
@@ -57,6 +58,14 @@ describe('live sources', () => {
   it('greenhouse', () => check(greenhouse, ['airbnb']));
   it('lever', () => check(lever, ['palantir']));
   it('ashby', () => check(ashby, ['ramp']));
+  // The page links to its Recruitee board, so the jobs come back under that source's ids.
+  it('careers', async () => {
+    const raws = await careers.fetch(context([{ slug: 'https://careers.bunq.com/', url: 'https://careers.bunq.com/' }]));
+    expect(raws.length, 'careers returned no postings').toBeGreaterThan(0);
+    const job = careers.normalize(raws[0]!);
+    expect(job.title.length).toBeGreaterThan(0);
+    expect(() => new URL(job.applyUrl)).not.toThrow();
+  });
   it('workday', () => check(workday, [{ slug: 'https://nvidia.wd5.myworkdayjobs.com/NVIDIAExternalCareerSite', url: 'https://nvidia.wd5.myworkdayjobs.com/NVIDIAExternalCareerSite' }]));
   it('solides', () => check(solides, ['solides']));
   it('quickin', () => check(quickin, ['quickin']));

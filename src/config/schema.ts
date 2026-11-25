@@ -17,6 +17,8 @@ const sourceToggle = z.object({
   delay_ms: z.number().int().nonnegative().optional(),
   /** Only postings from the last N days, for sources read on every run (LinkedIn). */
   window_days: z.number().int().positive().optional(),
+  /** Cap on pages read per company by sources that crawl a sitemap (careers, default 100). */
+  max_urls: z.number().int().positive().optional(),
   /** Minutes this source may run before it stops with what it has (default 5). */
   timeout_minutes: z.number().positive().optional(),
 });

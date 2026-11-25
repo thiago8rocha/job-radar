@@ -78,6 +78,7 @@ export async function revalidate(ctx: Context, options: RevalidateOptions = {}):
     }
 
     let present: Set<string>;
+    let partial = false;
     try {
       const fetchContext: FetchContext = {
         http,
@@ -89,9 +90,14 @@ export async function revalidate(ctx: Context, options: RevalidateOptions = {}):
       };
       const adapter = adapters[source]!;
       const raws = await adapter.fetch(fetchContext);
+      partial = adapter.provesAbsence ? !adapter.provesAbsence(raws) : false;
       present = new Set(raws.map((raw) => adapter.normalize(raw).id));
     } catch (error) {
       ctx.log.warn(`${key}: could not be checked, so no job was closed (${(error as Error).message})`);
+      continue;
+    }
+    if (partial) {
+      ctx.log.info(`${key}: read through a partial view of the board, so no job was closed`);
       continue;
     }
     if (present.size === 0) {

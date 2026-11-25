@@ -47,6 +47,7 @@ export const ATS = [
     ],
     archive: ['*.vagas.solides.com.br'],
   },
+  { id: 'careers', urls: [], urlOnly: true },
   {
     id: 'workday',
     urls: [{ pattern: /^https?:\/\/([a-z0-9-]+)\.wd\d+\.myworkdayjobs\.com(?:\/|$)/i }],

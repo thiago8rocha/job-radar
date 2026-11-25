@@ -1,4 +1,5 @@
 import { ashby } from './ashby.js';
+import { careers } from './careers.js';
 import { freehire } from './freehire.js';
 import { getonbrd } from './getonbrd.js';
 import { googleJobs } from './google-jobs.js';
@@ -21,5 +22,5 @@ import type { AnySourceAdapter } from './types.js';
 
 /** Every adapter available in this version, by source id (the keys of `sources:` in the config). */
 export const ADAPTERS: Record<string, AnySourceAdapter> = Object.fromEntries(
-  [inhire, himalayas, freehire, getonbrd, linkedin, greenhouse, lever, ashby, workable, smartrecruiters, recruitee, teamtailor, quickin, solides, workday, gupy, remoteok, weworkremotely, googleJobs].map((adapter) => [adapter.id, adapter]),
+  [inhire, himalayas, freehire, getonbrd, linkedin, greenhouse, lever, ashby, workable, smartrecruiters, recruitee, teamtailor, quickin, solides, workday, careers, gupy, remoteok, weworkremotely, googleJobs].map((adapter) => [adapter.id, adapter]),
 );
