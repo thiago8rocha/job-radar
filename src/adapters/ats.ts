@@ -38,6 +38,11 @@ export const ATS = [
   },
   { id: 'ashby', urls: [{ pattern: /^https?:\/\/jobs\.ashbyhq\.com\/([a-z0-9_.-]+)/i }] },
   {
+    id: 'teamtailor',
+    urls: [{ pattern: /^https?:\/\/([a-z0-9-]+)\.teamtailor\.com(?:\/|$)/i, ignore: ['www', 'app', 'api', 'support', 'docs', 'blog', 'partner'] }],
+    archive: ['*.teamtailor.com'],
+  },
+  {
     id: 'recruitee',
     urls: [{ pattern: /^https?:\/\/([a-z0-9-]+)\.recruitee\.com(?:\/|$)/i, ignore: ['www', 'app', 'api', 'help', 'docs', 'blog', 'support'] }],
     archive: ['*.recruitee.com'],

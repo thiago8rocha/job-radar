@@ -26,6 +26,7 @@ sources:
   workable: { enabled: true }
   smartrecruiters: { enabled: true }
   recruitee: { enabled: true }
+  teamtailor: { enabled: true }
   inhire: { enabled: true }
   gupy: { enabled: false }            # Brazilian portal; needs no key
   freehire: { enabled: false }        # aggregator of ~50 ATS; needs no key
