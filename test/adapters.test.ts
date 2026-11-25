@@ -9,6 +9,7 @@ import { freehire } from '../src/adapters/freehire.js';
 import { getonbrd } from '../src/adapters/getonbrd.js';
 import { greenhouse } from '../src/adapters/greenhouse.js';
 import { himalayas } from '../src/adapters/himalayas.js';
+import { hnHiring } from '../src/adapters/hn-hiring.js';
 import { inhire } from '../src/adapters/inhire.js';
 import { jobicy } from '../src/adapters/jobicy.js';
 import { lever } from '../src/adapters/lever.js';
@@ -513,6 +514,45 @@ describe('smartrecruiters', () => {
   it('fails when the response has no content list', async () => {
     server.use(http.get('https://api.smartrecruiters.com/v1/companies/BoschGroup/postings', () => HttpResponse.json({ error: 'x' })));
     await expect(smartrecruiters.fetch(context(['BoschGroup']).ctx)).rejects.toBeInstanceOf(SchemaError);
+  });
+});
+
+describe('hn_hiring', () => {
+  function mock(comments: unknown = fixture('hn-hiring-comments.json')) {
+    const searches: Array<Record<string, string>> = [];
+    server.use(
+      http.get('https://hn.algolia.com/api/v1/search_by_date', ({ request }) => {
+        const params = Object.fromEntries(new URL(request.url).searchParams);
+        searches.push(params);
+        return HttpResponse.json(params.tags === 'story,author_whoishiring' ? fixture('hn-hiring-threads.json') : comments);
+      }),
+    );
+    return searches;
+  }
+
+  it('finds the latest hiring thread and keeps its top-level comments as postings', async () => {
+    const searches = mock();
+    const jobs = (await hnHiring.fetch(context().ctx)).map((raw) => hnHiring.normalize(raw));
+
+    expect(searches.map((search) => search.tags)).toEqual(['story,author_whoishiring', 'comment,story_50338728']);
+    expect(jobs).toHaveLength(3);
+    const radar = jobs.find((job) => job.company === 'Radar Labs')!;
+    expect(radar.title).toMatch(/QA\)$/);
+    expect(radar.workModel).toBe('remote');
+    expect(radar.locations.join()).toContain('Remote (US)');
+    expect(radar.applyUrl).toBe('https://news.ycombinator.com/item?id=50357486');
+    expect(radar.postedAt).toBe('2026-11-03T20:09:59Z');
+    const hybrid = jobs.find((job) => job.company === 'outGoing')!;
+    expect(hybrid.workModel).toBe('hybrid');
+    expect(hybrid.locations).toContain('Lisbon, Portugal');
+    expect(hybrid.description).toContain("Lisbon's local events scene");
+  });
+
+  it('fails when no hiring thread is found or the response changed', async () => {
+    server.use(http.get('https://hn.algolia.com/api/v1/search_by_date', () => HttpResponse.json({ hits: [{ objectID: '1', title: 'Ask HN: Who wants to be hired? (November 2026)' }] })));
+    await expect(hnHiring.fetch(context().ctx)).rejects.toBeInstanceOf(SchemaError);
+    server.use(http.get('https://hn.algolia.com/api/v1/search_by_date', () => HttpResponse.json({ oops: true })));
+    await expect(hnHiring.fetch(context().ctx)).rejects.toBeInstanceOf(SchemaError);
   });
 });
 

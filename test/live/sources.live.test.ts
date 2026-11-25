@@ -14,6 +14,7 @@ import { gupy } from '../../src/adapters/gupy.js';
 import { himalayas } from '../../src/adapters/himalayas.js';
 import { inhire } from '../../src/adapters/inhire.js';
 import { githubRepos } from '../../src/adapters/github-repos.js';
+import { hnHiring } from '../../src/adapters/hn-hiring.js';
 import { jobicy } from '../../src/adapters/jobicy.js';
 import { lever } from '../../src/adapters/lever.js';
 import { parseCards, parseDetail } from '../../src/adapters/linkedin.js';
@@ -86,6 +87,7 @@ describe('live sources', () => {
     expect(raws.length, 'github_repos returned no issues').toBeGreaterThan(0);
     expect(githubRepos.normalize(raws[0]!).title.length).toBeGreaterThan(0);
   });
+  it('hn_hiring', () => check(hnHiring, []));
   it('jobicy', () => check(jobicy, []));
   it('remoteok', () => check(remoteok, []));
   it('weworkremotely', () => check(weworkremotely, []));
