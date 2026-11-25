@@ -3,6 +3,7 @@ import type { Job, WorkModel } from '../domain/job.js';
 import { containsTerm, normalizeText } from '../util/text.js';
 import { checkEligibility } from './eligibility.js';
 import { requiredLanguage } from './language.js';
+import { isPaywalled } from './url.js';
 import { detectWorkModel } from './work-model.js';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -93,6 +94,7 @@ export function createFilter(config: Config): JobFilter {
   });
 
   const rules: Array<(job: Job, now: Date) => string | undefined> = [
+    (job) => (isPaywalled(job.applyUrl) ? 'paywalled: applying needs a paid subscription' : undefined),
     (job) => {
       const blocked = blockedCompany(job.company);
       return blocked ? `excluded company: "${blocked}"` : undefined;
