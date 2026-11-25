@@ -155,6 +155,21 @@ When `ai.enabled` is true, each new job gets a fit score for your profile (a `fi
 - **Safe by default:** off unless you enable it, at most `ai.max_calls_per_run` calls a run, and an issue is created without a score when the quota runs out or a call fails. Posting text is sent to the model as data and its reply is validated and sanitized before it reaches an issue, but treat the score as a hint.
 - **Setup:** `ai.enabled: true` with `ai.base_url` and `ai.model`, the `collect` workflow's `ai-api-key` and `profile` inputs (already in the example), and the `evaluate` workflow for `/evaluate`. Only the repository owner, members and collaborators can trigger it. Every new issue keeps the full posting text in a collapsed block, which `/evaluate` and external scorers read.
 
+## Seeding the company directory
+
+`import-companies` fills `companies.directory.yml` from a list of boards, skipping any slug already in `companies.yml` or the directory; running it twice gives the same file. Rows for an ATS job-radar has no adapter for are counted and reported, not imported.
+
+```sh
+# a CSV; the defaults follow the LastRound AI ATS directory (ats_vendor, board_slug, company_name)
+npm run cli -- import-companies --csv ats-directory.csv
+# any CSV, naming its columns
+npm run cli -- import-companies --csv boards.csv --ats-column vendor --slug-column slug --name-column name
+# a text file with one career-page URL per line
+npm run cli -- import-companies --urls career-pages.txt
+```
+
+The [LastRound AI ATS directory](https://datahub.io/lastroundai-hiring-data/lastroundai-hiring-data/ats-directory) (about 9.9k Greenhouse, Lever and Ashby boards) is licensed [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/): credit it if you share what you build from it. Keep the dataset and the resulting directory in your own private repo, not in this one.
+
 ## Development
 
 ```bash

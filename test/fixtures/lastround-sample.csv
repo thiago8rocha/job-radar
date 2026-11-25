@@ -1,0 +1,11 @@
+ats_vendor,company_name,board_slug,last_crawled
+greenhouse,Acme Inc,acme,2026-10-01
+greenhouse,"Beta, Ltd.",beta,2026-10-01
+lever,Gamma,gamma,2026-10-02
+lever,Delta,DeltaCo,2026-10-02
+ashby,Epsilon,epsilon,2026-10-03
+ashby,Already Listed,listed,2026-10-03
+workday,Zeta,zeta,2026-10-04
+workday,Eta,eta,2026-10-04
+greenhouse,"Quote ""Q"" Co",quoteco,2026-10-05
+greenhouse,No Slug,,2026-10-05
