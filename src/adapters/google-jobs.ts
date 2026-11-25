@@ -113,7 +113,8 @@ export const googleJobs: SourceAdapter<GoogleJobsPosting> = {
       state[monthKey] = String(Number(state[monthKey] ?? 0) + 1);
       const response = await serpApiSearch(ctx.http, ctx.apiKey!, {
         engine: 'google_jobs',
-        hl: toggle?.hl ?? 'en',
+        // With the page in English, Google Jobs answers with no jobs for most searches in Brazil.
+        hl: toggle?.hl ?? (brazil ? 'pt-br' : 'en'),
         ...(gl ? { gl } : {}),
         ...(location ? { location } : {}),
         ...params,
