@@ -111,6 +111,8 @@ Collection runs once a day, on business days. Company discovery and metrics run 
 
 `seen.json` is committed by the workflow itself. This avoids querying GitHub's search API for each job and also keeps the scheduled workflow active.
 
+**Schedule reliability.** The first examples scheduled `23 5` and `41 8` UTC (02:23 and 05:41 in Brasília). Of 40 runs listed in the private repo in October and November 2026, the scheduled ones started between 12:46 and 19:07 UTC, 7 to 10 hours after the cron time, with no dropped day. That matches GitHub's documented behaviour: scheduled runs queue behind the load in the early UTC hours and can be delayed or dropped. The fix has three parts: an external scheduler calls `workflow_dispatch` at the wanted times; `schedule` stays as a fallback at 10:17 and 16:47 UTC, away from the congested window and round minutes; and one guard applies to every trigger, skipping the run when a collect succeeded in the last `min-interval-hours` (default 4), unless `force` is set. The Metrics issue reports the last successful collect and warns after 30 business hours without one.
+
 ## Configuration
 
 Everything personal lives in the private repo, in two files: `job-radar.config.yml` (search and filters) and `companies.yml` (target companies per ATS). The public repo ships an `examples/` folder with both filled in generically, and a JSON Schema to validate and autocomplete in the editor.
@@ -171,7 +173,7 @@ The private repo's workflow stays at a few lines:
 ```yaml
 # .github/workflows/collect.yml
 on:
-  schedule: [{ cron: "23 5 * * 1-5" }]   # 2:23 a.m. in Brasília, off the peak; examples/ adds a guarded backup run
+  schedule: [{ cron: "17 10 * * 1-5" }]   # fallback only; the README recommends an external scheduler calling workflow_dispatch
   workflow_dispatch:
 permissions:
   contents: write

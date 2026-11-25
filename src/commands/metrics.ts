@@ -106,7 +106,7 @@ export async function metrics(ctx: Context, options: MetricsOptions = {}): Promi
   );
   fieldsWritten += statusFixes;
 
-  const report = renderReport(results, now, ctx.config.metrics.no_response_after_days);
+  const report = renderReport(results, now, ctx.config.metrics.no_response_after_days, await lastSuccessfulCollect(ctx));
   if (dryRun) {
     ctx.log.info(`[dry-run] Would update the Metrics issue with:\n${report}`);
   } else {
@@ -118,6 +118,22 @@ export async function metrics(ctx: Context, options: MetricsOptions = {}): Promi
     `${dryRun ? '[dry-run] ' : ''}Metrics: ${results.length} jobs, ${applications} applications, ${fieldsWritten} Project field(s) ${dryRun ? 'would change' : 'updated'}, ${followUps} follow-up reminder(s) ${dryRun ? 'would be posted' : 'posted'}`,
   );
   return { issues: results.length, applications, fieldsWritten, followUps, report };
+}
+
+/** Undefined when the token cannot read workflow runs, so the report simply omits the line. */
+async function lastSuccessfulCollect(ctx: Context): Promise<Date | undefined> {
+  try {
+    const { data } = await ctx.octokit.rest.actions.listWorkflowRuns({
+      ...ctx.repo,
+      workflow_id: 'collect.yml',
+      status: 'success',
+      per_page: 1,
+    });
+    const created = data.workflow_runs[0]?.created_at;
+    return created ? new Date(created) : undefined;
+  } catch {
+    return undefined;
+  }
 }
 
 /** One reminder per application that is still `status:applied` and unanswered; it only comments, never changes a status. */

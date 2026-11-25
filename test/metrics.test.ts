@@ -514,3 +514,30 @@ describe('revalidate', () => {
     expect(issues.addLabels).not.toHaveBeenCalled();
   });
 });
+
+describe('last collect line', () => {
+  const THURSDAY = new Date('2026-10-15T12:00:00Z');
+
+  it('shows the last successful collect in Brasília time', () => {
+    const report = renderReport([], THURSDAY, 60, new Date('2026-10-15T10:00:00Z'));
+    expect(report).toContain('_Last successful collect: 2026-10-15 07:00 (Brasília)._');
+    expect(report).not.toContain('WARNING');
+  });
+
+  it('warns when it is older than 30 hours on a business day', () => {
+    expect(renderReport([], THURSDAY, 60, new Date('2026-10-13T12:00:00Z'))).toContain('[!WARNING]');
+  });
+
+  it('does not count the weekend as stale time', () => {
+    const monday = new Date('2026-10-19T10:00:00Z');
+    expect(renderReport([], monday, 60, new Date('2026-10-16T17:00:00Z'))).not.toContain('WARNING');
+  });
+
+  it('does not warn on a weekend', () => {
+    expect(renderReport([], new Date('2026-10-17T12:00:00Z'), 60, new Date('2026-10-13T12:00:00Z'))).not.toContain('WARNING');
+  });
+
+  it('shows nothing when the last run is unknown', () => {
+    expect(renderReport([], THURSDAY, 60)).not.toContain('Last successful collect');
+  });
+});

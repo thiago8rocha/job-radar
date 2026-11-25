@@ -23,6 +23,15 @@ Everything personal (your searches, companies and history) lives in your own **p
 6. **Run the `setup` workflow** once (Actions → setup → Run workflow). It creates the labels and the Project fields.
 7. **Run `collect` with `dry-run` ticked** to see what it would open, then run it for real. From then on it runs on its own.
 
+### Reliable schedule (recommended)
+
+GitHub delays scheduled workflows under load and can drop them, most of all between 00:00 and 08:00 UTC. The `schedule` in the example `collect` workflow is only a fallback (07:17 and 13:47 in Brasília). For runs at the time you pick, call the workflow from a free external scheduler such as [cron-job.org](https://cron-job.org):
+
+1. Create a [fine-grained token](https://github.com/settings/personal-access-tokens/new) limited to your private repo, with only the permission *Actions: read and write*.
+2. Schedule `POST https://api.github.com/repos/<owner>/<repo>/actions/workflows/collect.yml/dispatches` with the headers `Authorization: Bearer <token>`, `Accept: application/vnd.github+json` and the body `{"ref":"main"}`. Suggested times: 07:00 and 14:00 Brasília, Monday to Friday.
+
+A guard job skips any run when a collect succeeded in the last `min-interval-hours` (default 4), so the external trigger and the fallback never both run. Tick `force` on a manual run to bypass it. The Metrics issue shows when the last collect succeeded and warns if it is stale.
+
 ## How a job moves
 
 | Stage | Label | What happens |
