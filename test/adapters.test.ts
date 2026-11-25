@@ -3,6 +3,8 @@ import { http, HttpResponse } from 'msw';
 import { setupServer } from 'msw/node';
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { ashby } from '../src/adapters/ashby.js';
+import { Octokit } from 'octokit';
+import { githubRepos } from '../src/adapters/github-repos.js';
 import { freehire } from '../src/adapters/freehire.js';
 import { getonbrd } from '../src/adapters/getonbrd.js';
 import { greenhouse } from '../src/adapters/greenhouse.js';
@@ -511,6 +513,50 @@ describe('smartrecruiters', () => {
   it('fails when the response has no content list', async () => {
     server.use(http.get('https://api.smartrecruiters.com/v1/companies/BoschGroup/postings', () => HttpResponse.json({ error: 'x' })));
     await expect(smartrecruiters.fetch(context(['BoschGroup']).ctx)).rejects.toBeInstanceOf(SchemaError);
+  });
+});
+
+describe('github_repos', () => {
+  const github = () => new Octokit({ request: { fetch } });
+  const config = parseConfig('search:\n  include: ["QA"]\n  max_age_days: 30\nsources:\n  github_repos: { enabled: true, repos: ["backend-br/vagas"] }\n');
+
+  it('reads open issues since the age limit and maps title, labels and company', async () => {
+    let since: string | null = null;
+    server.use(
+      http.get('https://api.github.com/repos/backend-br/vagas/issues', ({ request }) => {
+        since = new URL(request.url).searchParams.get('since');
+        return HttpResponse.json([...fixture('github-issues.json'), { number: 1, html_url: 'https://github.com/backend-br/vagas/pull/1', title: 'A pull request', created_at: '2026-10-01T00:00:00Z', pull_request: {} }]);
+      }),
+    );
+    const { ctx } = context([], { config, github: github() });
+    const jobs = (await githubRepos.fetch(ctx)).map((raw) => githubRepos.normalize(raw));
+
+    expect(since).toBe('2026-09-15T12:00:00.000Z');
+    expect(jobs).toHaveLength(3);
+    const remote = jobs.find((job) => /Product Engineer/.test(job.title))!;
+    expect(remote).toMatchObject({ company: 'JotPsych', workModel: 'remote', seniority: ['senior'], contracts: ['PJ'], applyUrl: 'https://github.com/backend-br/vagas/issues/12495' });
+    const pleno = jobs.find((job) => /Backend Pleno/.test(job.title))!;
+    expect(pleno).toMatchObject({ company: 'Mimix AI', title: 'Desenvolvedor(a) Backend Pleno - White Label e Plataforma', seniority: ['mid'] });
+    const hybrid = jobs.find((job) => /Joinville/.test(job.locations.join()))!;
+    expect(hybrid.locations).toEqual(['Joinville/SC']);
+    expect(hybrid.workModel).toBe('hybrid');
+    expect(hybrid.company).not.toBe('Unknown');
+  });
+
+  it('drops issues marked as closed jobs and warns about a repository that is not owner/name', async () => {
+    server.use(
+      http.get('https://api.github.com/repos/backend-br/vagas/issues', () =>
+        HttpResponse.json([{ number: 5, html_url: 'https://github.com/backend-br/vagas/issues/5', title: '[VAGA FECHADA] QA na Acme', created_at: '2026-10-10T00:00:00Z' }]),
+      ),
+    );
+    const { ctx, warnings } = context([], { config: parseConfig('sources:\n  github_repos: { enabled: true, repos: ["backend-br/vagas", "nonsense"] }\n'), github: github() });
+
+    expect(await githubRepos.fetch(ctx)).toEqual([]);
+    expect(warnings[0]).toMatch(/nonsense/);
+  });
+
+  it('fails without a GitHub client', async () => {
+    await expect(githubRepos.fetch(context([], { config }).ctx)).rejects.toBeInstanceOf(SchemaError);
   });
 });
 

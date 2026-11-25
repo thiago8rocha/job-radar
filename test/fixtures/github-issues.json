@@ -1,0 +1,86 @@
+[
+  {
+    "number": 12495,
+    "html_url": "https://github.com/backend-br/vagas/issues/12495",
+    "title": "[Remote] Product Engineer na JotPsych",
+    "labels": [
+      {
+        "name": "PJ"
+      },
+      {
+        "name": "Sênior"
+      },
+      {
+        "name": "Remoto"
+      },
+      {
+        "name": "Contrato"
+      },
+      {
+        "name": "verificada"
+      }
+    ],
+    "state": "open",
+    "created_at": "2026-11-18T22:39:26Z",
+    "updated_at": "2026-11-18T22:39:37Z",
+    "body": "### About the company\n\nJotPsych makes software for behavioral health clinicians. Our scribe has drafted more than 3.1 million patient notes and cuts administrative time by about 90%. We're now expanding from the note into the revenue cycle: billing, audit, prior-auth. We're a small team, and we build through AI coding agents all day.\n\n### Company website\n\nhttps://jotpsych.com\n\n### Job description\n\nThe decisions about what you build get made in a meeting you aren't in. You've shipped features you could tell were wrong the day the ticket arrived. You'd like to be the one who talked to the customer first.\n\nYou'll take features from a customer conversation to production, UI to backend to database to prompt. That half of the job you already know.\n\nThe other half is deciding what to build. You'll sit in on calls with clinicians and billers, then run your own. You'll write down what you think we should build and why, and we'll argue with it.\n\nEarly on we'll be fairly prescriptive. The first projects come from us, with our reasoning. You have the technical half, and we're going to teach you the rest: taste, craft, and how to manage a product. As your read on our users holds up, more of the deciding moves to you. We want that to happen fast, though not in week one.\n\nWhat you'd own in the first 90 days:\n\n- Ship 3 to 5 user-facing features on the clinical and billing surfaces\n- Sit in on customer calls every week. By day 90, run your own\n- Do one stretch of forward-deployed work: stay with one practice's problem until it's fixed for them\n- Write the evals for everything you ship\n- Fix one piece of shared infrastructure the rest of us lean on\n- Disagree with us about one product decision, and bring what you heard from customers\n\n### Requirements\n\n**Required:**\n- Senior. You've ship"
+  },
+  {
+    "number": 12494,
+    "html_url": "https://github.com/backend-br/vagas/issues/12494",
+    "title": "[Remoto] Desenvolvedor(a) Backend Pleno - White Label e Plataforma - Mimix AI",
+    "labels": [
+      {
+        "name": "PJ"
+      },
+      {
+        "name": "Pleno"
+      },
+      {
+        "name": "Remoto"
+      },
+      {
+        "name": "verificada"
+      }
+    ],
+    "state": "open",
+    "created_at": "2026-11-09T12:03:33Z",
+    "updated_at": "2026-11-17T01:22:03Z",
+    "body": "### Sobre a empresa\n\nA Mimix AI desenvolve uma plataforma de software para gerenciar operações white label de clientes do setor de robótica. A plataforma organiza a publicação de tarefas, o acompanhamento de envios e os repasses aos participantes.\n\n### Site da empresa\n\nhttps://www.mimix-ai.xyz\n\n### Descrição da vaga\n\nBuscamos uma pessoa desenvolvedora backend pleno para manter os serviços e as integrações das operações white label da Mimix AI e implementar novas funcionalidades da plataforma. O trabalho envolve escrever código, testar mudanças e investigar falhas em produção.\n\n- Manter e evoluir o backend e as integrações das operações white label.\n- Acompanhar a operação dos clientes white label, investigar problemas e encaminhar ou implementar os ajustes necessários.\n- Colaborar no desenvolvimento, nos testes e na entrega de novas funcionalidades da plataforma Mimix.\n\n### Requisitos\n\n**Obrigatórios:** experiência com desenvolvimento e manutenção de aplicações backend, APIs e integrações. Capacidade de investigar falhas em produção e comunicar os próximos passos com clareza.\n\n**Desejáveis:** experiência com plataformas white label ou produtos que atendem a vários clientes.\n\n### Nível\n\nPleno\n\n### Regime de contratação\n\nPJ\n\n### Modelo de trabalho\n\nRemoto\n\n### Localização\n\nBrasil\n\n### Como se candidatar\n\nFale com Marcos pelo WhatsApp (contact removed) ou escreva para e-mail (contact removed). Inclua seu LinkedIn, GitHub ou currículo e conte em poucas linhas sobre uma funcionalidade que você ajudou a colocar em produção.\n\n### Confirmações\n\n- [x] Esta issue contém uma única vaga.\n- [x] A vaga é para backend (ou fullstack com foco em backend).\n- [x] Não é vaga de treinamento de IA, anotação de dados o"
+  },
+  {
+    "number": 12481,
+    "html_url": "https://github.com/backend-br/vagas/issues/12481",
+    "title": "[Joinville/SC] Back-end ou Full Stack Developer (Node.js + React)",
+    "labels": [
+      {
+        "name": "PJ"
+      },
+      {
+        "name": "Sênior"
+      },
+      {
+        "name": "Node.js"
+      },
+      {
+        "name": "AWS"
+      },
+      {
+        "name": "TypeScript"
+      },
+      {
+        "name": "Híbrido"
+      },
+      {
+        "name": "DDD"
+      },
+      {
+        "name": "verificada"
+      }
+    ],
+    "state": "open",
+    "created_at": "2026-10-23T20:20:43Z",
+    "updated_at": "2026-11-09T20:23:20Z",
+    "body": "### Sobre a empresa\n\nJoin our team of talented software engineers and be at the forefront of building innovative, AI-driven solutions. At LRA Ventures and Shipix, you'll have the opportunity to create groundbreaking products from scratch, tackling diverse challenges and making a significant impact across various industries. \n\nWe are dedicated to empowering businesses with intelligent tools that drive competitiveness, profitability, and sustainability. While our roots are in transforming the logistics sector, we are expanding our expertise to develop cutting-edge, AI-powered systems for a range of new projects. \n\nWe foster a collaborative environment where deep technological expertise meets creative problem-solving. As part of our international team, based in the Netherlands and Brazil, you will play a key role in building and launching new applications, and shaping the future of our technology.\n\n\n### Site da empresa\n\nhttps://lra-ventures.com/\n\n### Descrição da vaga\n\nAs a Full Stack Developer, you will be responsible for building new features on our platform, delivering complete end-to-end solutions. From concept to implementation, you will be involved in every stage of feature development.\nYou can have more experience as a backend or frontend developer, but you should be comfortable working across the full stack when necessary.\n\nResponsibilities:\n- Develop and implement new features for our platform using Node.js and React.\n- Work closely with the tech lead, other developers, and the Product Manager.\n- Participate in Agile team activities, including daily async check-ins, weekly planning and DDD meetings.\n- Ensure high code quality through code reviews and collaborative development practices.\n- Contribute to a steep learning curve by sharing knowledge and best practices"
+  }
+]
