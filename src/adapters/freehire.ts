@@ -21,7 +21,7 @@ const postingSchema = z.object({
   title: z.string(),
   company: z.string(),
   company_slug: z.string().nullish(),
-  url: z.string(),
+  url: z.string().url(),
   location: z.string().nullish(),
   description: z.string().nullish(),
   countries: z.array(z.string()).nullish(),

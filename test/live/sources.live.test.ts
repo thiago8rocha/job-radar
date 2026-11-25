@@ -29,7 +29,7 @@ import { createHttpClient, HttpError } from '../../src/util/http.js';
 /**
  * One real request per source, checking only that the response still matches the adapter's schema
  * and normalizes into usable jobs. Filters and dates are out of scope: a source with no QA jobs today
- * is fine, a source whose format changed is not. Runs daily in CI; a failure opens an issue.
+ * is fine, a source whose format changed is not. Run by hand from the live-contract workflow; a failure opens an issue.
  */
 const config = parseConfig('search: { include: ["QA"], max_age_days: 30 }');
 const http = createHttpClient({ hostDelayMs: 500 });
@@ -45,8 +45,8 @@ function context(slugs: Array<string | CompanyRef>): FetchContext {
   };
 }
 
-async function check<Raw>(adapter: SourceAdapter<Raw>, slugs: Array<string | CompanyRef>): Promise<void> {
-  const raws = await adapter.fetch(context(slugs));
+async function check<Raw>(adapter: SourceAdapter<Raw>, slugs: Array<string | CompanyRef>, withConfig = config): Promise<void> {
+  const raws = await adapter.fetch({ ...context(slugs), config: withConfig });
   expect(raws.length, `${adapter.id} returned no postings`).toBeGreaterThan(0);
   for (const raw of raws.slice(0, 25)) {
     const job = adapter.normalize(raw);
@@ -70,7 +70,15 @@ describe('live sources', () => {
     expect(job.title.length).toBeGreaterThan(0);
     expect(() => new URL(job.applyUrl)).not.toThrow();
   });
-  it('workday', () => check(workday, [{ slug: 'https://nvidia.wd5.myworkdayjobs.com/NVIDIAExternalCareerSite', url: 'https://nvidia.wd5.myworkdayjobs.com/NVIDIAExternalCareerSite' }]));
+  // Workday answers 429 to shared CI IPs, so a rate limit skips the check instead of failing it.
+  it('workday', async () => {
+    try {
+      await check(workday, [{ slug: 'https://nvidia.wd5.myworkdayjobs.com/NVIDIAExternalCareerSite', url: 'https://nvidia.wd5.myworkdayjobs.com/NVIDIAExternalCareerSite' }]);
+    } catch (error) {
+      if (!(error instanceof HttpError && error.status === 429)) throw error;
+      console.warn('workday: rate limited, check skipped');
+    }
+  });
   it('solides', () => check(solides, ['solides']));
   it('quickin', () => check(quickin, ['quickin']));
   it('teamtailor', () => check(teamtailor, ['career']));
@@ -80,7 +88,7 @@ describe('live sources', () => {
   it('himalayas', () => check(himalayas, []));
   it('freehire', () => check(freehire, []));
   it('gupy', () => check(gupy, []));
-  // Unauthenticated: 60 requests an hour is enough for one check a day.
+  // Unauthenticated: 60 requests an hour is enough for one check.
   it('github_repos', async () => {
     const ctx = { ...context([]), github: new Octokit(), config: parseConfig('search: { include: ["QA"], max_age_days: 365 }\nsources:\n  github_repos: { enabled: true, repos: ["backend-br/vagas"] }') };
     const raws = await githubRepos.fetch(ctx);
@@ -88,7 +96,11 @@ describe('live sources', () => {
     expect(githubRepos.normalize(raws[0]!).title.length).toBeGreaterThan(0);
   });
   it('hn_hiring', () => check(hnHiring, []));
-  it('jobicy', () => check(jobicy, []));
+  // Broad terms and the busiest region: a narrow query can honestly return nothing on a given day.
+  it('jobicy', async () => {
+    const wide = parseConfig('search: { include: ["engineer"], max_age_days: 30 }\neligibility: { accept_regions: ["latam"] }');
+    await check(jobicy, [], wide);
+  });
   it('remoteok', () => check(remoteok, []));
   it('weworkremotely', () => check(weworkremotely, []));
   // LinkedIn answers 429 to shared IPs, so a rate limit skips the check instead of failing it; a changed page still fails.
