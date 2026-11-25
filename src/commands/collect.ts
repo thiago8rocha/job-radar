@@ -4,7 +4,7 @@ import { ADAPTERS } from '../adapters/index.js';
 import type { AnySourceAdapter, FetchContext } from '../adapters/types.js';
 import { analyzeJob, type JobInsight } from '../ai/insight.js';
 import { AiQuotaError, type ChatClient } from '../ai/models.js';
-import { emptyByAts } from '../adapters/ats.js';
+import { ATS, emptyByAts } from '../adapters/ats.js';
 import { isRelevantPosting } from '../adapters/common.js';
 import { companyRefs, type Companies } from '../config/schema.js';
 import { FIELD } from '../domain/fields.js';
@@ -14,6 +14,7 @@ import { STATUS_TITLES, statusLabel } from '../domain/status.js';
 import { issueTitle, renderIssueBody } from '../github/issue-body.js';
 import { ensureLabels } from '../github/labels.js';
 import { addIssueToProject, setFieldValue, type Project } from '../github/project.js';
+import { companiesFromLinks } from '../discovery/links.js';
 import { dedupe, knownFromIssues, type KnownJobs } from '../pipeline/dedup.js';
 import { regionsOf } from '../pipeline/eligibility.js';
 import { canonicalUrl } from '../pipeline/url.js';
@@ -21,7 +22,7 @@ import { buildExcerpt, sanitizeForIssue } from '../pipeline/excerpt.js';
 import { createFilter, inferWorkModel, type JobFilter } from '../pipeline/filter.js';
 import { detectSignals, type Signal } from '../pipeline/signals.js';
 import { brasiliaHours } from '../pipeline/timezone.js';
-import { DEFAULT_COMPANIES_STATE_PATH, healthKey, hotDirectory, loadCompaniesState, recordOutcome, saveCompaniesState } from '../state/companies.js';
+import { DEFAULT_COMPANIES_STATE_PATH, harvestCandidates, healthKey, hotDirectory, loadCompaniesState, recordOutcome, saveCompaniesState } from '../state/companies.js';
 import { DEFAULT_STATE_PATH, loadState, saveState, weekStats, type SeenState } from '../state/seen.js';
 import { createHttpClient, type HttpClient } from '../util/http.js';
 import { truncate } from '../util/text.js';
@@ -230,6 +231,11 @@ export async function collect(ctx: Context, options: CollectOptions = {}): Promi
     updateHealth(ctx, state, report);
   }
 
+  if (!dryRun) {
+    const listed = new Set([companies, options.directory ?? emptyByAts<never>()].flatMap(listedKeys));
+    for (const job of candidates) harvestCandidates(companiesState, companiesFromLinks([job.applyUrl]), listed, now);
+  }
+
   // 4. Filter.
   const bySource = new Map(reports.map((report) => [report.source, report]));
   const passed: Job[] = [];
@@ -321,6 +327,10 @@ function recordNearMisses(state: SeenState, candidates: Job[], passed: Job[], fi
   for (const job of unknown) {
     state.nearMiss.push({ id: job.id, title: job.title, company: job.company, link: job.applyUrl, reason: misses.get(job.id)!, date: now.toISOString() });
   }
+}
+
+function listedKeys(companies: Companies): string[] {
+  return ATS.flatMap((def) => companyRefs(companies[def.id]).map((ref) => healthKey(def.id, ref.slug)));
 }
 
 function recordStats(state: SeenState, reports: SourceReport[], now: Date): void {

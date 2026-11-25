@@ -6,6 +6,7 @@ import type { Companies } from '../config/schema.js';
 import { addCompanies, listedSlugs, parseCompaniesText } from '../discovery/companies-file.js';
 import { companiesFromLinks, type DiscoveredCompanies } from '../discovery/links.js';
 import { createHttpClient, type HttpClient } from '../util/http.js';
+import { DEFAULT_COMPANIES_STATE_PATH, harvestedCandidates, loadCompaniesState } from '../state/companies.js';
 import type { Context } from './context.js';
 
 const BRANCH_PREFIX = 'job-radar/discovery-';
@@ -14,6 +15,7 @@ export interface DiscoverOptions {
   dryRun?: boolean;
   /** Path of `companies.yml` in the repository. */
   companiesPath?: string;
+  companiesStatePath?: string;
   serpapiKey?: string;
   adapters?: Record<string, AnySourceAdapter>;
   http?: HttpClient;
@@ -24,6 +26,12 @@ export interface DiscoverResult {
   /** Companies that are new, exist on their ATS and have at least one posting. */
   found: DiscoveredCompanies;
   pullRequest?: number;
+}
+
+function mergeDiscovered(a: DiscoveredCompanies, b: DiscoveredCompanies): DiscoveredCompanies {
+  const merged = emptyByAts<string>();
+  for (const ats of Object.keys(merged) as Array<keyof DiscoveredCompanies>) merged[ats] = [...new Set([...a[ats], ...b[ats]])];
+  return merged;
 }
 
 function count(companies: DiscoveredCompanies): number {
@@ -42,13 +50,13 @@ export async function discover(ctx: Context, options: DiscoverOptions = {}): Pro
     ctx.log.info('Discovery is off (discovery.enabled: false); nothing to do');
     return { found: empty };
   }
-  if (!options.serpapiKey) {
-    ctx.log.info('Discovery needs a SerpAPI key (the serpapi-key input); skipped');
-    return { found: empty };
-  }
-  if (discovery.queries.length === 0) {
-    ctx.log.warn('discovery.queries is empty; nothing to search for');
-    return { found: empty };
+
+  const harvested = harvestedCandidates(await loadCompaniesState(options.companiesStatePath ?? DEFAULT_COMPANIES_STATE_PATH));
+  const searching = Boolean(options.serpapiKey) && discovery.queries.length > 0;
+  if (!searching) {
+    if (!options.serpapiKey) ctx.log.info('No SerpAPI key (the serpapi-key input); only the boards harvested from collected jobs are checked');
+    else ctx.log.warn('discovery.queries is empty; only the boards harvested from collected jobs are checked');
+    if (count(harvested) === 0) return { found: empty };
   }
 
   const http = options.http ?? createHttpClient({ hostDelayMs: 1000 });
@@ -62,13 +70,13 @@ export async function discover(ctx: Context, options: DiscoverOptions = {}): Pro
   const listed = listedSlugs(parseCompaniesText(current?.text ?? ''));
 
   const links: string[] = [];
-  for (const query of discovery.queries.slice(0, discovery.max_searches)) {
-    const response = await serpApiSearch(http, options.serpapiKey, { engine: 'google', q: query, num: '20', hl: 'en' });
+  for (const query of searching ? discovery.queries.slice(0, discovery.max_searches) : []) {
+    const response = await serpApiSearch(http, options.serpapiKey!, { engine: 'google', q: query, num: '20', hl: 'en' });
     const results = Array.isArray(response.organic_results) ? response.organic_results : [];
     for (const result of results as Array<{ link?: unknown }>) if (typeof result.link === 'string') links.push(result.link);
   }
 
-  const candidates = companiesFromLinks(links);
+  const candidates = mergeDiscovered(companiesFromLinks(links), harvested);
   const found: DiscoveredCompanies = emptyByAts<string>();
   for (const ats of Object.keys(found) as Array<keyof DiscoveredCompanies>) {
     for (const slug of candidates[ats].filter((candidate) => !listed[ats].has(candidate))) {
