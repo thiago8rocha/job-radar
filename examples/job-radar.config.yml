@@ -37,6 +37,7 @@ sources:
   linkedin: { enabled: false }        # public guest search, slow and rate limited; see the README
   getonbrd: { enabled: false }        # tech jobs, many from LatAm; needs no key
   remoteok: { enabled: false }        # latest ~100 remote jobs; needs no key
+  hn_hiring: { enabled: false }       # latest "Who is hiring?" thread on Hacker News; few QA roles
   github_repos: { enabled: false }    # open issues of backend-br/vagas, frontendbr/vagas and qa-brasil/vagas; set `repos: [owner/name]` to choose
   jobicy: { enabled: false }          # remote jobs by region and term; needs no key
   weworkremotely: { enabled: false }  # latest remote jobs from its RSS feed; needs no key

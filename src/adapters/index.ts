@@ -7,6 +7,7 @@ import { githubRepos } from './github-repos.js';
 import { greenhouse } from './greenhouse.js';
 import { gupy } from './gupy.js';
 import { himalayas } from './himalayas.js';
+import { hnHiring } from './hn-hiring.js';
 import { inhire } from './inhire.js';
 import { jobicy } from './jobicy.js';
 import { lever } from './lever.js';
@@ -24,5 +25,5 @@ import type { AnySourceAdapter } from './types.js';
 
 /** Every adapter available in this version, by source id (the keys of `sources:` in the config). */
 export const ADAPTERS: Record<string, AnySourceAdapter> = Object.fromEntries(
-  [inhire, himalayas, freehire, getonbrd, linkedin, greenhouse, lever, ashby, workable, smartrecruiters, recruitee, teamtailor, quickin, solides, workday, careers, gupy, remoteok, weworkremotely, jobicy, githubRepos, googleJobs].map((adapter) => [adapter.id, adapter]),
+  [inhire, himalayas, freehire, getonbrd, linkedin, greenhouse, lever, ashby, workable, smartrecruiters, recruitee, teamtailor, quickin, solides, workday, careers, gupy, remoteok, weworkremotely, jobicy, githubRepos, hnHiring, googleJobs].map((adapter) => [adapter.id, adapter]),
 );
