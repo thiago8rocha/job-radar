@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:tt="https://teamtailor.com/locations">
+  <channel>
+    <title>Teamtailor</title>
+    <description>Current job openings</description>
+    <link>https://career.teamtailor.com/jobs</link>
+    <item>
+      <title>Integration Success Specialist</title>
+      <description>&lt;figure&gt;&lt;lite-youtube videoid="sc-TJB8qo00" title="Play: Video" posterquality="sddefault"&gt;&lt;/lite-youtube&gt;&lt;/figure&gt;&lt;h3&gt;Let's build the future together!&lt;/h3&gt;&lt;p&gt;Teamtailor is a global Employer Branding and ATS SaaS platform used by over 13,000 companies, 250,000 users, and available in 90 countries worldwide. 🌍&lt;/p&gt;&lt;p&gt;Working at &lt;a target="_blank" href="https://www.teamtailor.com/en/"&gt;Teamtailor&lt;/a&gt; means being part of a</description>
+      <pubDate>Tue, 24 Nov 2026 10:33:49 +0100</pubDate>
+      <link>https://career.teamtailor.com/jobs/8786914-integration-success-specialist</link>
+      <remoteStatus>none</remoteStatus>
+      <guid>d3af95f8-ff4e-4b02-8671-0a7564ce307b</guid>
+      <tt:locations>
+        <tt:location>
+          <tt:name>Stockholm</tt:name>
+          <tt:address>Östgötagatan 16</tt:address>
+          <tt:zip>116 21</tt:zip>
+          <tt:city>Stockholm</tt:city>
+          <tt:country>Sweden</tt:country>
+        </tt:location>
+      </tt:locations>
+      <tt:department>Integration Operations</tt:department>
+      <tt:role/>
+      <tt:division/>
+    </item>
+    <item>
+      <title>Customer Success Manager - Dutch Speaking</title>
+      <description>&lt;figure&gt;&lt;lite-youtube videoid="sc-TJB8qo00" title="Play: Video" posterquality="sddefault"&gt;&lt;/lite-youtube&gt;&lt;/figure&gt;&lt;h4&gt;Let's build the future together!&lt;/h4&gt;&lt;p&gt;&lt;a target="_blank" href="https://career.teamtailor.com/"&gt;Teamtailor&lt;/a&gt; is an Employer Branding and ATS SaaS platform used by over 13,000 companies, and 250,000 users in 90 countries around the world 🌏.&lt;/p&gt;&lt;p&gt;Working at Teamtailor means working at a young, inter</description>
+      <pubDate>Mon, 16 Nov 2026 10:25:07 +0100</pubDate>
+      <link>https://career.teamtailor.com/jobs/8746132-customer-success-manager-dutch-speaking</link>
+      <remoteStatus>hybrid</remoteStatus>
+      <guid>fb8cc63f-b262-44e6-94c2-ae6d551d3cce</guid>
+      <tt:locations>
+        <tt:location>
+          <tt:name>Stockholm</tt:name>
+          <tt:address>Östgötagatan 16</tt:address>
+          <tt:zip>116 21</tt:zip>
+          <tt:city>Stockholm</tt:city>
+          <tt:country>Sweden</tt:country>
+        </tt:location>
+      </tt:locations>
+      <tt:department>Customer Success</tt:department>
+      <tt:role/>
+      <tt:division/>
+    </item>
+    <item>
+      <title>Enterprise Account Executive - Chicago</title>
+      <description>&lt;figure&gt;&lt;lite-youtube videoid="sc-TJB8qo00" title="Play: Video" posterquality="sddefault"&gt;&lt;/lite-youtube&gt;&lt;/figure&gt;&lt;h4&gt;&lt;strong&gt;Join us to shape the future!&lt;/strong&gt;&lt;/h4&gt;&lt;p&gt;Teamtailor is a global Employer Branding and ATS SaaS platform used by over 13,000 companies, 250,000 users, and available in 90 countries worldwide. 🌍&lt;/p&gt;&lt;p&gt;Working at &lt;a target="_blank" href="https://www.teamtailor.com/en/"&gt;Teamtailor&lt;/a&</description>
+      <pubDate>Wed, 11 Nov 2026 17:34:36 +0100</pubDate>
+      <link>https://career.teamtailor.com/jobs/8706432-enterprise-account-executive-chicago</link>
+      <remoteStatus>hybrid</remoteStatus>
+      <guid>b5508148-ada5-4a7e-b2cb-55a3fd123a6f</guid>
+      <tt:locations>
+        <tt:location>
+          <tt:name>Chicago</tt:name>
+          <tt:address>125 S Clark St</tt:address>
+          <tt:zip>60603</tt:zip>
+          <tt:city>Chicago</tt:city>
+          <tt:country>United States</tt:country>
+        </tt:location>
+      </tt:locations>
+      <tt:department>Sales</tt:department>
+      <tt:role>Account Executive</tt:role>
+      <tt:division/>
+    </item>
+  </channel>
+</rss>

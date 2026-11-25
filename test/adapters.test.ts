@@ -12,6 +12,7 @@ import { lever } from '../src/adapters/lever.js';
 import { linkedin } from '../src/adapters/linkedin.js';
 import { recruitee } from '../src/adapters/recruitee.js';
 import { smartrecruiters } from '../src/adapters/smartrecruiters.js';
+import { teamtailor } from '../src/adapters/teamtailor.js';
 import { workable } from '../src/adapters/workable.js';
 import { SchemaError, type FetchContext } from '../src/adapters/types.js';
 import { parseConfig } from '../src/config/load.js';
@@ -226,6 +227,48 @@ describe('workable', () => {
   it('fails when the response has no jobs list', async () => {
     server.use(http.get('https://apply.workable.com/api/v1/widget/accounts/huggingface', () => HttpResponse.json({ name: 'x' })));
     await expect(workable.fetch(context(['huggingface']).ctx)).rejects.toBeInstanceOf(SchemaError);
+  });
+});
+
+describe('teamtailor', () => {
+  const rss = readFileSync(new URL('./fixtures/teamtailor.rss', import.meta.url), 'utf8');
+
+  it('reads the RSS feed: remote status, city and country, publication date', async () => {
+    server.use(http.get('https://career.teamtailor.com/jobs.rss', () => HttpResponse.text(rss, { headers: { 'content-type': 'application/rss+xml' } })));
+    const jobs = (await teamtailor.fetch(context(['career']).ctx)).map((raw) => teamtailor.normalize(raw));
+
+    expect(jobs).toHaveLength(3);
+    expect(jobs[0]!.company).toBe('Teamtailor');
+    expect(jobs[0]!.workModel).toBeUndefined();
+    expect(jobs[0]!.locations).toEqual(['Stockholm, Sweden']);
+    expect(jobs[1]!.workModel).toBe('hybrid');
+    expect(jobs[0]!.postedAt).toBe('2026-11-24T09:33:49.000Z');
+    expect(jobs[0]!.applyUrl).toBe('https://career.teamtailor.com/jobs/8786914-integration-success-specialist');
+  });
+
+  it('falls back to the JSON feed when there is no RSS feed, on a company domain too', async () => {
+    const requested: string[] = [];
+    server.use(
+      http.get('https://careers.hemnet.se/jobs.rss', () => (requested.push('rss'), new HttpResponse(null, { status: 404 }))),
+      http.get('https://careers.hemnet.se/jobs.json', () => (requested.push('json'), HttpResponse.json(fixture('teamtailor.json')))),
+    );
+    const { ctx, warnings } = context([], { companies: [{ slug: 'https://careers.hemnet.se', url: 'https://careers.hemnet.se' }] });
+    const jobs = (await teamtailor.fetch(ctx)).map((raw) => teamtailor.normalize(raw));
+
+    expect(requested).toEqual(['rss', 'json']);
+    expect(warnings.some((warning) => /jobs\.rss failed/.test(warning))).toBe(true);
+    expect(jobs).toHaveLength(2);
+    expect(jobs[0]!.company).toBe('Hemnet');
+    expect(jobs[0]!.locations).toEqual(['Stockholm, SE']);
+    expect(jobs[0]!.contracts).toEqual(['FULL_TIME']);
+  });
+
+  it('fails when neither feed has the expected shape', async () => {
+    server.use(
+      http.get('https://career.teamtailor.com/jobs.rss', () => HttpResponse.text('<html></html>')),
+      http.get('https://career.teamtailor.com/jobs.json', () => HttpResponse.json({ oops: true })),
+    );
+    await expect(teamtailor.fetch(context(['career']).ctx)).rejects.toBeInstanceOf(SchemaError);
   });
 });
 

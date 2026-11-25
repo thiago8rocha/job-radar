@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { ashby } from '../../src/adapters/ashby.js';
 import { recruitee } from '../../src/adapters/recruitee.js';
 import { smartrecruiters } from '../../src/adapters/smartrecruiters.js';
+import { teamtailor } from '../../src/adapters/teamtailor.js';
 import { workable } from '../../src/adapters/workable.js';
 import { freehire } from '../../src/adapters/freehire.js';
 import { greenhouse } from '../../src/adapters/greenhouse.js';
@@ -52,6 +53,7 @@ describe('live sources', () => {
   it('greenhouse', () => check(greenhouse, ['airbnb']));
   it('lever', () => check(lever, ['palantir']));
   it('ashby', () => check(ashby, ['ramp']));
+  it('teamtailor', () => check(teamtailor, ['career']));
   it('recruitee', () => check(recruitee, ['bunq']));
   it('smartrecruiters', () => check(smartrecruiters, ['BoschGroup']));
   it('workable', () => check(workable, ['huggingface']));
