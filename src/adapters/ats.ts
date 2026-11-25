@@ -11,6 +11,8 @@ export interface AtsDefinition {
   urls: AtsUrlPattern[];
   /** The slug's case matters on the ATS, so it is kept as written instead of lower-cased. */
   caseSensitive?: boolean;
+  /** A slug alone cannot address a board (Workday needs the host and the site name), so links are not turned into entries. */
+  urlOnly?: boolean;
   /** Wayback Machine CDX URL patterns that list this ATS's tenants, for ATS with no central search. */
   archive?: string[];
 }
@@ -44,6 +46,11 @@ export const ATS = [
       { pattern: /^https?:\/\/(?:www\.)?vagas\.solides\.com\.br\/empresa\/([a-z0-9_-]+)/i },
     ],
     archive: ['*.vagas.solides.com.br'],
+  },
+  {
+    id: 'workday',
+    urls: [{ pattern: /^https?:\/\/([a-z0-9-]+)\.wd\d+\.myworkdayjobs\.com(?:\/|$)/i }],
+    urlOnly: true,
   },
   { id: 'quickin', urls: [{ pattern: /^https?:\/\/jobs\.quickin\.io\/([a-z0-9_-]+)/i, ignore: ['jobs', 'api', 'login'] }], archive: ['jobs.quickin.io/*'] },
   {

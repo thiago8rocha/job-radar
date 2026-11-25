@@ -1,0 +1,35 @@
+{
+  "jobPostingInfo": {
+    "id": "376a5ba42fa01052a68664a1623f0000",
+    "title": "Networking SW QA Engineer",
+    "jobDescription": "<p>We are looking for a Software QA Engineer to join our team.</p><p>This position will be part of the QA team with the main goal is testing the Network virtualization features for DPU and ConnectX, which enables NVIDIA products to meet the industry-leading benchmarks of efficiency and quality.</p><p>The ideal candidate will engage in the testing of SW industry-leading features, be able to learn new features, and develop and implement manual and automated tests.</p><br /><h2><b>What you&#39;ll be doing:</b></h2><ul><li>Review the architecture design and requirements for new features introduced",
+    "location": "Israel, Tel Hai",
+    "postedOn": "Posted Yesterday",
+    "startDate": "2026-11-24",
+    "timeType": "Full time",
+    "jobReqId": "JR2029939",
+    "jobPostingId": "Networking-SW-QA-Engineer_JR2029939",
+    "jobPostingSiteId": "NVIDIAExternalCareerSite",
+    "country": {
+      "descriptor": "Israel",
+      "id": "084562884af243748dad7c84c304d89a"
+    },
+    "canApply": true,
+    "posted": true,
+    "includeResumeParsing": true,
+    "jobRequisitionLocation": {
+      "descriptor": "Israel, Tel Hai",
+      "country": {
+        "descriptor": "Israel",
+        "id": "084562884af243748dad7c84c304d89a",
+        "alpha2Code": "IL"
+      }
+    },
+    "externalUrl": "https://nvidia.wd5.myworkdayjobs.com/NVIDIAExternalCareerSite/job/Israel-Tel-Hai/Networking-SW-QA-Engineer_JR2029939"
+  },
+  "hiringOrganization": {
+    "name": "IL00 Mellanox Technologies, Ltd.",
+    "url": ""
+  },
+  "userAuthenticated": false
+}

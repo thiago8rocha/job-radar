@@ -15,6 +15,7 @@ import { recruitee } from '../src/adapters/recruitee.js';
 import { smartrecruiters } from '../src/adapters/smartrecruiters.js';
 import { solides } from '../src/adapters/solides.js';
 import { teamtailor } from '../src/adapters/teamtailor.js';
+import { workday } from '../src/adapters/workday.js';
 import { workable } from '../src/adapters/workable.js';
 import { SchemaError, type FetchContext } from '../src/adapters/types.js';
 import { parseConfig } from '../src/config/load.js';
@@ -229,6 +230,62 @@ describe('workable', () => {
   it('fails when the response has no jobs list', async () => {
     server.use(http.get('https://apply.workable.com/api/v1/widget/accounts/huggingface', () => HttpResponse.json({ name: 'x' })));
     await expect(workable.fetch(context(['huggingface']).ctx)).rejects.toBeInstanceOf(SchemaError);
+  });
+});
+
+describe('workday', () => {
+  const entry = { slug: 'https://nvidia.wd5.myworkdayjobs.com/en-US/NVIDIAExternalCareerSite', url: 'https://nvidia.wd5.myworkdayjobs.com/en-US/NVIDIAExternalCareerSite', name: 'NVIDIA' };
+
+  function mock() {
+    const searches: Array<{ searchText: string; offset: number; limit: number }> = [];
+    const detailCalls: string[] = [];
+    server.use(
+      http.post('https://nvidia.wd5.myworkdayjobs.com/wday/cxs/nvidia/NVIDIAExternalCareerSite/jobs', async ({ request }) => {
+        searches.push((await request.json()) as (typeof searches)[number]);
+        return HttpResponse.json(fixture('workday-list.json'));
+      }),
+      http.get('https://nvidia.wd5.myworkdayjobs.com/wday/cxs/nvidia/NVIDIAExternalCareerSite/job/*', ({ request }) => {
+        detailCalls.push(new URL(request.url).pathname);
+        return HttpResponse.json(fixture('workday-detail.json'));
+      }),
+    );
+    return { searches, detailCalls };
+  }
+
+  it('searches each include term and reads the detail only for postings that could pass the filters', async () => {
+    const { searches, detailCalls } = mock();
+    const { ctx } = context([], { companies: [entry], worthDetails: (candidate) => /Networking/.test(candidate.title) });
+    const jobs = (await workday.fetch(ctx)).map((raw) => workday.normalize(raw));
+
+    expect(searches.map((search) => [search.searchText, search.offset, search.limit])).toEqual([['QA', 0, 20], ['Quality', 0, 20]]);
+    expect(jobs).toHaveLength(3);
+    expect(detailCalls).toHaveLength(1);
+    const detailed = jobs.find((job) => /Networking SW QA/.test(job.title))!;
+    expect(detailed.company).toBe('NVIDIA');
+    expect(detailed.postedAt).toBe('2026-11-24');
+    expect(detailed.contracts).toEqual(['Full time']);
+    expect(detailed.applyUrl).toBe('https://nvidia.wd5.myworkdayjobs.com/NVIDIAExternalCareerSite/job/Israel-Tel-Hai/Networking-SW-QA-Engineer_JR2029939');
+    expect(detailed.description.length).toBeGreaterThan(0);
+  });
+
+  it('turns the relative posting date of the list into a date, and drops 30+ days', async () => {
+    mock();
+    const jobs = (await workday.fetch(context([], { companies: [entry], worthDetails: () => false }).ctx)).map((raw) => workday.normalize(raw));
+    const senior = jobs.find((job) => /Senior Software QA/.test(job.title))!;
+
+    expect(senior.postedAt).toBe(new Date(Date.parse('2026-10-15T12:00:00Z') - 22 * 86_400_000).toISOString());
+    expect(jobs.find((job) => /Intern/.test(job.title))!.postedAt).toBeUndefined();
+  });
+
+  it('fails the company when the entry has no career site URL', async () => {
+    const { ctx, warnings } = context(['nvidia']);
+    await expect(workday.fetch(ctx)).rejects.toThrow(/career site URL/);
+    expect(warnings[0]).toMatch(/workday\/nvidia/);
+  });
+
+  it('fails when the response has no postings list', async () => {
+    server.use(http.post('https://nvidia.wd5.myworkdayjobs.com/wday/cxs/nvidia/NVIDIAExternalCareerSite/jobs', () => HttpResponse.json({ errorCode: 'x' })));
+    await expect(workday.fetch(context([], { companies: [entry] }).ctx)).rejects.toBeInstanceOf(SchemaError);
   });
 });
 

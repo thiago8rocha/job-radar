@@ -1,0 +1,34 @@
+{
+  "total": 3,
+  "jobPostings": [
+    {
+      "title": "Senior Software QA Engineer",
+      "externalPath": "/job/India-Bengaluru/Senior-Software-QA-Engineer_JR2028491",
+      "locationsText": "India, Bengaluru",
+      "postedOn": "Posted 22 Days Ago",
+      "bulletFields": [
+        "JR2028491"
+      ]
+    },
+    {
+      "title": "Networking SW QA Engineer",
+      "externalPath": "/job/Israel-Tel-Hai/Networking-SW-QA-Engineer_JR2029939",
+      "locationsText": "Israel, Tel Hai",
+      "postedOn": "Posted Yesterday",
+      "bulletFields": [
+        "JR2029939"
+      ]
+    },
+    {
+      "title": "Software QA Developer Intern - 2027",
+      "externalPath": "/job/China-Shanghai/Software-QA-Developer-Intern---2027_JR2023654",
+      "locationsText": "China, Shanghai",
+      "postedOn": "Posted 30+ Days Ago",
+      "bulletFields": [
+        "JR2023654"
+      ]
+    }
+  ],
+  "facets": [],
+  "userAuthenticated": false
+}
