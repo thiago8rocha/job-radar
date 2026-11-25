@@ -1,6 +1,7 @@
 # Once a week: searches Google (through SerpAPI) for career pages on the supported ATS and opens a pull
 # request that adds the new companies to companies.yml. Nothing is collected from them until you merge it.
-# Needs discovery.enabled in the config and the SERPAPI_KEY secret; without them it does nothing.
+# Needs discovery.enabled in the config. The Google searches also need the SERPAPI_KEY secret; the boards
+# harvested from collected jobs and the Wayback Machine lookups do not.
 name: discover
 on:
   schedule:

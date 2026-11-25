@@ -11,11 +11,17 @@ export interface AtsDefinition {
   urls: AtsUrlPattern[];
   /** The slug's case matters on the ATS, so it is kept as written instead of lower-cased. */
   caseSensitive?: boolean;
+  /** Wayback Machine CDX URL patterns that list this ATS's tenants, for ATS with no central search. */
+  archive?: string[];
 }
 
 /** Every per-company ATS: a new one is an entry here plus its adapter. */
 export const ATS = [
-  { id: 'inhire', urls: [{ pattern: /^https?:\/\/([a-z0-9-]+)\.inhire\.app(?:\/|$)/i, ignore: ['www', 'app', 'api', 'files'] }] },
+  {
+    id: 'inhire',
+    urls: [{ pattern: /^https?:\/\/([a-z0-9-]+)\.inhire\.app(?:\/|$)/i, ignore: ['www', 'app', 'api', 'files'] }],
+    archive: ['*.inhire.app'],
+  },
   {
     id: 'greenhouse',
     urls: [

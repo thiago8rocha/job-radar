@@ -83,8 +83,10 @@ export const configSchema = z.object({
       queries: z.array(z.string()).default([]),
       /** Cap on SerpAPI searches per run; the free plan allows 100 a month. */
       max_searches: z.number().int().positive().default(8),
+      /** Cap on Wayback Machine queries per run, which find tenants of ATS with no search of their own; 0 turns them off. */
+      max_archive_queries: z.number().int().nonnegative().default(10),
     })
-    .default({ enabled: false, queries: [], max_searches: 8 }),
+    .default({ enabled: false, queries: [], max_searches: 8, max_archive_queries: 10 }),
 
   issues: z
     .object({
