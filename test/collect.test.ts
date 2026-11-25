@@ -236,6 +236,65 @@ describe('collect', () => {
   });
 });
 
+describe('backlog', () => {
+  const SMALL = CONFIG.replace('max_per_run: 25', 'max_per_run: 2');
+  const posting = (n: number, extra: Partial<Job> = {}) =>
+    job({ id: `alpha:c${n}:1`, source: 'alpha', company: `C${n}`, applyUrl: `https://x.test/${n}`, postedAt: `2026-10-1${n}T00:00:00Z`, ...extra });
+  const created = (fake: ReturnType<typeof setup>) => fake.issues.create.mock.calls.map((call) => (call[0] as any).title as string);
+
+  it('keeps what did not fit and writes it first on the next run, without fetching it again', async () => {
+    const first = setup(SMALL);
+    await run(first, { alpha: adapter('alpha', [posting(1), posting(2), posting(3)]) });
+    expect(created(first)).toEqual(['[C3] Senior QA Engineer', '[C2] Senior QA Engineer']);
+    expect((await loadState(statePath)).backlog.map((entry) => entry.job.id)).toEqual(['alpha:c1:1']);
+
+    const second = setup(SMALL, { existingIssues: first.issues.create.mock.calls.map((call) => ({ title: (call[0] as any).title, body: (call[0] as any).body })) });
+    const result = await run(second, { alpha: adapter('alpha', [posting(4)]) });
+    expect(created(second)).toEqual(['[C1] Senior QA Engineer', '[C4] Senior QA Engineer']);
+    expect(result.deferred).toBe(0);
+    expect((await loadState(statePath)).backlog).toEqual([]);
+  });
+
+  it('drops a queued job that got an issue in the meantime', async () => {
+    const first = setup(SMALL);
+    await run(first, { alpha: adapter('alpha', [posting(1), posting(2), posting(3)]) });
+
+    const later = setup(SMALL, { existingIssues: [{ title: '[Other] Something', body: '**Apply:** https://x.test/1\n' }] });
+    await run(later, { alpha: adapter('alpha', [posting(5, { postedAt: '2026-10-14T00:00:00Z' })]) });
+    expect(created(later)).toEqual(['[C5] Senior QA Engineer']);
+    expect((await loadState(statePath)).backlog).toEqual([]);
+  });
+
+  it('drops a queued job once it is older than the age limit', async () => {
+    const first = setup(SMALL);
+    await run(first, { alpha: adapter('alpha', [posting(1), posting(2), posting(3)]) });
+
+    const later = setup(SMALL);
+    await run(later, { alpha: adapter('alpha', []) }, { now: new Date('2026-12-30T12:00:00Z') });
+    expect(created(later)).toEqual([]);
+    expect((await loadState(statePath)).backlog).toEqual([]);
+  });
+
+  it('orders a batch by the company ATS link, then direct sources before aggregators, then newest first', async () => {
+    const fake = setup(SMALL.replace('max_per_run: 2', 'max_per_run: 4'));
+    await run(
+      fake,
+      {
+        alpha: adapter('alpha', [posting(1, { atsApply: false }), posting(2, { atsApply: false, postedAt: '2026-10-14T00:00:00Z' })]),
+        beta: adapter('beta', [posting(3, { id: 'beta:c3:1', source: 'beta', atsApply: false, postedAt: '2026-10-11T00:00:00Z' }), posting(4, { id: 'beta:c4:1', source: 'beta', atsApply: true, postedAt: '2026-10-10T00:00:00Z' })], 'company'),
+      },
+      { companies: { beta: ['acme'] } },
+    );
+    expect(created(fake)).toEqual(['[C4] Senior QA Engineer', '[C3] Senior QA Engineer', '[C2] Senior QA Engineer', '[C1] Senior QA Engineer']);
+  });
+
+  it('loads a state file written before the backlog existed', async () => {
+    await mkdir(dirname(statePath), { recursive: true });
+    await writeFile(statePath, JSON.stringify({ version: 1, jobs: {}, sources: {} }));
+    expect((await loadState(statePath)).backlog).toEqual([]);
+  });
+});
+
 describe('reposts', () => {
   const issue = (number: number, state: 'open' | 'closed', labels: string[]) => ({
     number,
