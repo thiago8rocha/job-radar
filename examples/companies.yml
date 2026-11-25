@@ -5,6 +5,7 @@
 #   lever:      https://jobs.lever.co/<slug>
 #   ashby:      https://jobs.ashbyhq.com/<slug>
 #   workable:   https://apply.workable.com/<slug>
+#   quickin:    https://jobs.quickin.io/<slug>
 #   teamtailor: https://<slug>.teamtailor.com   (or { url: https://careers.example.com } on the company's own domain)
 #   recruitee:  https://<slug>.recruitee.com
 #   smartrecruiters: https://jobs.smartrecruiters.com/<CompanyId>   (case sensitive)
@@ -17,3 +18,4 @@ workable: []
 smartrecruiters: []
 recruitee: []
 teamtailor: []
+quickin: []

@@ -182,6 +182,7 @@ export async function collect(ctx: Context, options: CollectOptions = {}): Promi
       apiKey,
       worthDetails: (candidate) => filter.worthDetails(candidate),
       isKnownUrl: (url) => known.urls.has(canonicalUrl(url) ?? url),
+      resolved: companiesState.resolved,
       warn: (message) => ctx.log.warn(message),
       onCompany: ({ company, items, error }) =>
         recordOutcome(
