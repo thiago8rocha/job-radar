@@ -1,0 +1,409 @@
+{
+  "totalPages": 1,
+  "currentPage": 1,
+  "count": 3,
+  "data": [
+    {
+      "id": 957225,
+      "title": "JOVEM APRENDIZ",
+      "description": "<p>A Sólides é a HR Tech líder no Brasil em Gestão Integrada de Pessoas com Inteligência Comportamental. Nossa plataforma é #completadeverdade: unimos tudo o que o RH e o DP precisam em um só lugar para transformar a realidade das PMEs.<br /><br /><strong>O nosso tamanho em números:</strong><br /><br />- R$ 530 milhões no maior aporte já feito em uma HR Tech na América Latina.<br />- +55 mil clientes e +8 milhões de pessoas impactadas.<br />- Aquisições das empresas Tangerino, RHGestor e Folha Digital.<br /><br /><strong>Nossa Cultura:</strong><br />Vivemos em ritmo acelerado, impulsionados pe",
+      "currentState": "em_andamento",
+      "referenceId": 2817,
+      "companyName": "Sólides Tecnologia",
+      "state": {
+        "id": 17,
+        "name": "Minas Gerais",
+        "code": "MG"
+      },
+      "city": {
+        "id": 2310,
+        "name": "Belo Horizonte",
+        "stateId": 17
+      },
+      "address": {
+        "id": 112858429,
+        "neighborhood": "Savassi",
+        "number": "845",
+        "latitude": null,
+        "longitude": null,
+        "city": {
+          "id": 2310,
+          "name": "Belo Horizonte",
+          "stateId": 17
+        },
+        "state": {
+          "id": 17,
+          "name": "Minas Gerais",
+          "code": "MG"
+        },
+        "country": {
+          "id": 30,
+          "name": "Brasil",
+          "code": "BR"
+        },
+        "zipCode": "30140-136",
+        "streetAddress": "Rua Tomé de Souza",
+        "foreignCity": null,
+        "foreignState": null,
+        "additionalInformation": "2º Andar"
+      },
+      "slug": "solides",
+      "redirectLink": "https://solides./vacancies/957225?origem=portal",
+      "type": "externa",
+      "isHiddenJob": false,
+      "homeOffice": false,
+      "jobType": "presencial",
+      "openPositions": 17,
+      "salary": {
+        "type": "simple",
+        "showRangeToApplicant": false,
+        "initialRange": null,
+        "finalRange": null,
+        "negotiable": false
+      },
+      "hasSpecialNeeds": false,
+      "peopleWithDisabilities": false,
+      "disabilityType": null,
+      "pcdOnly": false,
+      "videoUrl": null,
+      "seniority": [
+        {
+          "id": 4,
+          "name": "Junior",
+          "level": null
+        }
+      ],
+      "recruitmentContractType": [
+        {
+          "id": 167695,
+          "name": "Jovem Aprendiz",
+          "level": null
+        }
+      ],
+      "benefits": [],
+      "language": [],
+      "hardSkills": [],
+      "education": [],
+      "createdAt": "2026-11-23",
+      "availablePositions": 17,
+      "affirmative": [],
+      "occupationAreas": [
+        {
+          "id": 349581,
+          "name": "Administrativo",
+          "level": null
+        }
+      ],
+      "isGoogleForJobsEnabled": true,
+      "requiredFields": [
+        "killerQuestions"
+      ],
+      "receivingResume": true,
+      "showSkillsLevel": true,
+      "showModality": true,
+      "shift": [
+        {
+          "id": 40,
+          "name": "Tarde",
+          "level": null
+        }
+      ],
+      "date": {
+        "due": "2027-01-09",
+        "show": false
+      },
+      "preApplyEnabled": false,
+      "startSolidesEnabled": false,
+      "publishers": null,
+      "isDisabled": false
+    },
+    {
+      "id": 954722,
+      "title": "COORDENADOR(A) DE SEGURANÇA CIBERNÉTICA",
+      "description": "<p>A Sólides é a HR Tech líder no Brasil em Gestão Integrada de Pessoas com Inteligência Comportamental. Nossa plataforma é #completadeverdade: unimos tudo o que o RH e o DP precisam em um só lugar para transformar a realidade das PMEs.<br /><br /><strong>O nosso tamanho em números:</strong><br /><br />- R$ 530 milhões no maior aporte já feito em uma HR Tech na América Latina.<br />- +55 mil clientes e +8 milhões de pessoas impactadas.<br />- Aquisições das empresas Tangerino, RHGestor e Folha Digital.<br /><br /><strong>Nossa Cultura:</strong><br />Vivemos em ritmo acelerado, impulsionados pe",
+      "currentState": "em_andamento",
+      "referenceId": 2817,
+      "companyName": "Sólides Tecnologia",
+      "state": {
+        "id": 17,
+        "name": "Minas Gerais",
+        "code": "MG"
+      },
+      "city": {
+        "id": 2310,
+        "name": "Belo Horizonte",
+        "stateId": 17
+      },
+      "address": {
+        "id": 112622738,
+        "neighborhood": "Savassi",
+        "number": "845",
+        "latitude": null,
+        "longitude": null,
+        "city": {
+          "id": 2310,
+          "name": "Belo Horizonte",
+          "stateId": 17
+        },
+        "state": {
+          "id": 17,
+          "name": "Minas Gerais",
+          "code": "MG"
+        },
+        "country": {
+          "id": 30,
+          "name": "Brasil",
+          "code": "BR"
+        },
+        "zipCode": "30140-136",
+        "streetAddress": "Rua Tomé de Souza",
+        "foreignCity": null,
+        "foreignState": null,
+        "additionalInformation": "2º Andar"
+      },
+      "slug": "solides",
+      "redirectLink": "https://solides./vacancies/954722?origem=portal",
+      "type": "externa",
+      "isHiddenJob": false,
+      "homeOffice": false,
+      "jobType": "remoto",
+      "openPositions": 1,
+      "salary": {
+        "type": "simple",
+        "showRangeToApplicant": false,
+        "initialRange": null,
+        "finalRange": null,
+        "negotiable": false
+      },
+      "hasSpecialNeeds": false,
+      "peopleWithDisabilities": true,
+      "disabilityType": null,
+      "pcdOnly": false,
+      "videoUrl": null,
+      "seniority": [
+        {
+          "id": 7,
+          "name": "Especialista",
+          "level": null
+        }
+      ],
+      "recruitmentContractType": [
+        {
+          "id": 10,
+          "name": "CLT",
+          "level": null
+        }
+      ],
+      "benefits": [],
+      "language": [
+        {
+          "id": 1579,
+          "name": "Inglês",
+          "level": 3
+        }
+      ],
+      "hardSkills": [],
+      "education": [
+        {
+          "id": 45,
+          "name": "Graduação",
+          "level": null
+        },
+        {
+          "id": 47,
+          "name": "Pós Graduação",
+          "level": null
+        }
+      ],
+      "createdAt": "2026-11-16",
+      "availablePositions": 1,
+      "affirmative": [],
+      "occupationAreas": [
+        {
+          "id": 2229379,
+          "name": "Segurança",
+          "level": null
+        }
+      ],
+      "isGoogleForJobsEnabled": true,
+      "requiredFields": [
+        "professionalExperiences",
+        "academicEducations",
+        "salary",
+        "about_me",
+        "linkedin",
+        "address",
+        "street",
+        "district",
+        "city"
+      ],
+      "receivingResume": true,
+      "showSkillsLevel": true,
+      "showModality": true,
+      "shift": [
+        {
+          "id": 42,
+          "name": "Integral",
+          "level": null
+        }
+      ],
+      "date": {
+        "due": "2027-02-08",
+        "show": false
+      },
+      "preApplyEnabled": false,
+      "startSolidesEnabled": false,
+      "publishers": null,
+      "isDisabled": false
+    },
+    {
+      "id": 940532,
+      "title": "ANALISTA DE SUCESSO DO CLIENTE JR ",
+      "description": "<p><strong>Quem Somos</strong><br />A Sólides é a HR Tech líder no Brasil em Gestão Integrada de Pessoas com Inteligência Comportamental. Nossa plataforma é #completadeverdade: unimos tudo o que o RH e o DP precisam em um só lugar para transformar a realidade das PMEs. 🚀<br />📊 O nosso tamanho em números:</p>\n<ul>\n<li>R$ 530 milhões no maior aporte já feito em uma HR Tech na América Latina.</li>\n<li>+55mil clientes e +8 milhões de pessoas impactadas.</li>\n<li>Aquisições das empresas Tangerino, RHGestor e Folha Digital.</li>\n</ul>\n<p><strong>💜 Nossa Cultura:</strong><br />Vivemos em ritmo ac",
+      "currentState": "em_andamento",
+      "referenceId": 2817,
+      "companyName": "Sólides Tecnologia",
+      "state": {
+        "id": 17,
+        "name": "Minas Gerais",
+        "code": "MG"
+      },
+      "city": {
+        "id": 2310,
+        "name": "Belo Horizonte",
+        "stateId": 17
+      },
+      "address": {
+        "id": 111358777,
+        "neighborhood": "Savassi",
+        "number": "845",
+        "latitude": null,
+        "longitude": null,
+        "city": {
+          "id": 2310,
+          "name": "Belo Horizonte",
+          "stateId": 17
+        },
+        "state": {
+          "id": 17,
+          "name": "Minas Gerais",
+          "code": "MG"
+        },
+        "country": {
+          "id": 30,
+          "name": "Brasil",
+          "code": "BR"
+        },
+        "zipCode": "30140-136",
+        "streetAddress": "Rua Tomé de Souza",
+        "foreignCity": null,
+        "foreignState": null,
+        "additionalInformation": "2º Andar"
+      },
+      "slug": "solides",
+      "redirectLink": "https://solides./vacancies/940532?origem=portal",
+      "type": "externa",
+      "isHiddenJob": false,
+      "homeOffice": false,
+      "jobType": "hibrido",
+      "openPositions": 4,
+      "salary": {
+        "type": "simple",
+        "showRangeToApplicant": false,
+        "initialRange": null,
+        "finalRange": null,
+        "negotiable": false
+      },
+      "hasSpecialNeeds": false,
+      "peopleWithDisabilities": true,
+      "disabilityType": null,
+      "pcdOnly": false,
+      "videoUrl": null,
+      "seniority": [
+        {
+          "id": 4,
+          "name": "Junior",
+          "level": null
+        }
+      ],
+      "recruitmentContractType": [
+        {
+          "id": 10,
+          "name": "CLT",
+          "level": null
+        }
+      ],
+      "benefits": [],
+      "language": [],
+      "hardSkills": [],
+      "education": [
+        {
+          "id": 44,
+          "name": "Ensino Médio",
+          "level": null
+        },
+        {
+          "id": 45,
+          "name": "Graduação",
+          "level": null
+        },
+        {
+          "id": 46,
+          "name": "Tecnólogo",
+          "level": null
+        },
+        {
+          "id": 429327,
+          "name": "Ensino Técnico",
+          "level": null
+        }
+      ],
+      "createdAt": "2026-10-19",
+      "availablePositions": 1,
+      "affirmative": [],
+      "occupationAreas": [
+        {
+          "id": 349581,
+          "name": "Administrativo",
+          "level": null
+        },
+        {
+          "id": 349594,
+          "name": "Recursos Humanos",
+          "level": null
+        }
+      ],
+      "isGoogleForJobsEnabled": true,
+      "requiredFields": [
+        "professionalExperiences",
+        "academicEducations",
+        "linkedin",
+        "salary",
+        "indentify",
+        "about_me",
+        "address",
+        "street",
+        "district",
+        "city"
+      ],
+      "receivingResume": true,
+      "showSkillsLevel": true,
+      "showModality": true,
+      "shift": [
+        {
+          "id": 42,
+          "name": "Integral",
+          "level": null
+        }
+      ],
+      "date": {
+        "due": "2026-12-21",
+        "show": false
+      },
+      "preApplyEnabled": false,
+      "startSolidesEnabled": false,
+      "publishers": null,
+      "isDisabled": false
+    }
+  ]
+}

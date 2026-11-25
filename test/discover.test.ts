@@ -44,6 +44,9 @@ describe('company links', () => {
         'https://huggingface.workable.com/',
         'https://apply.workable.com/j/81B46579FE',
         'https://www.workable.com/pricing',
+        'https://solides.vagas.solides.com.br/vaga/957225',
+        'https://vagas.solides.com.br/empresa/acme-ltda/vaga',
+        'https://www.vagas.solides.com.br/',
         'https://jobs.quickin.io/quickin/jobs/6a4e51ec02c66d001271132a',
         'https://hemnet.teamtailor.com/jobs/8791187-fullstack-node-developer',
         'https://app.teamtailor.com/login',
@@ -54,7 +57,7 @@ describe('company links', () => {
         'https://acme.inhire.app/vagas/456',
         'https://example.com/careers',
       ]),
-    ).toEqual({ ...emptyByAts(), inhire: ['acme'], greenhouse: ['gitlab'], lever: ['palantir'], ashby: ['ramp'], workable: ['huggingface'], smartrecruiters: ['BoschGroup', 'Visa'], recruitee: ['bunq'], teamtailor: ['hemnet'], quickin: ['quickin'] });
+    ).toEqual({ ...emptyByAts(), inhire: ['acme'], greenhouse: ['gitlab'], lever: ['palantir'], ashby: ['ramp'], workable: ['huggingface'], smartrecruiters: ['BoschGroup', 'Visa'], recruitee: ['bunq'], teamtailor: ['hemnet'], quickin: ['quickin'], solides: ['solides', 'acme-ltda'] });
   });
 });
 
