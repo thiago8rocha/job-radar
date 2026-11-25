@@ -95,6 +95,8 @@ export interface Duplicate {
   job: Job;
   reason: string;
   of: string;
+  /** The company + title key (or posting code key) that matched, when that was the reason. */
+  key?: string;
 }
 
 export interface DedupResult {
@@ -123,7 +125,7 @@ export function dedupe(jobs: Job[], known: KnownJobs): DedupResult {
     const reason = ids.has(job.id) ? 'id' : urls.has(url) ? 'url' : knownKey ? keyReason : undefined;
     if (reason) {
       const matched = reason === 'id' ? job.id : reason === 'url' ? `url:${url}` : knownKey!;
-      result.duplicates.push({ job, reason, of: sourceOf.get(matched) ?? KNOWN_SOURCE });
+      result.duplicates.push({ job, reason, of: sourceOf.get(matched) ?? KNOWN_SOURCE, key: reason === 'id' || reason === 'url' ? undefined : knownKey });
       continue;
     }
     ids.add(job.id);

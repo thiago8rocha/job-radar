@@ -236,6 +236,87 @@ describe('collect', () => {
   });
 });
 
+describe('reposts', () => {
+  const issue = (number: number, state: 'open' | 'closed', labels: string[]) => ({
+    number,
+    state,
+    title: '[Acme] Senior QA Engineer',
+    body: '**Apply:** https://acme.test/old\n<!-- job-radar:id=alpha:acme:oldoldol -->',
+    labels: labels.map((name) => ({ name })),
+  });
+  const reposted = (id = 'alpha:acme:newnewne') =>
+    job({ id, source: 'alpha', company: 'Acme', title: 'Senior QA Engineer', applyUrl: 'https://acme.test/new' });
+
+  async function repost(existing: ReturnType<typeof issue>, jobs = [reposted()]) {
+    const fake = setup(CONFIG, { existingIssues: [existing] });
+    await run(fake, { alpha: adapter('alpha', jobs) });
+    return fake;
+  }
+
+  it('comments on an application with no answer and marks it, without opening a second issue', async () => {
+    const fake = await repost(issue(7, 'open', ['status:applied']));
+
+    expect(fake.issues.create).not.toHaveBeenCalled();
+    expect(fake.issues.addLabels).toHaveBeenCalledWith(expect.objectContaining({ issue_number: 7, labels: ['signal:reposted'] }));
+    const comment = (fake.issues.createComment.mock.calls[0]![0] as any).body as string;
+    expect(comment).toMatch(/^Reposted on 2026-10-15: https:\/\/acme\.test\/new/);
+    expect(comment).toContain('<!-- job-radar:repost=alpha:acme:newnewne -->');
+    expect(fake.issues.update).not.toHaveBeenCalled();
+    expect(fake.issues.createLabel.mock.calls.map((call) => (call[0] as any).name)).toContain('signal:reposted');
+  });
+
+  it('comments on a closed, discarded issue and leaves it closed', async () => {
+    const fake = await repost(issue(8, 'closed', ['status:discarded', 'discard:salary']));
+
+    expect(fake.issues.create).not.toHaveBeenCalled();
+    expect(fake.issues.addLabels).toHaveBeenCalledWith(expect.objectContaining({ issue_number: 8, labels: ['signal:reposted'] }));
+    expect(fake.issues.createComment).toHaveBeenCalledTimes(1);
+    expect(fake.issues.update).not.toHaveBeenCalled();
+  });
+
+  it('reopens an issue that was closed because the posting disappeared, back at status:new', async () => {
+    const fake = await repost(issue(9, 'closed', ['status:discarded', 'closed-at-source']));
+
+    expect(fake.issues.create).not.toHaveBeenCalled();
+    expect(fake.issues.addLabels).toHaveBeenCalledWith(expect.objectContaining({ issue_number: 9, labels: ['signal:reposted', 'status:new'] }));
+    expect(fake.issues.removeLabel.mock.calls.map((call) => (call[0] as any).name)).toEqual(['closed-at-source', 'status:discarded']);
+    expect(fake.issues.update).toHaveBeenCalledWith(expect.objectContaining({ issue_number: 9, state: 'open' }));
+    expect((fake.issues.createComment.mock.calls[0]![0] as any).body).toContain('back at `status:new`');
+  });
+
+  it('does nothing for an issue that is still open and not applied to', async () => {
+    const fake = await repost(issue(10, 'open', ['status:new']));
+
+    expect(fake.issues.create).not.toHaveBeenCalled();
+    expect(fake.issues.createComment).not.toHaveBeenCalled();
+    expect(fake.issues.addLabels).not.toHaveBeenCalled();
+  });
+
+  it('comments once per issue even when two sources repost it, and not again on the next run', async () => {
+    const jobs = [reposted('alpha:acme:newnewne'), { ...reposted('alpha:acme:another1'), applyUrl: 'https://acme.test/another' }];
+    const existing = issue(11, 'open', ['no-response']);
+    const first = setup(CONFIG, { existingIssues: [existing] });
+    await run(first, { alpha: adapter('alpha', jobs) });
+    expect(first.issues.createComment).toHaveBeenCalledTimes(1);
+
+    const state = await loadState(statePath);
+    expect(Object.keys(state.jobs)).toEqual(expect.arrayContaining(['alpha:acme:newnewne', 'alpha:acme:another1']));
+
+    const second = setup(CONFIG, { existingIssues: [existing] });
+    await run(second, { alpha: adapter('alpha', jobs) });
+    expect(second.issues.createComment).not.toHaveBeenCalled();
+  });
+
+  it('only reports in a dry run', async () => {
+    const fake = setup(CONFIG, { existingIssues: [issue(12, 'open', ['status:applied'])] });
+    await run(fake, { alpha: adapter('alpha', [reposted()]) }, { dryRun: true });
+
+    expect(fake.issues.createComment).not.toHaveBeenCalled();
+    expect(fake.issues.addLabels).not.toHaveBeenCalled();
+    expect(fake.log.info).toHaveBeenCalledWith(expect.stringContaining('[dry-run] Reposted: #12'));
+  });
+});
+
 describe('describeLocation', () => {
   it('joins work model, places and the converted hours', () => {
     const base = job({ locations: ['Brazil'], description: 'Overlap needed: 9am-5pm ET' });

@@ -9,13 +9,14 @@ import { isRelevantPosting } from '../adapters/common.js';
 import { companyRefs, type Companies } from '../config/schema.js';
 import { FIELD } from '../domain/fields.js';
 import type { Job } from '../domain/job.js';
-import { dynamicLabel, type LabelDef } from '../domain/labels.js';
+import { dynamicLabel, LABEL, type LabelDef } from '../domain/labels.js';
 import { STATUS_TITLES, statusLabel } from '../domain/status.js';
 import { issueTitle, renderIssueBody } from '../github/issue-body.js';
-import { ensureLabels } from '../github/labels.js';
+import { addLabels, ensureLabels, removeLabel } from '../github/labels.js';
 import { addIssueToProject, setFieldValue, type Project } from '../github/project.js';
 import { companiesFromLinks } from '../discovery/links.js';
-import { dedupe, knownFromIssues, type KnownJobs } from '../pipeline/dedup.js';
+import { dedupe, KNOWN_SOURCE, knownFromIssues, type Duplicate, type KnownJobs } from '../pipeline/dedup.js';
+import { priorIssuesByKey, repostAction, repostMarker, type PriorIssue } from '../pipeline/repost.js';
 import { regionsOf } from '../pipeline/eligibility.js';
 import { canonicalUrl } from '../pipeline/url.js';
 import { buildExcerpt, sanitizeForIssue } from '../pipeline/excerpt.js';
@@ -257,6 +258,7 @@ export async function collect(ctx: Context, options: CollectOptions = {}): Promi
 
   // 5. Deduplication.
   const { fresh, duplicates } = dedupe(passed, known);
+  const reposts = repostsOf(duplicates, priorIssuesByKey(issues.filter((issue) => !issue.pull_request)));
   for (const duplicate of duplicates) {
     const report = bySource.get(duplicate.job.source)!;
     report.duplicates++;
@@ -266,6 +268,8 @@ export async function collect(ctx: Context, options: CollectOptions = {}): Promi
     recordStats(state, reports, now);
     await saveCompaniesState(companiesStatePath, companiesState);
   }
+
+  if (reposts.length > 0) await signalReposts(ctx, state, reposts, now, dryRun);
 
   // 6. Writing: newest first, capped per run so a first run cannot flood the board.
   const ordered = fresh.sort((a, b) => Date.parse(b.postedAt ?? '') - Date.parse(a.postedAt ?? '') || 0);
@@ -310,6 +314,52 @@ export async function collect(ctx: Context, options: CollectOptions = {}): Promi
     throw new Error('Every enabled source failed; see the warnings above');
   }
   return { sources: reports, created, deferred };
+}
+
+interface Repost {
+  job: Job;
+  prior: PriorIssue;
+}
+
+/** Duplicates that are the same job posted again (new id, new link) under an issue that is closed or has no answer. */
+function repostsOf(duplicates: Duplicate[], prior: Map<string, PriorIssue>): Repost[] {
+  return duplicates.flatMap((duplicate) => {
+    const issue = duplicate.key && duplicate.of === KNOWN_SOURCE ? prior.get(duplicate.key) : undefined;
+    return issue && repostAction(issue) ? [{ job: duplicate.job, prior: issue }] : [];
+  });
+}
+
+/**
+ * Tells the earlier issue about a repost instead of creating a second one: a comment and `signal:reposted`,
+ * and an issue closed by `revalidate` is reopened at `status:new`. Once per issue per run; each new id is
+ * recorded as seen, so the next run does not comment again.
+ */
+async function signalReposts(ctx: Context, state: SeenState, reposts: Repost[], now: Date, dryRun: boolean): Promise<void> {
+  const label = dynamicLabel('signal', 'reposted');
+  const handled = new Set<number>();
+  let labelReady = false;
+  for (const { job, prior } of reposts) {
+    const action = repostAction(prior)!;
+    if (!dryRun) state.jobs[job.id] = { issue: prior.number, seenAt: now.toISOString() };
+    if (handled.has(prior.number)) continue;
+    handled.add(prior.number);
+
+    ctx.log.info(`${dryRun ? '[dry-run] ' : ''}Reposted: #${prior.number} ${issueTitle(job.company, job.title)} (${action === 'reopen' ? 'reopened' : 'commented'})`);
+    if (dryRun) continue;
+    if (label && !labelReady) {
+      await ensureLabels(ctx.octokit, ctx.repo, [label]);
+      labelReady = true;
+    }
+    const target = { ...ctx.repo, issue_number: prior.number };
+    const body = `Reposted on ${now.toISOString().slice(0, 10)}: ${job.applyUrl}${action === 'reopen' ? '\n\nThe posting had disappeared from its source and is listed again, so this issue is back at `status:new`.' : ''}\n\n${repostMarker(job.id)}`;
+    await addLabels(ctx.octokit, ctx.repo, prior.number, [label!.name, ...(action === 'reopen' ? [statusLabel('new')] : [])]);
+    if (action === 'reopen') {
+      await removeLabel(ctx.octokit, ctx.repo, prior.number, LABEL.closedAtSource);
+      await removeLabel(ctx.octokit, ctx.repo, prior.number, statusLabel('discarded'));
+      await ctx.octokit.rest.issues.update({ ...target, state: 'open' });
+    }
+    await ctx.octokit.rest.issues.createComment({ ...target, body });
+  }
 }
 
 function companyRefsFromEmpty(): Companies {

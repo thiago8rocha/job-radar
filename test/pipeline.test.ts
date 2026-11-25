@@ -303,7 +303,7 @@ describe('dedup', () => {
     expect(dedupe([collected], known).duplicates).toEqual([{ job: collected, reason: 'url', of: 'known' }]);
 
     const otherLink = { ...collected, applyUrl: 'https://br.linkedin.com/jobs/view/123' };
-    expect(dedupe([otherLink], known).duplicates).toEqual([{ job: otherLink, reason: 'company and title', of: 'known' }]);
+    expect(dedupe([otherLink], known).duplicates).toMatchObject([{ job: otherLink, reason: 'company and title', of: 'known' }]);
   });
 
   it('matches a Gupy portal link against the same posting from an aggregator even when the company names differ', () => {
