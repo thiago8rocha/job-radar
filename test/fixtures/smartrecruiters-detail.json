@@ -1,0 +1,82 @@
+{
+  "id": "744000162238119",
+  "name": "QA Engineer / Tester – ServiceNow Platform",
+  "uuid": "15b91ff3-dc5d-4abe-b586-04fd956ef82c",
+  "jobId": "8b22f038-c1fe-4fb3-bac7-14f70b151f10",
+  "jobAdId": "8d012eea-6750-4f58-8ca7-0c8f6148b7f5",
+  "defaultJobAd": true,
+  "refNumber": "REF300966Q",
+  "company": {
+    "name": "Bosch Group",
+    "identifier": "BoschGroup"
+  },
+  "location": {
+    "city": "bengaluru",
+    "country": "in",
+    "address": "no.123  industrial layout  hosur road  koramangala,",
+    "postalCode": "560095",
+    "remote": false,
+    "hybrid": false,
+    "fullLocation": "bengaluru, , India"
+  },
+  "customField": [
+    {
+      "fieldId": "5abe2a4ab60a5e486a2d9b1d",
+      "fieldLabel": "Contract type",
+      "valueId": "1e46492b-d24f-460c-b095-38cf08a778d8",
+      "valueLabel": "Unlimited"
+    },
+    {
+      "fieldId": "5abe28e96d8bc56863dd9746",
+      "fieldLabel": "Tariff Area",
+      "valueId": "2473485f-051f-4fbc-b802-f3620b73998c",
+      "valueLabel": "India Local Grades"
+    }
+  ],
+  "releasedDate": "2026-11-18T08:11:18.980Z",
+  "postingUrl": "https://jobs.smartrecruiters.com/BoschGroup/744000162238119-qa-engineer-tester-servicenow-platform",
+  "applyUrl": "https://jobs.smartrecruiters.com/BoschGroup/744000162238119-qa-engineer-tester-servicenow-platform?oga=true",
+  "jobAd": {
+    "sections": {
+      "companyDescription": {
+        "title": "Company Description",
+        "text": "<p><strong>Bosch Global Software Technologies Private Limited</strong> is a 100% owned subsidiary of Robert Bosch GmbH, one of the world's leading global supplier of technology and services, offering end-to-end Engineering, IT and Business Solutions. With over 27,000+ associates, it’s the largest software development center of Bosch, outside Germany, indicating that it is the Technology Powerhouse of Bosch in India with a global footprint and presence in the US, Europe and the Asia Pacific regio"
+      },
+      "jobDescription": {
+        "title": "Job Description",
+        "text": "<p><strong>Roles &amp; Responsibilities :</strong><br>\n<strong><u>Role summary</u></strong></p><p>Makes sure every change to the ServiceNow platform works, is safe to release and doesn't break what already works. Designs and runs functional, regression, integration and user-acceptance testing, builds automated tests with the Automated Test Framework (ATF) and other tools, and works inside Agile DevOps teams so testing happens during the sprint, not after it. During the transition, builds the reg"
+      },
+      "qualifications": {
+        "title": "Qualifications",
+        "text": "<p><strong><u>Educational qualification:</u></strong></p><p>BE/B-Tech/MCA</p><p><strong><u>Experience :</u></strong></p><p>3-5 Years</p><p><strong><u>Mandatory/requires Skills :</u></strong><br>\nServiceNow Now Assist, Virtual Agent, and AI-powered Testing</p><p><strong><u>Preferred Skills :</u></strong><br>\nGenAI</p>"
+      },
+      "additionalInformation": {
+        "title": "Additional Information",
+        "text": ""
+      }
+    }
+  },
+  "active": true,
+  "visibility": "PUBLIC",
+  "industry": {
+    "id": "computer_software",
+    "label": "Computer Software"
+  },
+  "function": {
+    "id": "information_technology",
+    "label": "Information Technology"
+  },
+  "experienceLevel": {
+    "id": "associate",
+    "label": "Associate"
+  },
+  "typeOfEmployment": {
+    "id": "permanent",
+    "label": "Full-time"
+  },
+  "language": {
+    "code": "en",
+    "label": "English",
+    "labelNative": "English (US)"
+  }
+}

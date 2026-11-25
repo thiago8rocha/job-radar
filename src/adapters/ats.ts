@@ -38,6 +38,12 @@ export const ATS = [
   },
   { id: 'ashby', urls: [{ pattern: /^https?:\/\/jobs\.ashbyhq\.com\/([a-z0-9_.-]+)/i }] },
   {
+    id: 'smartrecruiters',
+    urls: [{ pattern: /^https?:\/\/(?:jobs|careers)\.smartrecruiters\.com\/(?:oneclick-ui\/company\/)?([A-Za-z0-9_-]+)/i, ignore: ['oneclick-ui', 'external-referrals', 'search', 'jobs', 'company'] }],
+    caseSensitive: true,
+    archive: ['jobs.smartrecruiters.com/*'],
+  },
+  {
     id: 'workable',
     urls: [
       { pattern: /^https?:\/\/apply\.workable\.com\/(?:api\/v1\/widget\/accounts\/)?([a-z0-9_-]+)/i, ignore: ['j', 'api', 'o'] },

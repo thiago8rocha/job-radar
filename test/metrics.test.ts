@@ -1,3 +1,4 @@
+import { emptyByAts } from '../src/adapters/ats.js';
 import { describe, expect, it } from 'vitest';
 import type { AnySourceAdapter } from '../src/adapters/types.js';
 import { FOLLOW_UP_MARKER, metrics } from '../src/commands/metrics.js';
@@ -453,7 +454,7 @@ describe('revalidate', () => {
     normalize: (raw: Job) => raw,
   });
   const search: AnySourceAdapter = { id: 'himalayas', mode: 'search', fetch: async () => [], normalize: (raw: any) => raw };
-  const companies = { inhire: [], greenhouse: ['acme'], lever: [], ashby: [], workable: [] };
+  const companies = { ...emptyByAts(), greenhouse: ['acme'] };
 
   function setup(issues: ReturnType<typeof issue>[]) {
     const fake = fakeContext({ existingIssues: issues });

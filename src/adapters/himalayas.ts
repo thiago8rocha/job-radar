@@ -2,7 +2,7 @@ import { z } from 'zod';
 import type { Job } from '../domain/job.js';
 import { canonicalUrl } from '../pipeline/url.js';
 import { htmlToText } from '../util/text.js';
-import { asCurrency, formatRange, isoFromEpoch, jobId } from './common.js';
+import { asCurrency, formatRange, isoFromEpoch, jobId, searchTerms } from './common.js';
 import type { SourceAdapter } from './types.js';
 import { parseEnvelope, parseItems } from './validate.js';
 
@@ -31,17 +31,6 @@ const postingSchema = z.object({
 });
 
 export type HimalayasPosting = z.infer<typeof postingSchema>;
-
-/** Terms to search, de-duplicated ignoring case. */
-function searchTerms(include: string[]): string[] {
-  const seen = new Set<string>();
-  return include.filter((term) => {
-    const key = term.trim().toLowerCase();
-    if (!key || seen.has(key)) return false;
-    seen.add(key);
-    return true;
-  });
-}
 
 /**
  * Himalayas public API (remote jobs, no key). One search per `search.include` term, newest first,
