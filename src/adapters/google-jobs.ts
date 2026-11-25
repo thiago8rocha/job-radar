@@ -2,6 +2,7 @@ import { z } from 'zod';
 import type { Job } from '../domain/job.js';
 import { canonicalUrl } from '../pipeline/url.js';
 import { relativeToIso } from '../util/relative-time.js';
+import { ATS } from './ats.js';
 import { jobId } from './common.js';
 import { serpApiSearch } from './serpapi.js';
 import { SchemaError, type FetchContext, type SourceAdapter } from './types.js';
@@ -23,6 +24,28 @@ const postingSchema = z.object({
 });
 
 export type GoogleJobsPosting = z.infer<typeof postingSchema> & { fetchedAt: string };
+
+// Aggregators that charge the candidate a subscription before letting them apply.
+const PAYWALLED_HOSTS = ['jobleads.com', 'jobleads.io'];
+
+function isPaywalled(link: string): boolean {
+  try {
+    const host = new URL(link).hostname.toLowerCase();
+    return PAYWALLED_HOSTS.some((blocked) => host === blocked || host.endsWith(`.${blocked}`));
+  } catch {
+    return false;
+  }
+}
+
+function isAtsLink(link: string): boolean {
+  return ATS.some((def) => def.urls.some(({ pattern }) => pattern.test(link)));
+}
+
+/** Google lists apply options in no useful order, often an aggregator first: prefer the ATS, never a paywall. */
+export function pickApplyLink(posting: Pick<GoogleJobsPosting, 'apply_options' | 'share_link'>): string | undefined {
+  const links = (posting.apply_options ?? []).map((option) => option.link).filter((link) => !isPaywalled(link));
+  return links.find(isAtsLink) ?? links[0] ?? (posting.apply_options?.length ? undefined : posting.share_link ?? undefined);
+}
 
 /** `QA OR "Quality Assurance" OR SDET remote`: one search that covers several include terms. */
 export function defaultQueries(include: string[]): string[] {
@@ -58,6 +81,7 @@ export const googleJobs: SourceAdapter<GoogleJobsPosting> = {
       if (results === undefined) continue; // no results for this query
       if (!Array.isArray(results)) throw new SchemaError('google_jobs', 'jobs_results is not a list');
       for (const posting of parseItems('google_jobs', postingSchema, results, ctx)) {
+        if (!pickApplyLink(posting)) continue;
         byKey.set(posting.job_id ?? `${posting.company_name}|${posting.title}`, { ...posting, fetchedAt: ctx.now.toISOString() });
       }
     }
@@ -65,7 +89,7 @@ export const googleJobs: SourceAdapter<GoogleJobsPosting> = {
   },
 
   normalize(posting): Job {
-    const link = posting.apply_options?.[0]?.link ?? posting.share_link;
+    const link = pickApplyLink(posting);
     if (!link) throw new Error('posting has no application link');
     const location = posting.location?.trim();
     return {
