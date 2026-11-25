@@ -37,6 +37,14 @@ export const ATS = [
     ],
   },
   { id: 'ashby', urls: [{ pattern: /^https?:\/\/jobs\.ashbyhq\.com\/([a-z0-9_.-]+)/i }] },
+  {
+    id: 'workable',
+    urls: [
+      { pattern: /^https?:\/\/apply\.workable\.com\/(?:api\/v1\/widget\/accounts\/)?([a-z0-9_-]+)/i, ignore: ['j', 'api', 'o'] },
+      { pattern: /^https?:\/\/([a-z0-9-]+)\.workable\.com(?:\/|$)/i, ignore: ['www', 'apply', 'help', 'resources', 'api'] },
+    ],
+    archive: ['apply.workable.com/*'],
+  },
 ] as const satisfies readonly AtsDefinition[];
 
 export type AtsId = (typeof ATS)[number]['id'];

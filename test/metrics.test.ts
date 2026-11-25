@@ -453,7 +453,7 @@ describe('revalidate', () => {
     normalize: (raw: Job) => raw,
   });
   const search: AnySourceAdapter = { id: 'himalayas', mode: 'search', fetch: async () => [], normalize: (raw: any) => raw };
-  const companies = { inhire: [], greenhouse: ['acme'], lever: [], ashby: [] };
+  const companies = { inhire: [], greenhouse: ['acme'], lever: [], ashby: [], workable: [] };
 
   function setup(issues: ReturnType<typeof issue>[]) {
     const fake = fakeContext({ existingIssues: issues });
