@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import type { Job } from '../domain/job.js';
-import { canonicalUrl } from '../pipeline/url.js';
+import { canonicalUrl, isPaywalled } from '../pipeline/url.js';
 import { relativeToIso } from '../util/relative-time.js';
 import { ATS } from './ats.js';
 import { jobId } from './common.js';
@@ -24,18 +24,6 @@ const postingSchema = z.object({
 });
 
 export type GoogleJobsPosting = z.infer<typeof postingSchema> & { fetchedAt: string };
-
-// Aggregators that charge the candidate a subscription before letting them apply.
-const PAYWALLED_HOSTS = ['jobleads.com', 'jobleads.io'];
-
-function isPaywalled(link: string): boolean {
-  try {
-    const host = new URL(link).hostname.toLowerCase();
-    return PAYWALLED_HOSTS.some((blocked) => host === blocked || host.endsWith(`.${blocked}`));
-  } catch {
-    return false;
-  }
-}
 
 function isAtsLink(link: string): boolean {
   return ATS.some((def) => def.urls.some(({ pattern }) => pattern.test(link)));

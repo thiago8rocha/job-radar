@@ -264,6 +264,13 @@ work_model: [remote]
 `));
   const base = { title: 'Senior QA', seniority: ['senior'], workModel: 'remote' as const, locations: ['Remote'], postedAt: NOW.toISOString() };
 
+  it('drops a job whose apply link needs a paid subscription, whichever source found it', () => {
+    for (const applyUrl of ['https://www.jobleads.com/br/job/qa--brazil--e1', 'https://jobleads.io/job/x']) {
+      expect(filter.check(job({ ...base, company: 'Acme', applyUrl }), NOW).reason).toBe('paywalled: applying needs a paid subscription');
+    }
+    expect(filter.check(job({ ...base, company: 'Acme', applyUrl: 'https://boards.greenhouse.io/acme/jobs/1' }), NOW).ok).toBe(true);
+  });
+
   it('drops a job from a listed company whatever the spacing or case', () => {
     for (const company of ['JobTogether', 'Job Together', 'jobtogether', 'JobTogether Inc.']) {
       expect(filter.check(job({ ...base, company }), NOW).reason).toBe('excluded company: "JobTogether"');

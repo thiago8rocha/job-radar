@@ -37,3 +37,15 @@ export function canonicalUrl(value: string): string | undefined {
   if (url.pathname.length > 1) url.pathname = url.pathname.replace(/\/+$/, '');
   return url.toString();
 }
+
+// Aggregators that charge the candidate a subscription before letting them apply.
+const PAYWALLED_HOSTS = ['jobleads.com', 'jobleads.io'];
+
+export function isPaywalled(link: string): boolean {
+  try {
+    const host = new URL(link).hostname.toLowerCase();
+    return PAYWALLED_HOSTS.some((blocked) => host === blocked || host.endsWith(`.${blocked}`));
+  } catch {
+    return false;
+  }
+}
