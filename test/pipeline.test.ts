@@ -473,3 +473,33 @@ describe('state', () => {
     }
   });
 });
+
+describe('filter checkAll', () => {
+  const filter = createFilter(
+    parseConfig(`
+search: { include: ["QA"], seniority: [senior] }
+eligibility: { accept_regions: [brazil] }
+`),
+  );
+  const now = new Date('2026-10-15T12:00:00Z');
+
+  it('lists every failing rule and marks the soft ones', () => {
+    const report = filter.checkAll(job({ title: 'QA Engineer', workModel: undefined, locations: [], description: '' }), now);
+    expect(report.failures).toEqual([
+      { reason: 'seniority: not stated', soft: true },
+      { reason: 'work model: not stated', soft: true },
+      { reason: 'eligibility: region not accepted', soft: true },
+    ]);
+  });
+
+  it('treats an unaccepted location as a hard failure', () => {
+    const report = filter.checkAll(job({ locations: ['Remote - Germany'] }), now);
+    expect(report.failures).toEqual([{ reason: 'eligibility: region not accepted', soft: false }]);
+  });
+
+  it('agrees with check on the first failure', () => {
+    const candidate = job({ title: 'Barista' });
+    expect(filter.check(candidate, now).reason).toBe(filter.checkAll(candidate, now).failures[0]!.reason);
+    expect(filter.checkAll(job(), now)).toEqual({ ok: true, failures: [] });
+  });
+});

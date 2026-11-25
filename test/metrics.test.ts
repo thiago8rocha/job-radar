@@ -559,3 +559,21 @@ describe('sources section', () => {
     expect(renderReport([], TODAY)).not.toContain('## Sources');
   });
 });
+
+describe('near misses section', () => {
+  it('lists the last week of near misses in a collapsed block', () => {
+    const misses = [
+      { id: 'a:1', title: 'QA Engineer', company: 'Acme', link: 'https://x.test/1', reason: 'seniority: not stated', date: '2026-10-14T10:00:00Z' },
+      { id: 'a:2', title: 'Old QA', company: 'Old', link: 'https://x.test/2', reason: 'seniority: not stated', date: '2026-09-01T10:00:00Z' },
+    ];
+    const report = renderReport([], TODAY, 60, undefined, {}, misses);
+    expect(report).toContain('## Near misses this week');
+    expect(report).toContain('<details><summary>1 job(s) dropped by a single soft rule</summary>');
+    expect(report).toContain('- [Acme: QA Engineer](https://x.test/1) (seniority: not stated)');
+    expect(report).not.toContain('Old QA');
+  });
+
+  it('is left out when there are none', () => {
+    expect(renderReport([], TODAY)).not.toContain('Near misses');
+  });
+});

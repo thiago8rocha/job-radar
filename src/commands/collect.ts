@@ -12,11 +12,11 @@ import { STATUS_TITLES, statusLabel } from '../domain/status.js';
 import { issueTitle, renderIssueBody } from '../github/issue-body.js';
 import { ensureLabels } from '../github/labels.js';
 import { addIssueToProject, setFieldValue, type Project } from '../github/project.js';
-import { dedupe, knownFromIssues } from '../pipeline/dedup.js';
+import { dedupe, knownFromIssues, type KnownJobs } from '../pipeline/dedup.js';
 import { regionsOf } from '../pipeline/eligibility.js';
 import { canonicalUrl } from '../pipeline/url.js';
 import { buildExcerpt, sanitizeForIssue } from '../pipeline/excerpt.js';
-import { createFilter, inferWorkModel } from '../pipeline/filter.js';
+import { createFilter, inferWorkModel, type JobFilter } from '../pipeline/filter.js';
 import { detectSignals, type Signal } from '../pipeline/signals.js';
 import { brasiliaHours } from '../pipeline/timezone.js';
 import { DEFAULT_STATE_PATH, loadState, saveState, weekStats, type SeenState } from '../state/seen.js';
@@ -202,6 +202,8 @@ export async function collect(ctx: Context, options: CollectOptions = {}): Promi
     }
   }
 
+  if (!dryRun) recordNearMisses(state, candidates, passed, filter, known, now);
+
   // 5. Deduplication.
   const { fresh, duplicates } = dedupe(passed, known);
   for (const duplicate of duplicates) {
@@ -258,6 +260,21 @@ export async function collect(ctx: Context, options: CollectOptions = {}): Promi
 
 function companyRefsFromEmpty(): Companies {
   return { inhire: [], greenhouse: [], lever: [], ashby: [] };
+}
+
+/** Jobs that fail exactly one soft rule and are not already known; they never become issues. */
+function recordNearMisses(state: SeenState, candidates: Job[], passed: Job[], filter: JobFilter, known: KnownJobs, now: Date): void {
+  const passedIds = new Set(passed.map((job) => job.id));
+  const misses = new Map<string, string>();
+  for (const job of candidates) {
+    if (passedIds.has(job.id) || state.nearMiss.some((entry) => entry.id === job.id)) continue;
+    const { failures } = filter.checkAll(job, now);
+    if (failures.length === 1 && failures[0]!.soft) misses.set(job.id, failures[0]!.reason);
+  }
+  const unknown = dedupe(candidates.filter((job) => misses.has(job.id)), known).fresh;
+  for (const job of unknown) {
+    state.nearMiss.push({ id: job.id, title: job.title, company: job.company, link: job.applyUrl, reason: misses.get(job.id)!, date: now.toISOString() });
+  }
 }
 
 function recordStats(state: SeenState, reports: SourceReport[], now: Date): void {

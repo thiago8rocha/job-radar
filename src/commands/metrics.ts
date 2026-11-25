@@ -109,7 +109,8 @@ export async function metrics(ctx: Context, options: MetricsOptions = {}): Promi
   );
   fieldsWritten += statusFixes;
 
-  const report = renderReport(results, now, ctx.config.metrics.no_response_after_days, await lastSuccessfulCollect(ctx), (await loadState(options.statePath ?? DEFAULT_STATE_PATH)).stats);
+  const seen = await loadState(options.statePath ?? DEFAULT_STATE_PATH);
+  const report = renderReport(results, now, ctx.config.metrics.no_response_after_days, await lastSuccessfulCollect(ctx), seen.stats, seen.nearMiss);
   if (dryRun) {
     ctx.log.info(`[dry-run] Would update the Metrics issue with:\n${report}`);
   } else {
