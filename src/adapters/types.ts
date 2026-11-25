@@ -1,6 +1,7 @@
 import type { CompanyRef } from '../config/schema.js';
 import type { Config } from '../config/schema.js';
 import type { Job, WorkModel } from '../domain/job.js';
+import type { GitHub } from '../github/client.js';
 import type { HttpClient } from '../util/http.js';
 
 export interface FetchContext {
@@ -25,6 +26,8 @@ export interface FetchContext {
   worthDetails(candidate: { title: string; company?: string; workModel?: WorkModel }): boolean;
   /** True when an issue already exists for this link, so an adapter can skip a detail request it would only repeat. */
   isKnownUrl?(url: string): boolean;
+  /** The GitHub client of the run, for sources that read repositories. */
+  github?: GitHub;
   /** API key for sources that need one (SerpAPI), from the Action input; undefined when not provided. */
   apiKey?: string;
   /** Records a problem that does not fail the whole source (one company down, one bad entry). */

@@ -19,6 +19,8 @@ const sourceToggle = z.object({
   window_days: z.number().int().positive().optional(),
   /** Cap on pages read per company by sources that crawl a sitemap (careers, default 100). */
   max_urls: z.number().int().positive().optional(),
+  /** Repositories (`owner/name`) whose open issues are job postings, for `github_repos`. */
+  repos: z.array(z.string()).optional(),
   /** Minutes this source may run before it stops with what it has (default 5). */
   timeout_minutes: z.number().positive().optional(),
 });

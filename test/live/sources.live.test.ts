@@ -13,6 +13,7 @@ import { greenhouse } from '../../src/adapters/greenhouse.js';
 import { gupy } from '../../src/adapters/gupy.js';
 import { himalayas } from '../../src/adapters/himalayas.js';
 import { inhire } from '../../src/adapters/inhire.js';
+import { githubRepos } from '../../src/adapters/github-repos.js';
 import { jobicy } from '../../src/adapters/jobicy.js';
 import { lever } from '../../src/adapters/lever.js';
 import { parseCards, parseDetail } from '../../src/adapters/linkedin.js';
@@ -20,6 +21,7 @@ import { remoteok } from '../../src/adapters/remoteok.js';
 import type { FetchContext, SourceAdapter } from '../../src/adapters/types.js';
 import { weworkremotely } from '../../src/adapters/weworkremotely.js';
 import type { CompanyRef } from '../../src/config/schema.js';
+import { Octokit } from 'octokit';
 import { parseConfig } from '../../src/config/load.js';
 import { createHttpClient, HttpError } from '../../src/util/http.js';
 
@@ -77,6 +79,13 @@ describe('live sources', () => {
   it('himalayas', () => check(himalayas, []));
   it('freehire', () => check(freehire, []));
   it('gupy', () => check(gupy, []));
+  // Unauthenticated: 60 requests an hour is enough for one check a day.
+  it('github_repos', async () => {
+    const ctx = { ...context([]), github: new Octokit(), config: parseConfig('search: { include: ["QA"], max_age_days: 365 }\nsources:\n  github_repos: { enabled: true, repos: ["backend-br/vagas"] }') };
+    const raws = await githubRepos.fetch(ctx);
+    expect(raws.length, 'github_repos returned no issues').toBeGreaterThan(0);
+    expect(githubRepos.normalize(raws[0]!).title.length).toBeGreaterThan(0);
+  });
   it('jobicy', () => check(jobicy, []));
   it('remoteok', () => check(remoteok, []));
   it('weworkremotely', () => check(weworkremotely, []));
