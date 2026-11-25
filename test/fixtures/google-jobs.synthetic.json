@@ -26,6 +26,32 @@
       "detected_extensions": { "posted_at": "30+ days ago" },
       "job_id": "eyJqb2JfdGl0bGUiOiJRQSJ9",
       "share_link": "https://www.google.com/search?q=qa&ibp=htl;jobs#fpstate=tldetail&htidocid=def"
+    },
+    {
+      "title": "QA Lead",
+      "company_name": "Gamma Tech",
+      "location": "Anywhere",
+      "via": "via JobLeads",
+      "description": "Remote QA Lead.",
+      "detected_extensions": { "posted_at": "1 day ago", "work_from_home": true },
+      "job_id": "eyJqb2JfdGl0bGUiOiJRQSBMZWFkIn0=",
+      "apply_options": [
+        { "title": "Apply on JobLeads", "link": "https://www.jobleads.com/br/job/qa-lead--remote--abc123" },
+        { "title": "Apply on Glassdoor", "link": "https://www.glassdoor.com/job-listing/qa-lead-123" },
+        { "title": "Apply on Greenhouse", "link": "https://job-boards.greenhouse.io/gammatech/jobs/4567" }
+      ],
+      "share_link": "https://www.google.com/search?q=qa+lead&ibp=htl;jobs#fpstate=tldetail&htidocid=ghi"
+    },
+    {
+      "title": "Senior QA Analyst",
+      "company_name": "Hidden Company",
+      "location": "Brazil",
+      "via": "via JobLeads",
+      "description": "Remote.",
+      "detected_extensions": { "posted_at": "2 days ago" },
+      "job_id": "eyJqb2JfdGl0bGUiOiJIaWRkZW4ifQ==",
+      "apply_options": [{ "title": "Apply on JobLeads", "link": "https://www.jobleads.com/br/job/senior-qa--def456" }],
+      "share_link": "https://www.google.com/search?q=senior+qa+analyst&ibp=htl;jobs#fpstate=tldetail&htidocid=jkl"
     }
   ]
 }

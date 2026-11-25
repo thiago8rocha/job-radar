@@ -206,7 +206,9 @@ describe('google_jobs', () => {
     expect(seen[0]!.get('location')).toBe('Brazil');
     expect(seen[0]!.get('api_key')).toBe('secret-key');
 
-    const [first, second] = raws.map((raw) => googleJobs.normalize(raw));
+    expect(raws.map((raw) => raw.company_name)).toEqual(['Acme Brasil', 'Beta Corp', 'Gamma Tech']); // JobLeads-only posting dropped
+    const [first, second, third] = raws.map((raw) => googleJobs.normalize(raw));
+    expect(third!.applyUrl).toBe('https://job-boards.greenhouse.io/gammatech/jobs/4567'); // ATS wins over JobLeads and Glassdoor
     expect(first).toMatchObject({ company: 'Acme Brasil', title: 'Senior QA Engineer', workModel: 'remote', atsApply: false });
     expect(first!.applyUrl).toBe('https://www.linkedin.com/jobs/view/123456?trackingId=abc');
     expect(first!.postedAt).toMatch(/^2026-10-/);
