@@ -7,7 +7,7 @@ branding:
 
 inputs:
   command:
-    description: "One of: setup, sync-status, intake, import, collect, metrics, revalidate, discover, evaluate"
+    description: "One of: setup, sync-status, intake, import, collect, metrics, revalidate, discover, evaluate, sweep, prune"
     required: true
   github-token:
     description: Token with Issues and Projects access to the private repo (a classic PAT with the repo and project scopes; the default GITHUB_TOKEN cannot write to user Projects)
@@ -27,8 +27,16 @@ inputs:
     description: Path to the seen-jobs state file, committed by your workflow (collect only)
     required: false
     default: state/seen.json
+  directory-path:
+    description: Path to the optional cold company list, companies.directory.yml (collect and sweep)
+    required: false
+    default: companies.directory.yml
+  companies-state-path:
+    description: Path to the company health file, committed by your workflow (collect, sweep and prune)
+    required: false
+    default: state/companies.json
   dry-run:
-    description: "Report what would happen without writing (import, collect, metrics, revalidate and discover)"
+    description: "Report what would happen without writing (import, collect, metrics, revalidate, discover, sweep and prune)"
     required: false
     default: "false"
   serpapi-key:

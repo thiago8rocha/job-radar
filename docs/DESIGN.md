@@ -56,6 +56,10 @@ job-radar/
 
 Each source is an independent adapter, switched on or off by the config. There are three access modes: global search by term, per-company lookup, and discovery of new companies.
 
+**Company health and the hot/cold lists.** `state/companies.json` (separate from `state/seen.json`) keeps, per `<ats>:<slug>`, `lastOk`, `lastRelevant` (a posting passed the title filter), `failures` (weeks in a row with a 404 or a schema error; 5xx and timeouts do not count and a week counts once) and `emptyRuns`, plus the sweep cursor. `companies.yml` is always read. `companies.directory.yml`, the cold list, is only read by `sweep`, which walks it in slices of 200 within `run.budget_minutes`, resumes from the cursor and updates health without creating issues; a directory company whose `lastRelevant` is within `directory.hot_days` joins `collect`. `prune` proposes, by pull request, removing `companies.yml` boards with 4 failing weeks; nothing leaves the file without a merge. Directory companies are fetched lightly: Greenhouse lists titles without `content=true` and fetches `/jobs/{id}?pay_transparency=true` only for postings that could pass the filters, which also yields published pay ranges.
+
+**Regions.** Checked live: a Lever EU board answers on `api.eu.lever.co` (the `lever` board returns postings there and an empty list on `api.lever.co`), so an entry written as `{ url: https://jobs.eu.lever.co/<slug> }` is read from the EU host. Greenhouse EU (`boards-api.eu.greenhouse.io`) does not resolve, so Greenhouse EU links keep using the standard API.
+
 **ATS registry.** The per-company ATS are listed once, in `src/adapters/ats.ts`: id, the URL patterns that identify a board (including regional hosts such as the EU ones) and whether the slug is case-sensitive. The `companies.yml` schema, the listed-slug check, discovery from links and the empty defaults are all derived from that table, so a new ATS is one table entry plus one adapter. A `companies.yml` entry is a `slug`, `{ slug, name }` or `{ url, name }`; the URL form is for ATS keyed by more than a slug (Workday) and for the generic careers adapter.
 
 | Source | Mode | Access | Priority | Notes |

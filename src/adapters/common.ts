@@ -2,7 +2,8 @@ import type { CompanyRef } from '../config/schema.js';
 import type { Currency, WorkModel } from '../domain/job.js';
 import { shortHash } from '../util/hash.js';
 import { slugify } from '../domain/labels.js';
-import type { FetchContext } from './types.js';
+import type { JobFilter } from '../pipeline/filter.js';
+import type { AnySourceAdapter, FetchContext } from './types.js';
 
 /** `ramp` → `Ramp`, `acme-corp` → `Acme Corp`; only used when neither config nor source names the company. */
 export function prettifySlug(slug: string): string {
@@ -31,6 +32,16 @@ export function jobId(source: string, company: string, sourceJobId: string | num
   return `${source}:${slugify(company)}:${shortHash(source, company, String(sourceJobId))}`;
 }
 
+/** True when a raw posting's title could pass the filters, which is what makes a company worth the daily run. */
+export function isRelevantPosting(adapter: AnySourceAdapter, filter: JobFilter, raw: unknown): boolean {
+  try {
+    const job = adapter.normalize(raw);
+    return filter.worthDetails({ title: job.title, company: job.company });
+  } catch {
+    return false;
+  }
+}
+
 export const DEFAULT_COMPANY_CONCURRENCY = 4;
 
 /**
@@ -56,9 +67,11 @@ export async function forEachCompany<T>(
       attempted++;
       try {
         results[index] = await fetchCompany(company);
+        ctx.onCompany?.({ company, items: results[index]! });
       } catch (error) {
         failures.push(error as Error);
         ctx.warn(`${source}/${company.slug}: ${(error as Error).message}`);
+        ctx.onCompany?.({ company, items: [], error: error as Error });
       }
     }
   }

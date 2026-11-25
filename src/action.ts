@@ -30,6 +30,8 @@ async function main(): Promise<void> {
       xlsxPath: input('xlsx-path'),
       companiesPath: input('companies-path'),
       statePath: input('state-path'),
+      directoryPath: input('directory-path'),
+      companiesStatePath: input('companies-state-path'),
       serpapiKey: input('serpapi-key'),
       aiApiKey: input('ai-api-key'),
       profile: input('profile'),

@@ -127,7 +127,7 @@ export async function discover(ctx: Context, options: DiscoverOptions = {}): Pro
   return { found, pullRequest: pull.number };
 }
 
-async function readFileOnBranch(ctx: Context, path: string, ref: string): Promise<{ text: string; sha: string } | undefined> {
+export async function readFileOnBranch(ctx: Context, path: string, ref: string): Promise<{ text: string; sha: string } | undefined> {
   try {
     const { data } = await ctx.octokit.rest.repos.getContent({ ...ctx.repo, path, ref });
     if (Array.isArray(data) || data.type !== 'file') return undefined;

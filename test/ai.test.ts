@@ -238,7 +238,7 @@ ai: { enabled: true, max_calls_per_run: 2 }
   const run = (ai: { client: ChatClient; profile: string } | undefined, list = jobs) => {
     const fake = fakeContext();
     fake.ctx.config = parseConfig(CONFIG);
-    return collect(fake.ctx, { adapters: { alpha: adapter(list) }, statePath: `${process.env.TEMP}/job-radar-ai-${Math.random()}.json`, now: new Date('2026-10-16T12:00:00Z'), delayMs: 0, ai }).then(() => fake);
+    return collect(fake.ctx, { adapters: { alpha: adapter(list) }, statePath: `${process.env.TEMP}/job-radar-ai-${Math.random()}.json`, companiesStatePath: `${process.env.TEMP}/job-radar-ai-companies-${Math.random()}.json`, now: new Date('2026-10-16T12:00:00Z'), delayMs: 0, ai }).then(() => fake);
   };
 
   it('adds the fit label, the AI lines and the full description to each issue', async () => {

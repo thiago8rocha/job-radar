@@ -495,3 +495,52 @@ describe('http client', () => {
     expect(body.ua).toContain('job-radar');
   });
 });
+
+describe('lever EU region', () => {
+  it('reads boards written as an EU url from api.eu.lever.co', async () => {
+    server.use(http.get('https://api.eu.lever.co/v0/postings/lever', () => HttpResponse.json(fixture('lever-eu.json'))));
+    const { ctx } = context([], { companies: [{ slug: 'https://jobs.eu.lever.co/lever', url: 'https://jobs.eu.lever.co/lever' }] });
+    const raws = await lever.fetch(ctx);
+    const job = lever.normalize(raws[0]!);
+    expect(raws).toHaveLength(2);
+    expect(job.applyUrl).toMatch(/^https:\/\/jobs\.eu\.lever\.co\/lever\//);
+    expect(job.id).toMatch(/^lever:lever:/);
+    expect(job.company).toBe('Lever');
+  });
+});
+
+describe('greenhouse light mode', () => {
+  const list = fixture('greenhouse-list.json');
+  const detail = fixture('greenhouse-detail.json');
+
+  it('lists titles first and fetches the detail, with pay ranges, only for postings that could pass', async () => {
+    const details: string[] = [];
+    const [first, second, third] = list.jobs;
+    server.use(
+      http.get('https://boards-api.greenhouse.io/v1/boards/gitlab/jobs', ({ request }) => {
+        expect(new URL(request.url).searchParams.has('content')).toBe(false);
+        return HttpResponse.json({ jobs: [{ ...first, title: 'Senior QA Engineer' }, { ...second, title: 'Baker' }, { ...third, title: 'QA Lead' }] });
+      }),
+      http.get('https://boards-api.greenhouse.io/v1/boards/gitlab/jobs/:id', ({ params, request }) => {
+        expect(new URL(request.url).searchParams.get('pay_transparency')).toBe('true');
+        details.push(String(params.id));
+        return HttpResponse.json({ ...detail, id: Number(params.id), title: 'Senior QA Engineer' });
+      }),
+    );
+    const { ctx } = context([], { companies: [{ slug: 'gitlab', light: true }], isKnownUrl: (url) => url === third.absolute_url });
+    const raws = await greenhouse.fetch(ctx);
+    expect(raws).toHaveLength(3);
+    expect(details).toEqual([String(first.id)]);
+    expect(greenhouse.normalize(raws[0]!).compensation).toBe('USD 90,000 – 130,000');
+  });
+
+  it('keeps content=true for companies from companies.yml', async () => {
+    server.use(
+      http.get('https://boards-api.greenhouse.io/v1/boards/gitlab/jobs', ({ request }) => {
+        expect(new URL(request.url).searchParams.get('content')).toBe('true');
+        return HttpResponse.json(list);
+      }),
+    );
+    expect(await greenhouse.fetch(context(['gitlab']).ctx)).toHaveLength(list.jobs.length);
+  });
+});

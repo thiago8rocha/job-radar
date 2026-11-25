@@ -70,6 +70,13 @@ export const configSchema = z.object({
     })
     .default({ budget_minutes: 20 }),
 
+  directory: z
+    .object({
+      /** A directory company joins the daily run once it had a relevant posting within this many days. */
+      hot_days: z.number().int().positive().default(45),
+    })
+    .default({ hot_days: 45 }),
+
   discovery: z
     .object({
       enabled: z.boolean().default(false),
@@ -142,6 +149,8 @@ export interface CompanyRef {
   name?: string;
   /** Board URL, for entries written as `{ url }`; `slug` then holds the same URL. */
   url?: string;
+  /** Comes from the directory: adapters may use cheaper requests (titles first, details for the survivors). */
+  light?: boolean;
 }
 
 export function companyRefs(entries: CompanyEntry[] | undefined): CompanyRef[] {
