@@ -19,7 +19,7 @@ import { buildExcerpt, sanitizeForIssue } from '../pipeline/excerpt.js';
 import { createFilter, inferWorkModel } from '../pipeline/filter.js';
 import { detectSignals, type Signal } from '../pipeline/signals.js';
 import { brasiliaHours } from '../pipeline/timezone.js';
-import { DEFAULT_STATE_PATH, loadState, saveState, type SeenState } from '../state/seen.js';
+import { DEFAULT_STATE_PATH, loadState, saveState, weekStats, type SeenState } from '../state/seen.js';
 import { createHttpClient, type HttpClient } from '../util/http.js';
 import { truncate } from '../util/text.js';
 import { loadProject, type Context } from './context.js';
@@ -49,7 +49,10 @@ export interface SourceReport {
   source: string;
   fetched: number;
   discarded: Record<string, number>;
+  passedFilters: number;
   duplicates: number;
+  /** Duplicates by the source they matched, or `known` for an existing issue. */
+  duplicateOf: Record<string, number>;
   created: number;
   error?: string;
 }
@@ -147,7 +150,7 @@ export async function collect(ctx: Context, options: CollectOptions = {}): Promi
       continue;
     }
 
-    const report: SourceReport = { source: id, fetched: 0, discarded: {}, duplicates: 0, created: 0 };
+    const report: SourceReport = { source: id, fetched: 0, discarded: {}, passedFilters: 0, duplicates: 0, duplicateOf: {}, created: 0 };
     reports.push(report);
     const fetchContext: FetchContext = {
       http,
@@ -191,6 +194,7 @@ export async function collect(ctx: Context, options: CollectOptions = {}): Promi
     const result = filter.check(job, now);
     if (result.ok) {
       passed.push(job);
+      bySource.get(job.source)!.passedFilters++;
     } else {
       const discarded = bySource.get(job.source)!.discarded;
       const stage = stageOf(result.reason ?? 'filter');
@@ -200,7 +204,12 @@ export async function collect(ctx: Context, options: CollectOptions = {}): Promi
 
   // 5. Deduplication.
   const { fresh, duplicates } = dedupe(passed, known);
-  for (const duplicate of duplicates) bySource.get(duplicate.job.source)!.duplicates++;
+  for (const duplicate of duplicates) {
+    const report = bySource.get(duplicate.job.source)!;
+    report.duplicates++;
+    report.duplicateOf[duplicate.of] = (report.duplicateOf[duplicate.of] ?? 0) + 1;
+  }
+  if (!dryRun) recordStats(state, reports, now);
 
   // 6. Writing: newest first, capped per run so a first run cannot flood the board.
   const ordered = fresh.sort((a, b) => Date.parse(b.postedAt ?? '') - Date.parse(a.postedAt ?? '') || 0);
@@ -227,6 +236,7 @@ export async function collect(ctx: Context, options: CollectOptions = {}): Promi
         const insight = await insightFor(ctx, options.ai, ai, job);
         const issue = await writeIssue(ctx, project, labelNames, job, now, insight);
         state.jobs[job.id] = { issue, seenAt: now.toISOString() };
+        weekStats(state, job.source, now).unique++;
         bySource.get(job.source)!.created++;
         created++;
         ctx.log.info(`Created #${issue} ${issueTitle(job.company, job.title)} (${job.source})`);
@@ -248,6 +258,16 @@ export async function collect(ctx: Context, options: CollectOptions = {}): Promi
 
 function companyRefsFromEmpty(): Companies {
   return { inhire: [], greenhouse: [], lever: [], ashby: [] };
+}
+
+function recordStats(state: SeenState, reports: SourceReport[], now: Date): void {
+  for (const report of reports) {
+    if (report.error) continue;
+    const week = weekStats(state, report.source, now);
+    week.fetched += report.fetched;
+    week.passedFilters += report.passedFilters;
+    for (const [source, count] of Object.entries(report.duplicateOf)) week.duplicateOf[source] = (week.duplicateOf[source] ?? 0) + count;
+  }
 }
 
 function updateHealth(ctx: Context, state: SeenState, report: SourceReport): void {
@@ -377,6 +397,13 @@ ${job.description}`);
   return issue.number;
 }
 
+function describeOverlap(duplicateOf: Record<string, number>): string {
+  const parts = Object.entries(duplicateOf)
+    .sort(([, a], [, b]) => b - a)
+    .map(([source, count]) => `${source} ${count}`);
+  return parts.length > 0 ? ` (${parts.join(', ')})` : '';
+}
+
 function summarize(
   ctx: Context,
   reports: SourceReport[],
@@ -394,7 +421,7 @@ function summarize(
       .join(', ');
     ctx.log.info(
       `${report.source}: ${report.fetched} fetched, ${discardedTotal} discarded${reasons ? ` (${reasons})` : ''}, ` +
-        `${report.duplicates} already known, ${report.created} new`,
+        `${report.duplicates} already known${describeOverlap(report.duplicateOf)}, ${report.created} new`,
     );
   }
   ctx.log.info(
