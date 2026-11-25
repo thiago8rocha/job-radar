@@ -1,9 +1,10 @@
 import { parseArgs } from 'node:util';
+import { importCompaniesFiles } from './import/companies.js';
 import { COMMANDS, run, type Command } from './run.js';
 
 const USAGE = `Usage: job-radar <command> [options]
 
-Commands: ${COMMANDS.join(', ')}
+Commands: ${COMMANDS.join(', ')}, import-companies
 
 Options:
   --repo <owner/name>   Private repo with the issues (default: $GITHUB_REPOSITORY)
@@ -15,6 +16,11 @@ Options:
   --companies-state <path>  Company health file (default: state/companies.json; collect, sweep and prune)
   --event <path>        GitHub event payload (event-driven commands)
   --dry-run             Report what would happen without writing (import, collect, metrics, revalidate and discover)
+  --csv <path>          import-companies: CSV of boards (default columns follow the LastRound AI ATS directory)
+  --urls <path>         import-companies: text file with one career-page URL per line
+  --ats-column <name>   import-companies: CSV column with the ATS (default: ats_vendor)
+  --slug-column <name>  import-companies: CSV column with the board slug (default: board_slug)
+  --name-column <name>  import-companies: CSV column with the company name (default: company_name)
   -h, --help            Show this help
 
 The token is read from $GITHUB_TOKEN (or $GH_TOKEN); the SerpAPI key, if any, from $SERPAPI_KEY.`;
@@ -29,6 +35,11 @@ async function main(): Promise<void> {
       companies: { type: 'string' },
       state: { type: 'string' },
       directory: { type: 'string' },
+      csv: { type: 'string' },
+      urls: { type: 'string' },
+      'ats-column': { type: 'string' },
+      'slug-column': { type: 'string' },
+      'name-column': { type: 'string' },
       'companies-state': { type: 'string' },
       event: { type: 'string' },
       'dry-run': { type: 'boolean' },
@@ -39,6 +50,16 @@ async function main(): Promise<void> {
   const command = positionals[0];
   if (values.help || !command) {
     console.log(USAGE);
+    return;
+  }
+  if (command === 'import-companies') {
+    await importCompaniesFiles({
+      csv: values.csv,
+      urls: values.urls,
+      columns: { ats: values['ats-column'], slug: values['slug-column'], name: values['name-column'] },
+      directoryPath: values.directory,
+      companiesPath: values.companies,
+    });
     return;
   }
   if (!(COMMANDS as readonly string[]).includes(command)) {
