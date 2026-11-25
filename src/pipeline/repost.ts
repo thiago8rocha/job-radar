@@ -1,5 +1,6 @@
 import { LABEL } from '../domain/labels.js';
 import { parseStatusLabel } from '../domain/status.js';
+import { extractMarker } from '../github/issue-body.js';
 import { jobKeys } from './dedup.js';
 
 export interface PriorIssue {
@@ -8,6 +9,8 @@ export interface PriorIssue {
   labels: string[];
   /** When the issue was opened: a repost is a posting published after it. */
   createdAt?: string;
+  /** The source that created the issue, from its marker; manual and imported issues have no source that could repost. */
+  source?: string;
 }
 
 export type RepostAction = 'comment' | 'reopen';
@@ -15,7 +18,7 @@ export type RepostAction = 'comment' | 'reopen';
 const TITLE = /^\[([^\]]+)\]\s*(.+)$/;
 
 /** The issue each company + title key points at; when several share a key, the newest one. */
-export function priorIssuesByKey(issues: Array<{ number: number; title: string; state: string; created_at?: string; labels?: Array<string | { name?: string | null }> }>): Map<string, PriorIssue> {
+export function priorIssuesByKey(issues: Array<{ number: number; title: string; state: string; created_at?: string; body?: string | null; labels?: Array<string | { name?: string | null }> }>): Map<string, PriorIssue> {
   const byKey = new Map<string, PriorIssue>();
   for (const issue of issues) {
     const title = TITLE.exec(issue.title);
@@ -24,6 +27,7 @@ export function priorIssuesByKey(issues: Array<{ number: number; title: string; 
       number: issue.number,
       state: issue.state === 'closed' ? 'closed' : 'open',
       createdAt: issue.created_at,
+      source: extractMarker(issue.body)?.split(':')[0],
       labels: (issue.labels ?? []).map((label) => (typeof label === 'string' ? label : label.name ?? '')).filter(Boolean),
     };
     for (const key of jobKeys(title[1]!, title[2]!)) {
@@ -50,11 +54,12 @@ export function repostAction(issue: PriorIssue): RepostAction | undefined {
 }
 
 /**
- * True when the job was published after the issue was opened. The same posting seen through another
- * source has the old date, and is only a duplicate; a job with no date cannot be told apart, so it is not
- * counted as a repost.
+ * A repost is the source listing the job again: the same source as the earlier issue, with a publication date
+ * after it was opened. The same posting reached through another source is only a duplicate, and aggregators
+ * refresh their dates, so a newer date alone proves nothing. A job with no date is never a repost.
  */
-export function isNewerThan(job: { postedAt?: string }, issue: PriorIssue): boolean {
+export function isRepost(job: { source: string; postedAt?: string }, issue: PriorIssue): boolean {
+  if (!issue.source || job.source !== issue.source) return false;
   const posted = Date.parse(job.postedAt ?? '');
   const opened = Date.parse(issue.createdAt ?? '');
   return !Number.isNaN(posted) && !Number.isNaN(opened) && posted > opened;
