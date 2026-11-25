@@ -86,7 +86,7 @@ Each source is an independent adapter, switched on or off by the config. There a
 | Recruitee | Per company | `{slug}.recruitee.com/api/offers/` | v2 | Verified live: public with no token, although one help article suggests the Careers Site API needs one. Apply links use the company's own careers domain when it has one, so the board URL is the only place the slug appears |
 | SmartRecruiters | Per company | Documented Posting API, `api.smartrecruiters.com/v1/companies/{id}/postings` | v2 | The id is case sensitive and an unknown id answers 200 with no postings. The list has no description or apply link, so detail is read only for postings that pass `worthDetails`. Searched per include term (5 pages of 100 at most) because large employers have thousands of postings |
 | Workable | Per company | `apply.workable.com/api/v1/widget/accounts/{slug}?details=true`, the widget API of the career page | v2 | Whole board in one request; `{slug}.workable.com` and `apply.workable.com/{slug}` are the same board |
-| Gupy | Global search | `portal.gupy.io/api/job-search/jobs?jobName=…&workplaceType=remote`, up to 100 per page. The `employability-portal.gupy.io/api/v1/jobs` address this document first listed answers 404; the portal's own search page calls the endpoint above | v2 | Undocumented endpoint, found by reading the portal's code; the daily live contract watches it |
+| Gupy | Global search | `portal.gupy.io/api/job-search/jobs?jobName=…&workplaceType=remote`, up to 100 per page. The `employability-portal.gupy.io/api/v1/jobs` address this document first listed answers 404; the portal's own search page calls the endpoint above | v2 | Undocumented endpoint, found by reading the portal's code; the live contract watches it |
 | GitHub job repos | Global search | GitHub issues API (backend-br/vagas, frontendbr/vagas, DevOps-Brazil/Vagas and similar) | v2 | Jobs published as issues; no repo is dedicated to QA, so it filters by term |
 | RemoteOK | Global search | Public JSON API by tag | v2 | Lower volume |
 | We Work Remotely | Global search | Official RSS feeds | v2 | Lower volume |
@@ -362,7 +362,7 @@ The main risk is a source changing its format without notice and the collector c
 | --- | --- | --- |
 | Unit | Filters, title and URL normalization, dedup, stage and response rules | Every PR |
 | Contract per adapter | Real recorded fixtures from each source, validated against the schema | Every PR |
-| Live contract | One real call per source, validating only the schema | Scheduled, daily, in the public repo |
+| Live contract | One real call per source, validating only the schema | Run by hand from a workflow in the public repo |
 | GitHub integration | Issue, label and field creation with a mocked Octokit | Every PR |
 | Dry-run | Full pipeline without writing, with the result in the job summary | Manual, via `workflow_dispatch` |
 

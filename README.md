@@ -115,13 +115,13 @@ When a posting states working hours with a time zone (`9am–5pm ET`), the issue
 | Ashby | per company | Public job board API. |
 | Career pages | per company | A company's own career site, listed under `careers:` as `{ url, name }`. Cheapest first: a link to a supported ATS (also inside an embedded iframe or script) goes to that ATS's adapter; else the page's schema.org `JobPosting` JSON-LD; else the job sitemap listed in `robots.txt`, reading only postings whose URL could pass your filters. It reads `robots.txt` first and never uses a headless browser. A page with no job data fails with a warning instead of counting as an empty board. |
 | Workday | per company | Large employers, including banks hiring in Brazil. Entries are the career site URL, `{ url: https://<tenant>.wd5.myworkdayjobs.com/<site>, name: Acme }`, because a slug cannot address a Workday site. One search per `search.include` term, then the detail of each posting that could pass the filters. The list only says "Posted 6 Days Ago", so older postings have no date until the detail is read. |
-| Sólides | per company | Brazilian ATS. The vacancies API its company career pages call (`apigw.solides.com.br/jobs/v3/companies/{slug}/vacancies`), 25 per page. Not a documented API, so the daily live test watches it. The portal-wide search is not used. |
+| Sólides | per company | Brazilian ATS. The vacancies API its company career pages call (`apigw.solides.com.br/jobs/v3/companies/{slug}/vacancies`), 25 per page. Not a documented API, so the live test watches it. The portal-wide search is not used. |
 | Quickin | per company | Brazilian ATS. Public jobs API keyed by account id; job-radar reads the id once from the career page (`jobs.quickin.io/<slug>`) and keeps it in `state/companies.json`. You can also write the 24-character id as the slug. |
 | Teamtailor | per company | Public RSS feed of the career site (`/jobs.rss`, which states remote and hybrid jobs), with `/jobs.json` as a fallback. Works on `{slug}.teamtailor.com` and, as `{ url: https://careers.acme.com }`, on the company's own domain. |
 | Recruitee | per company | Public career site API, `{company}.recruitee.com/api/offers/`: no token needed (checked against a live board), the whole board in one request, with the salary when the offer publishes one. |
 | SmartRecruiters | per company | Documented Posting API. The company id is case sensitive (`BoschGroup`), and a wrong one looks like an empty board. One search per `search.include` term, then the detail of each posting that could pass the filters. |
 | Workable | per company | Public widget API of the career page, the whole board in one request. |
-| Gupy | global search | The job portal most large Brazilian employers use. Not a documented API: it calls the portal's own search endpoint, so the daily live test watches it. |
+| Gupy | global search | The job portal most large Brazilian employers use. Not a documented API: it calls the portal's own search endpoint, so the live test watches it. |
 | Himalayas | global search | Public API for remote jobs; the issue links back to the posting. |
 | freehire | global search | Public API of freehire.me, which aggregates about 50 ATS. Searches titles with the region and country facets; a personal project with no SLA, so an outage only costs this source. |
 | Get on Board | global search | Public API, no key, of a tech job board with many LatAm jobs. It has no text search, so it reads the SysAdmin / DevOps / QA category newest first and the title filter does the rest; postings that are remote only for residents of an unnamed country are skipped. |
@@ -186,7 +186,7 @@ The [LastRound AI ATS directory](https://datahub.io/lastroundai-hiring-data/last
 ```bash
 npm ci
 npm test              # unit, contract (recorded fixtures) and GitHub integration tests
-npm run test:live     # one real request per source; runs daily in CI
+npm run test:live     # one real request per source; run by hand from the live-contract workflow
 npm run typecheck
 npm run build         # bundles dist/index.cjs, which the Action runs; commit it with your change
 ```
