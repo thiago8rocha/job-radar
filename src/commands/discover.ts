@@ -1,6 +1,7 @@
 import { ADAPTERS } from '../adapters/index.js';
 import { serpApiSearch } from '../adapters/serpapi.js';
 import type { AnySourceAdapter, FetchContext } from '../adapters/types.js';
+import { emptyByAts } from '../adapters/ats.js';
 import type { Companies } from '../config/schema.js';
 import { addCompanies, listedSlugs, parseCompaniesText } from '../discovery/companies-file.js';
 import { companiesFromLinks, type DiscoveredCompanies } from '../discovery/links.js';
@@ -35,7 +36,7 @@ function count(companies: DiscoveredCompanies): number {
  * posting, and opens a pull request that adds them. Nothing enters collection until you merge it.
  */
 export async function discover(ctx: Context, options: DiscoverOptions = {}): Promise<DiscoverResult> {
-  const empty: DiscoveredCompanies = { inhire: [], greenhouse: [], lever: [], ashby: [] };
+  const empty: DiscoveredCompanies = emptyByAts<string>();
   const { discovery } = ctx.config;
   if (!discovery.enabled) {
     ctx.log.info('Discovery is off (discovery.enabled: false); nothing to do');
@@ -68,7 +69,7 @@ export async function discover(ctx: Context, options: DiscoverOptions = {}): Pro
   }
 
   const candidates = companiesFromLinks(links);
-  const found: DiscoveredCompanies = { inhire: [], greenhouse: [], lever: [], ashby: [] };
+  const found: DiscoveredCompanies = emptyByAts<string>();
   for (const ats of Object.keys(found) as Array<keyof DiscoveredCompanies>) {
     for (const slug of candidates[ats].filter((candidate) => !listed[ats].has(candidate))) {
       if (await hasPostings(ctx, adapters[ats], slug, http, options.now ?? new Date())) found[ats].push(slug);
