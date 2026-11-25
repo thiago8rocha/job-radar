@@ -1,5 +1,6 @@
 import { ADAPTERS } from '../adapters/index.js';
 import type { AnySourceAdapter, FetchContext } from '../adapters/types.js';
+import { emptyByAts } from '../adapters/ats.js';
 import { companyRefs, type Companies } from '../config/schema.js';
 import { LABEL, slugify } from '../domain/labels.js';
 import { parseStatusLabel, statusLabel } from '../domain/status.js';
@@ -39,7 +40,7 @@ export async function revalidate(ctx: Context, options: RevalidateOptions = {}):
   const { dryRun = false } = options;
   const adapters = options.adapters ?? ADAPTERS;
   const http = options.http ?? createHttpClient({ hostDelayMs: 300 });
-  const companies = options.companies ?? { inhire: [], greenhouse: [], lever: [], ashby: [] };
+  const companies = options.companies ?? emptyByAts();
 
   const issues = await ctx.octokit.paginate(ctx.octokit.rest.issues.listForRepo, {
     ...ctx.repo,
@@ -70,13 +71,14 @@ export async function revalidate(ctx: Context, options: RevalidateOptions = {}):
 
   for (const [key, group] of bySourceCompany) {
     const [source, companySlug] = key.split(':') as [string, string];
-    const ref = companyRefs(companies[source as keyof Companies]).find((entry) => slugify(entry.slug) === companySlug);
+    const ref = companyRefs((companies as Partial<Record<string, Companies['inhire']>>)[source]).find((entry) => slugify(entry.slug) === companySlug);
     if (!ref) {
       ctx.log.info(`${key}: company is not in companies.yml any more; left alone`);
       continue;
     }
 
     let present: Set<string>;
+    let partial = false;
     try {
       const fetchContext: FetchContext = {
         http,
@@ -88,9 +90,14 @@ export async function revalidate(ctx: Context, options: RevalidateOptions = {}):
       };
       const adapter = adapters[source]!;
       const raws = await adapter.fetch(fetchContext);
+      partial = adapter.provesAbsence ? !adapter.provesAbsence(raws) : false;
       present = new Set(raws.map((raw) => adapter.normalize(raw).id));
     } catch (error) {
       ctx.log.warn(`${key}: could not be checked, so no job was closed (${(error as Error).message})`);
+      continue;
+    }
+    if (partial) {
+      ctx.log.info(`${key}: read through a partial view of the board, so no job was closed`);
       continue;
     }
     if (present.size === 0) {

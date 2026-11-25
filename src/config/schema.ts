@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { ATS, type AtsId, type AtsTable } from '../adapters/ats.js';
 
 const sourceToggle = z.object({
   enabled: z.boolean().default(false),
@@ -16,6 +17,12 @@ const sourceToggle = z.object({
   delay_ms: z.number().int().nonnegative().optional(),
   /** Only postings from the last N days, for sources read on every run (LinkedIn). */
   window_days: z.number().int().positive().optional(),
+  /** Cap on pages read per company by sources that crawl a sitemap (careers, default 100). */
+  max_urls: z.number().int().positive().optional(),
+  /** Repositories (`owner/name`) whose open issues are job postings, for `github_repos`. */
+  repos: z.array(z.string()).optional(),
+  /** Minutes this source may run before it stops with what it has (default 5). */
+  timeout_minutes: z.number().positive().optional(),
 });
 
 export const configSchema = z.object({
@@ -60,14 +67,30 @@ export const configSchema = z.object({
 
   sources: z.record(z.string(), sourceToggle).default({}),
 
+  run: z
+    .object({
+      /** Minutes the whole collection may take; sources still running at the end stop with what they have. */
+      budget_minutes: z.number().positive().default(20),
+    })
+    .default({ budget_minutes: 20 }),
+
+  directory: z
+    .object({
+      /** A directory company joins the daily run once it had a relevant posting within this many days. */
+      hot_days: z.number().int().positive().default(45),
+    })
+    .default({ hot_days: 45 }),
+
   discovery: z
     .object({
       enabled: z.boolean().default(false),
       queries: z.array(z.string()).default([]),
       /** Cap on SerpAPI searches per run; the free plan allows 100 a month. */
       max_searches: z.number().int().positive().default(8),
+      /** Cap on Wayback Machine queries per run, which find tenants of ATS with no search of their own; 0 turns them off. */
+      max_archive_queries: z.number().int().nonnegative().default(10),
     })
-    .default({ enabled: false, queries: [], max_searches: 8 }),
+    .default({ enabled: false, queries: [], max_searches: 8, max_archive_queries: 10 }),
 
   issues: z
     .object({
@@ -108,24 +131,37 @@ export const configSchema = z.object({
 
 export type Config = z.infer<typeof configSchema>;
 
-/** A company slug, optionally with the display name to use in issue titles. */
-const company = z.union([z.string(), z.object({ slug: z.string(), name: z.string().optional() })]);
+/** A slug, a slug with the display name used in issue titles, or the board URL for ATS keyed by more than a slug. */
+const company = z.union([
+  z.string(),
+  z.object({ slug: z.string(), name: z.string().optional() }),
+  z.object({ url: z.string().url(), name: z.string().optional() }),
+]);
 
-export const companiesSchema = z.object({
-  inhire: z.array(company).default([]),
-  greenhouse: z.array(company).default([]),
-  lever: z.array(company).default([]),
-  ashby: z.array(company).default([]),
-});
+export type CompanyEntry = z.infer<typeof company>;
 
-export type Companies = z.infer<typeof companiesSchema>;
+export type Companies = Record<AtsId, CompanyEntry[]>;
+
+export function buildCompaniesSchema(table: AtsTable = ATS): z.ZodType<Companies> {
+  const shape = Object.fromEntries(table.map((def) => [def.id, z.array(company).default([])]));
+  return z.object(shape) as unknown as z.ZodType<Companies>;
+}
+
+export const companiesSchema = buildCompaniesSchema();
 
 export interface CompanyRef {
   slug: string;
   /** Display name when the config gives one; adapters fall back to what the source returns. */
   name?: string;
+  /** Board URL, for entries written as `{ url }`; `slug` then holds the same URL. */
+  url?: string;
+  /** Comes from the directory: adapters may use cheaper requests (titles first, details for the survivors). */
+  light?: boolean;
 }
 
-export function companyRefs(entries: Companies[keyof Companies] | undefined): CompanyRef[] {
-  return (entries ?? []).map((entry) => (typeof entry === 'string' ? { slug: entry } : entry));
+export function companyRefs(entries: CompanyEntry[] | undefined): CompanyRef[] {
+  return (entries ?? []).map((entry) => {
+    if (typeof entry === 'string') return { slug: entry };
+    return 'url' in entry ? { slug: entry.url, url: entry.url, name: entry.name } : entry;
+  });
 }

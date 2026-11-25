@@ -88,9 +88,15 @@ export function knownFromIssues(issues: Array<{ title: string; body?: string | n
   return known;
 }
 
+/** The source of the job a duplicate matched in this run, or `known` when it matched an existing issue or seen id. */
+export const KNOWN_SOURCE = 'known';
+
 export interface Duplicate {
   job: Job;
   reason: string;
+  of: string;
+  /** The company + title key (or posting code key) that matched, when that was the reason. */
+  key?: string;
 }
 
 export interface DedupResult {
@@ -108,6 +114,7 @@ export function dedupe(jobs: Job[], known: KnownJobs): DedupResult {
   const urls = new Set(known.urls);
   const keys = new Set(known.keys);
   const result: DedupResult = { fresh: [], duplicates: [] };
+  const sourceOf = new Map<string, string>();
 
   const ordered = [...jobs].sort((a, b) => Number(b.atsApply) - Number(a.atsApply));
   for (const job of ordered) {
@@ -117,12 +124,18 @@ export function dedupe(jobs: Job[], known: KnownJobs): DedupResult {
     const keyReason = knownKey?.includes('code:') ? 'company and posting code' : 'company and title';
     const reason = ids.has(job.id) ? 'id' : urls.has(url) ? 'url' : knownKey ? keyReason : undefined;
     if (reason) {
-      result.duplicates.push({ job, reason });
+      const matched = reason === 'id' ? job.id : reason === 'url' ? `url:${url}` : knownKey!;
+      result.duplicates.push({ job, reason, of: sourceOf.get(matched) ?? KNOWN_SOURCE, key: reason === 'id' || reason === 'url' ? undefined : knownKey });
       continue;
     }
     ids.add(job.id);
     urls.add(url);
-    for (const key of candidates) keys.add(key);
+    sourceOf.set(job.id, job.source);
+    sourceOf.set(`url:${url}`, job.source);
+    for (const key of candidates) {
+      keys.add(key);
+      sourceOf.set(key, job.source);
+    }
     result.fresh.push(job);
   }
   return result;

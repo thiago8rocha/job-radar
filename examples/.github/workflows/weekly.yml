@@ -1,5 +1,5 @@
-# Once a week: closes "New" jobs whose posting disappeared, and rewrites the pinned Metrics issue
-# and the calculated Project fields.
+# Once a week: closes "New" jobs whose posting disappeared, proposes removing companies whose board
+# stopped answering, and rewrites the pinned Metrics issue and the calculated Project fields.
 name: weekly
 on:
   schedule:
@@ -17,7 +17,8 @@ concurrency:
 
 permissions:
   issues: write
-  contents: read
+  contents: write            # the prune pull request branch lives in this repo
+  pull-requests: write
 
 jobs:
   weekly:
@@ -27,6 +28,11 @@ jobs:
       - uses: thiago8rocha/job-radar@v1
         with:
           command: revalidate
+          github-token: ${{ secrets.JOB_RADAR_TOKEN }}
+          dry-run: ${{ inputs.dry-run || false }}
+      - uses: thiago8rocha/job-radar@v1
+        with:
+          command: prune
           github-token: ${{ secrets.JOB_RADAR_TOKEN }}
           dry-run: ${{ inputs.dry-run || false }}
       - uses: thiago8rocha/job-radar@v1

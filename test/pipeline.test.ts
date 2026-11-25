@@ -300,10 +300,10 @@ describe('dedup', () => {
       title: 'Analista de Qualidade SR',
       applyUrl: 'https://zallpy.inhire.app/vagas/1b573a14/analista-de-qualidade-sr',
     });
-    expect(dedupe([collected], known).duplicates).toEqual([{ job: collected, reason: 'url' }]);
+    expect(dedupe([collected], known).duplicates).toEqual([{ job: collected, reason: 'url', of: 'known' }]);
 
     const otherLink = { ...collected, applyUrl: 'https://br.linkedin.com/jobs/view/123' };
-    expect(dedupe([otherLink], known).duplicates).toEqual([{ job: otherLink, reason: 'company and title' }]);
+    expect(dedupe([otherLink], known).duplicates).toMatchObject([{ job: otherLink, reason: 'company and title', of: 'known' }]);
   });
 
   it('matches a Gupy portal link against the same posting from an aggregator even when the company names differ', () => {
@@ -320,7 +320,7 @@ describe('dedup', () => {
       title: 'Engenheiro de Qualidade (QA)- Sênior',
       applyUrl: 'https://fcamara.gupy.io/jobs/12912379',
     });
-    expect(dedupe([aggregated], known).duplicates).toEqual([{ job: aggregated, reason: 'url' }]);
+    expect(dedupe([aggregated], known).duplicates).toEqual([{ job: aggregated, reason: 'url', of: 'known' }]);
   });
 
   it('treats company name variants as the same company', () => {
@@ -422,6 +422,7 @@ describe('dedup', () => {
     const { fresh, duplicates } = dedupe([aggregator, ats], emptyKnown());
     expect(fresh.map((item) => item.source)).toEqual(['greenhouse']);
     expect(duplicates[0]?.job.source).toBe('himalayas');
+    expect(duplicates[0]?.of).toBe('greenhouse');
   });
 });
 
@@ -470,5 +471,35 @@ describe('state', () => {
     } finally {
       await rm(dir, { recursive: true, force: true });
     }
+  });
+});
+
+describe('filter checkAll', () => {
+  const filter = createFilter(
+    parseConfig(`
+search: { include: ["QA"], seniority: [senior] }
+eligibility: { accept_regions: [brazil] }
+`),
+  );
+  const now = new Date('2026-10-15T12:00:00Z');
+
+  it('lists every failing rule and marks the soft ones', () => {
+    const report = filter.checkAll(job({ title: 'QA Engineer', workModel: undefined, locations: [], description: '' }), now);
+    expect(report.failures).toEqual([
+      { reason: 'seniority: not stated', soft: true },
+      { reason: 'work model: not stated', soft: true },
+      { reason: 'eligibility: region not accepted', soft: true },
+    ]);
+  });
+
+  it('treats an unaccepted location as a hard failure', () => {
+    const report = filter.checkAll(job({ locations: ['Remote - Germany'] }), now);
+    expect(report.failures).toEqual([{ reason: 'eligibility: region not accepted', soft: false }]);
+  });
+
+  it('agrees with check on the first failure', () => {
+    const candidate = job({ title: 'Barista' });
+    expect(filter.check(candidate, now).reason).toBe(filter.checkAll(candidate, now).failures[0]!.reason);
+    expect(filter.checkAll(job(), now)).toEqual({ ok: true, failures: [] });
   });
 });

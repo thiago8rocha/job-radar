@@ -1,6 +1,7 @@
 import type { CompanyRef } from '../config/schema.js';
 import type { Config } from '../config/schema.js';
 import type { Job, WorkModel } from '../domain/job.js';
+import type { GitHub } from '../github/client.js';
 import type { HttpClient } from '../util/http.js';
 
 export interface FetchContext {
@@ -10,6 +11,14 @@ export interface FetchContext {
   companies: CompanyRef[];
   /** Today, for adapters that stop paging at the age limit. */
   now: Date;
+  /** Epoch ms after which a per-company adapter starts no new company; it returns what it has. */
+  deadline?: number;
+  /** Companies fetched at the same time (default 4). */
+  concurrency?: number;
+  /** Lookups an adapter resolved once and wants kept between runs (Quickin account ids); `collect` persists it in the companies state. */
+  resolved?: Record<string, string>;
+  /** Called after each company is fetched, with what it returned or why it failed. */
+  onCompany?(result: { company: CompanyRef; items: unknown[]; error?: Error }): void;
   /**
    * Cheap check on title and work model, so an adapter can skip a per-job detail request
    * for postings that the filters would discard anyway.
@@ -17,6 +26,8 @@ export interface FetchContext {
   worthDetails(candidate: { title: string; company?: string; workModel?: WorkModel }): boolean;
   /** True when an issue already exists for this link, so an adapter can skip a detail request it would only repeat. */
   isKnownUrl?(url: string): boolean;
+  /** The GitHub client of the run, for sources that read repositories. */
+  github?: GitHub;
   /** API key for sources that need one (SerpAPI), from the Action input; undefined when not provided. */
   apiKey?: string;
   /** Records a problem that does not fail the whole source (one company down, one bad entry). */
@@ -35,6 +46,8 @@ export interface SourceAdapter<Raw = unknown> {
   /** True when the source only works with an API key; without one it is skipped, not failed. */
   requiresKey?: boolean;
   fetch(ctx: FetchContext): Promise<Raw[]>;
+  /** For company sources: whether these results prove a job missing from them is gone. Default: yes. */
+  provesAbsence?(raws: Raw[]): boolean;
   normalize(raw: Raw): Job;
 }
 

@@ -1,0 +1,33 @@
+{
+  "nbPages": 1,
+  "hits": [
+    {
+      "objectID": "50357486",
+      "parent_id": 50338728,
+      "story_id": 50338728,
+      "created_at": "2026-11-03T20:09:59Z",
+      "comment_text": "Radar Labs | Software Engineers (SRE, ML, backend, full-stack, mobile, security, QA) | Remote (US), NYC | Full Time | <a href=\"https:&#x2F;&#x2F;radar.com\" rel=\"nofollow\">https:&#x2F;&#x2F;radar.com</a><p>- Radar is the geo-location dev tool<p>- Doing 1B+ API calls per day<p>- Our main languages are Rust and TypeScript, we also use mobile and offline pipeline languages (Python, Scala, and Terraform).<p>- We&#x27;re based in NYC with our HQ in Union Square and remote friendly (US)<p>Interesting things we&#x27;re working on:<p>- HorizonDB, our Geospatial database written in Rust<p>- Agents and MCP tools to visualize and debug location data at scale<p>- Precise indoor location more accurate tha"
+    },
+    {
+      "objectID": "50365279",
+      "parent_id": 50338728,
+      "story_id": 50338728,
+      "created_at": "2026-11-04T13:31:28Z",
+      "comment_text": "Search Atlas | Product Engineer (PM) | REMOTE (anywhere, EST hours) | Full-time | $23-34&#x2F;hr<p>We&#x27;re ~160 people building an AI marketing platform. Our main product, OTTO, runs a site&#x27;s SEO on its own: it reads live search data and ships the technical and on-page fixes itself. Customers include Autotrader, Hyundai, P&amp;G and Vendasta.<p>Pods are 1 PM and 2-4 engineers. You own your pod&#x27;s roadmap and ship it with them, with no veteran PM signing off on your specs.<p>You have 3+ years as a B2B SaaS PM with a real technical background (eng or QA before PM, or you already work in the codebase). You read Python and TS, write your own SQL, and don&#x27;t need an engineer to ex"
+    },
+    {
+      "objectID": "50518905",
+      "parent_id": 50338728,
+      "story_id": 50338728,
+      "created_at": "2026-11-16T15:49:35Z",
+      "comment_text": "outGoing | Software Engineer | Lisbon, Portugal | HYBRID | €25k–€35k + meal allowance + health insurance<p>Started in Lisbon&#x27;s local events scene and now work across festivals, sports and cultural events of every kind. We&#x27;ve raised our first round and are launching new products soon, so this is an early hire with real ownership.<p>You&#x27;ll ship features across the whole product, work with product and design on what we build next, learn directly from the founders, and take part in on-call for what you ship. We care more about how fast you learn and how much you own than about years of experience.<p>Portuguese and English. You need to live in Portugal or already have the right to "
+    },
+    {
+      "objectID": "50589083",
+      "parent_id": 50520209,
+      "story_id": 50338728,
+      "created_at": "2026-11-21T13:35:59Z",
+      "comment_text": "Is this role still open?"
+    }
+  ]
+}

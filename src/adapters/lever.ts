@@ -2,6 +2,7 @@ import { z } from 'zod';
 import type { CompanyRef } from '../config/schema.js';
 import type { Job } from '../domain/job.js';
 import { canonicalUrl } from '../pipeline/url.js';
+import { resolveBoard } from './ats.js';
 import { companyName, forEachCompany, formatRange, isoFromEpoch, jobId, workModelFrom } from './common.js';
 import type { SourceAdapter } from './types.js';
 import { parseEnvelope, parseItems } from './validate.js';
@@ -41,16 +42,16 @@ export interface LeverRaw {
   posting: LeverPosting;
 }
 
-/** Lever postings API: `api.lever.co/v0/postings/{company}?mode=json`, one request per company. */
+/** Lever postings API: `api.lever.co/v0/postings/{company}?mode=json`, or `api.eu.lever.co` for boards on the EU region, one request per company. */
 export const lever: SourceAdapter<LeverRaw> = {
   id: 'lever',
   mode: 'company',
 
   async fetch(ctx) {
     return forEachCompany('lever', ctx, async (company) => {
-      const data = await ctx.http.getJson(
-        `https://api.lever.co/v0/postings/${encodeURIComponent(company.slug)}?mode=json`,
-      );
+      const board = resolveBoard('lever', company);
+      const host = board.region === 'eu' ? 'api.eu.lever.co' : 'api.lever.co';
+      const data = await ctx.http.getJson(`https://${host}/v0/postings/${encodeURIComponent(board.slug)}?mode=json`);
       const postings = parseEnvelope('lever', envelopeSchema, data);
       return parseItems('lever', postingSchema, postings, ctx).map((posting) => ({ company, posting }));
     });
@@ -64,10 +65,10 @@ export const lever: SourceAdapter<LeverRaw> = {
         : [];
     const salary = posting.salaryRange;
     return {
-      id: jobId('lever', company.slug, posting.id),
+      id: jobId('lever', resolveBoard('lever', company).slug, posting.id),
       source: 'lever',
       atsApply: true,
-      company: companyName(company),
+      company: companyName({ ...company, slug: resolveBoard('lever', company).slug }),
       title: posting.text.trim(),
       locations,
       workModel: workModelFrom(posting.workplaceType),

@@ -2,7 +2,7 @@
 
 Collects job postings, opens one GitHub issue per relevant job, and tracks each hiring process to the end, using GitHub Issues and Projects as the tracker. It runs entirely on GitHub Actions: no server, no database, no cost beyond free Actions minutes.
 
-- **Collector.** Every business day it reads InHire, Greenhouse, Lever, Ashby, Gupy, Himalayas, freehire, Get on Board, LinkedIn, Remote OK and We Work Remotely (and Google Jobs, optionally), filters by title, seniority, remote work and region, removes duplicates, and opens one issue per new job.
+- **Collector.** Every business day it reads InHire, Greenhouse, Lever, Ashby, Workable, SmartRecruiters, Recruitee, Teamtailor, Quickin, Sólides, Workday, career pages, Gupy, Himalayas, freehire, Get on Board, LinkedIn, Remote OK, Jobicy, GitHub job repos, Hacker News and We Work Remotely (and Google Jobs, optionally), filters by title, seniority, remote work and region, removes duplicates, and opens one issue per new job.
 - **Tracker.** You move a job along by changing its `status:*` label. The Project board, the open/closed state and the dates follow.
 - **Metrics.** After every collect and every week, a job rewrites a pinned "Metrics" issue (funnel, response rate, time to response, by source and contract) and fills the calculated Project fields.
 - **Manual jobs.** An issue form covers recruiters and referrals. A spreadsheet importer brings in history.
@@ -42,7 +42,7 @@ A guard job skips any run when a collect succeeded in the last `min-interval-hou
 | Hired, Rejected, Withdrawn | `status:hired`, `status:rejected`, `status:withdrawn` | The issue closes as "completed". Going back to an active status reopens it. |
 | Discarded | `status:discarded` | A job you looked at and will not apply to. The issue closes as "not planned". |
 
-Add one `status:*` label and the workflow removes the previous one. Dragging a card on the board does not trigger Actions on a personal account, so change the label. To drop a job you will not apply to, add `status:discarded`, plus a reason such as `discard:hybrid`, `discard:salary` or `discard:stack` (`setup` creates a set; any `discard:*` label counts). The issue closes as "not planned", leaves the "New" column, and the Metrics issue counts it as *Discarded* and breaks the reasons down. Jobs that leave the company's board by themselves get `status:discarded` and `closed-at-source` from `revalidate`.
+Add one `status:*` label and the workflow removes the previous one. Dragging a card on the board does not trigger Actions on a personal account, so change the label. To drop a job you will not apply to, add `status:discarded`, plus a reason such as `discard:hybrid`, `discard:salary` or `discard:stack` (`setup` creates a set; any `discard:*` label counts). The issue closes as "not planned", leaves the "New" column, and the Metrics issue counts it as *Discarded* and breaks the reasons down. Jobs that leave the company's board by themselves get `status:discarded` and `closed-at-source` from `revalidate`; if the same job is posted again, `collect` reopens the issue at `status:new` with the new link in a comment. When a job you applied to (or discarded) is reposted, the earlier issue gets a comment with the new link and the `signal:reposted` label instead of a second issue: a repost after no answer is worth knowing about.
 
 An application nobody answers is not a rejection, so it keeps its status. The Metrics issue lists it as *No response* once it is older than `metrics.no_response_after_days` (60 by default), or at once when you add the `no-response` label, for example after seeing the posting taken down.
 
@@ -58,11 +58,17 @@ The Action takes `command` plus `github-token`. The same commands run locally wi
 | `intake` | on `opened` | Normalizes issues made with the form. |
 | `revalidate` | weekly | Closes "New" jobs whose posting left the company's board (`closed-at-source`). |
 | `metrics` | weekly, and after each `collect` | Writes the calculated fields, repairs `Status` cards that no longer match their label, and rewrites the Metrics issue. |
-| `discover` | weekly, optional | Searches Google through SerpAPI for career pages on the supported ATS and opens a pull request that adds the new companies to `companies.yml`. |
+| `sweep` | weekly, optional | Walks `companies.directory.yml` (a large cold list of boards) in slices and records which companies have postings that match your search. Creates no issues. Commits `state/companies.json`. |
+| `prune` | weekly | Opens (or updates) one pull request removing from `companies.yml` the boards that were missing or unreadable for 4 weeks in a row. |
+| `discover` | weekly, optional | Searches Google through SerpAPI for career pages on the supported ATS and opens a pull request that adds the new companies to `companies.yml`. It also checks the boards that collected jobs link to and the tenants the Wayback Machine has seen for ATS with no search of their own (`discovery.max_archive_queries`), so it is useful without a SerpAPI key. |
 | `evaluate` | on `/evaluate` comment, optional | Posts a full AI analysis of the job (each requirement weighed by importance and evidence, what the posting leaves open with questions for the recruiter, likely interview questions) and refreshes its `fit:*` label. |
 | `import` | once, local | Creates issues from a spreadsheet: `npm run cli -- import --xlsx file.xlsx --repo you/job-search`. See `src/import/xlsx.ts` for the expected columns. |
 
-`collect`, `import`, `metrics`, `revalidate` and `discover` accept `dry-run` and write nothing.
+`collect`, `import`, `metrics`, `revalidate`, `discover`, `sweep` and `prune` accept `dry-run` and write nothing.
+
+### Hot and cold company lists
+
+`companies.yml` is read on every `collect`. For a long list of boards (a public directory of Greenhouse, Lever and Ashby companies, say), put them in `companies.directory.yml` instead, with the same shape. The weekly `sweep` checks them in slices and `collect` then reads only the directory companies that had a posting matching your search in the last `directory.hot_days` (default 45). Entries in `companies.yml` can also be a board URL, `{ url: https://jobs.eu.lever.co/acme }`, which is how an EU-region Lever board is listed.
 
 ## Configuration
 
@@ -88,7 +94,8 @@ The Action takes `command` plus `github-token`. The same commands run locally wi
 | `ai.*` | `enabled`, `base_url`, `model` and `max_calls_per_run`. See "Optional: AI". |
 | `metrics.no_response_after_days` | Days after which an unanswered application counts as "no response" (default 60). |
 | `metrics.follow_up_after_days` | Days after which an application still at `status:applied` gets one reminder comment on its issue (default 30, 0 turns it off). |
-| `issues.max_per_run` | At most this many new issues per run, newest first. The rest wait for the next run. |
+| `run.budget_minutes` | Minutes the whole collection may take (default 20). A source that is still working stops with what it has and logs how many companies it skipped. `sources.<id>.timeout_minutes` (default 5) sets a tighter limit for one source. |
+| `issues.max_per_run` | At most this many new issues per run. What does not fit waits in a backlog kept in `state/seen.json` (up to 200 jobs, dropped once older than `search.max_age_days` or when an issue exists) and is written first on the next run, so busy days do not push the oldest jobs out. Each group is ordered with the company's own ATS link first, then jobs read from a company's board before aggregators, then newest first; with AI on, by fit score. |
 | `issues.project_number`, `issues.project_owner` | Which Project to use. |
 | `issues.close_on_final_status` | Close issues on `rejected`, `withdrawn` and `hired` (default `true`). |
 
@@ -106,11 +113,22 @@ When a posting states working hours with a time zone (`9am–5pm ET`), the issue
 | Greenhouse | per company | Documented public API. |
 | Lever | per company | Documented public API. |
 | Ashby | per company | Public job board API. |
+| Career pages | per company | A company's own career site, listed under `careers:` as `{ url, name }`. Cheapest first: a link to a supported ATS (also inside an embedded iframe or script) goes to that ATS's adapter; else the page's schema.org `JobPosting` JSON-LD; else the job sitemap listed in `robots.txt`, reading only postings whose URL could pass your filters. It reads `robots.txt` first and never uses a headless browser. A page with no job data fails with a warning instead of counting as an empty board. |
+| Workday | per company | Large employers, including banks hiring in Brazil. Entries are the career site URL, `{ url: https://<tenant>.wd5.myworkdayjobs.com/<site>, name: Acme }`, because a slug cannot address a Workday site. One search per `search.include` term, then the detail of each posting that could pass the filters. The list only says "Posted 6 Days Ago", so older postings have no date until the detail is read. |
+| Sólides | per company | Brazilian ATS. The vacancies API its company career pages call (`apigw.solides.com.br/jobs/v3/companies/{slug}/vacancies`), 25 per page. Not a documented API, so the daily live test watches it. The portal-wide search is not used. |
+| Quickin | per company | Brazilian ATS. Public jobs API keyed by account id; job-radar reads the id once from the career page (`jobs.quickin.io/<slug>`) and keeps it in `state/companies.json`. You can also write the 24-character id as the slug. |
+| Teamtailor | per company | Public RSS feed of the career site (`/jobs.rss`, which states remote and hybrid jobs), with `/jobs.json` as a fallback. Works on `{slug}.teamtailor.com` and, as `{ url: https://careers.acme.com }`, on the company's own domain. |
+| Recruitee | per company | Public career site API, `{company}.recruitee.com/api/offers/`: no token needed (checked against a live board), the whole board in one request, with the salary when the offer publishes one. |
+| SmartRecruiters | per company | Documented Posting API. The company id is case sensitive (`BoschGroup`), and a wrong one looks like an empty board. One search per `search.include` term, then the detail of each posting that could pass the filters. |
+| Workable | per company | Public widget API of the career page, the whole board in one request. |
 | Gupy | global search | The job portal most large Brazilian employers use. Not a documented API: it calls the portal's own search endpoint, so the daily live test watches it. |
 | Himalayas | global search | Public API for remote jobs; the issue links back to the posting. |
 | freehire | global search | Public API of freehire.me, which aggregates about 50 ATS. Searches titles with the region and country facets; a personal project with no SLA, so an outage only costs this source. |
 | Get on Board | global search | Public API, no key, of a tech job board with many LatAm jobs. It has no text search, so it reads the SysAdmin / DevOps / QA category newest first and the title filter does the rest; postings that are remote only for residents of an unnamed country are skipped. |
 | LinkedIn | global search | LinkedIn's public guest search, no login and no key; off by default. One search per term and place for remote, Mid-Senior jobs of the last 2 days, then one detail page for each card that passes the cheap filters. Requests are spaced out and a 429 ends the source with what it had read. Based on the endpoints documented by [JobSpy](https://github.com/speedyapply/JobSpy) (MIT). |
+| Hacker News "Who is hiring?" | global search | The latest monthly thread, through the Algolia HN API (no key): its top-level comments are the postings, read from the usual `Company \| Role \| Place \| Remote` first line. Few QA roles appear, so it is off by default. |
+| GitHub job repos | global search | Open issues of Brazilian job boards that run as GitHub repositories, one issue per job: `backend-br/vagas`, `frontendbr/vagas` and `qa-brasil/vagas` by default, or the `repos` you list under `sources.github_repos`. Read with the run's own GitHub token. Titles and labels are free-form, so the company comes from the title (`Role na Company`, `Role - Company`) and the filters do the rest. Off by default. |
+| Jobicy | global search | Public API of remote jobs, no key. One request per accepted region (`brazil`, `latam`, `anywhere`, taken from `eligibility.accept_regions`) and `search.include` term. Its terms ask for a credit with a direct link, which the issue's source line and apply link provide. |
 | Remote OK | global search | Public JSON feed of the latest remote jobs. Its terms ask for a link back and a mention as the source, which the issue provides. |
 | We Work Remotely | global search | Official RSS feed of the latest remote jobs. |
 | Google Jobs | global search | Through SerpAPI, so it also covers postings that only exist on LinkedIn, Indeed or Glassdoor. Optional, needs a key. |
@@ -147,6 +165,21 @@ When `ai.enabled` is true, each new job gets a fit score for your profile (a `fi
 - **Your profile stays private:** save your profile or résumé as text in the secret `JOB_RADAR_PROFILE`. The workflow passes it to the Action, which sends it only to the model and never writes it anywhere. `examples/profile.template.md` is a template for a fuller master profile: deal-breakers first, then preferences, skills with honest levels, known gaps and your experience.
 - **Safe by default:** off unless you enable it, at most `ai.max_calls_per_run` calls a run, and an issue is created without a score when the quota runs out or a call fails. Posting text is sent to the model as data and its reply is validated and sanitized before it reaches an issue, but treat the score as a hint.
 - **Setup:** `ai.enabled: true` with `ai.base_url` and `ai.model`, the `collect` workflow's `ai-api-key` and `profile` inputs (already in the example), and the `evaluate` workflow for `/evaluate`. Only the repository owner, members and collaborators can trigger it. Every new issue keeps the full posting text in a collapsed block, which `/evaluate` and external scorers read.
+
+## Seeding the company directory
+
+`import-companies` fills `companies.directory.yml` from a list of boards, skipping any slug already in `companies.yml` or the directory; running it twice gives the same file. Rows for an ATS job-radar has no adapter for are counted and reported, not imported.
+
+```sh
+# a CSV; the defaults follow the LastRound AI ATS directory (ats_vendor, board_slug, company_name)
+npm run cli -- import-companies --csv ats-directory.csv
+# any CSV, naming its columns
+npm run cli -- import-companies --csv boards.csv --ats-column vendor --slug-column slug --name-column name
+# a text file with one career-page URL per line
+npm run cli -- import-companies --urls career-pages.txt
+```
+
+The [LastRound AI ATS directory](https://datahub.io/lastroundai-hiring-data/lastroundai-hiring-data/ats-directory) (about 9.9k Greenhouse, Lever and Ashby boards) is licensed [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/): credit it if you share what you build from it. Keep the dataset and the resulting directory in your own private repo, not in this one.
 
 ## Development
 

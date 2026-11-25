@@ -1,0 +1,103 @@
+{
+  "jobs": [
+    {
+      "absolute_url": "https://job-boards.greenhouse.io/gitlab/jobs/8940982002",
+      "data_compliance": [
+        {
+          "type": "gdpr",
+          "requires_consent": false,
+          "requires_processing_consent": false,
+          "requires_retention_consent": false,
+          "retention_period": null,
+          "demographic_data_consent_applies": false
+        }
+      ],
+      "internal_job_id": 6582801002,
+      "location": {
+        "name": "Bangalore, India"
+      },
+      "metadata": [
+        {
+          "id": 4595831002,
+          "name": "Quota Coverage Type",
+          "value": "n/a",
+          "value_type": "single_select"
+        }
+      ],
+      "id": 8940982002,
+      "updated_at": "2026-11-23T17:02:31-05:00",
+      "requisition_id": "7426",
+      "title": "Applied AI Engineer, Enterprise AI",
+      "company_name": "GitLab",
+      "first_published": "2026-11-23T17:02:31-05:00",
+      "language": "en",
+      "application_deadline": null
+    },
+    {
+      "absolute_url": "https://job-boards.greenhouse.io/gitlab/jobs/8771512002",
+      "data_compliance": [
+        {
+          "type": "gdpr",
+          "requires_consent": false,
+          "requires_processing_consent": false,
+          "requires_retention_consent": false,
+          "retention_period": null,
+          "demographic_data_consent_applies": false
+        }
+      ],
+      "internal_job_id": 6509478002,
+      "location": {
+        "name": "Remote, Canada; Remote, United States"
+      },
+      "metadata": [
+        {
+          "id": 4595831002,
+          "name": "Quota Coverage Type",
+          "value": "n/a",
+          "value_type": "single_select"
+        }
+      ],
+      "id": 8771512002,
+      "updated_at": "2026-11-20T11:49:04-05:00",
+      "requisition_id": "6918",
+      "title": "Backend Engineer, GitLab Orbit",
+      "company_name": "GitLab",
+      "first_published": "2026-10-23T18:47:07-04:00",
+      "language": "en",
+      "application_deadline": null
+    },
+    {
+      "absolute_url": "https://job-boards.greenhouse.io/gitlab/jobs/8704363002",
+      "data_compliance": [
+        {
+          "type": "gdpr",
+          "requires_consent": false,
+          "requires_processing_consent": false,
+          "requires_retention_consent": false,
+          "retention_period": null,
+          "demographic_data_consent_applies": false
+        }
+      ],
+      "internal_job_id": 6478405002,
+      "location": {
+        "name": "Remote, Canada; Remote, Poland; Remote, United Kingdom"
+      },
+      "metadata": [
+        {
+          "id": 4595831002,
+          "name": "Quota Coverage Type",
+          "value": "n/a",
+          "value_type": "single_select"
+        }
+      ],
+      "id": 8704363002,
+      "updated_at": "2026-11-10T10:45:04-05:00",
+      "requisition_id": "6808",
+      "title": "Backend Engineer (Python),AI Engineering: Agent Foundations",
+      "company_name": "GitLab",
+      "first_published": "2026-08-19T09:38:27-04:00",
+      "language": "en",
+      "application_deadline": null
+    }
+  ]
+}

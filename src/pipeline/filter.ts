@@ -51,8 +51,27 @@ export function inferWorkModel(job: Pick<Job, 'workModel' | 'title' | 'locations
   return detectWorkModel(job);
 }
 
+export interface RuleFailure {
+  reason: string;
+  /** The posting is silent about something (seniority, work model, location) rather than contradicting the search. */
+  soft: boolean;
+}
+
+export interface FilterReport {
+  ok: boolean;
+  failures: RuleFailure[];
+}
+
+/** `region not accepted` is soft only for a job that lists no location: then the filter had nothing to judge. */
+function isSoft(reason: string, job: Job): boolean {
+  if (reason === 'seniority: not stated' || reason === 'work model: not stated') return true;
+  return reason === 'eligibility: region not accepted' && job.locations.length === 0 && !job.restrictions?.length;
+}
+
 export interface JobFilter {
   check(job: Job, now: Date): FilterResult;
+  /** Every failing rule, not just the first; for the near-miss report, not the hot path. */
+  checkAll(job: Job, now: Date): FilterReport;
   /** Title and work model only, so adapters can skip detail requests for jobs that cannot pass. */
   worthDetails(candidate: { title: string; company?: string; workModel?: WorkModel }): boolean;
 }
@@ -73,6 +92,47 @@ export function createFilter(config: Config): JobFilter {
     excluded: search.exclude.find((term) => containsTerm(title, term)),
   });
 
+  const rules: Array<(job: Job, now: Date) => string | undefined> = [
+    (job) => {
+      const blocked = blockedCompany(job.company);
+      return blocked ? `excluded company: "${blocked}"` : undefined;
+    },
+    (job) => {
+      const { excluded } = titleResult(job.title);
+      return excluded ? `excluded term: "${excluded}"` : undefined;
+    },
+    (job) => (titleResult(job.title).matched.length === 0 ? 'title: no search term matched' : undefined),
+    (job) => {
+      const { matched } = titleResult(job.title);
+      const onlyAmbiguous = matched.length > 0 && matched.every((term) => ambiguous.has(normalizeText(term)));
+      if (!onlyAmbiguous || search.ambiguous_requires.length === 0) return undefined;
+      const text = `${job.title} ${job.description}`;
+      return search.ambiguous_requires.some((word) => containsTerm(text, word)) ? undefined : 'title: ambiguous term without a confirming word';
+    },
+    (job) => {
+      if (wantedSeniority.size === 0) return undefined;
+      const levels = detectSeniority(job);
+      if (levels.length === 0) return 'seniority: not stated';
+      return levels.some((level) => wantedSeniority.has(level)) ? undefined : `seniority: ${levels.join('/')}`;
+    },
+    (job) => {
+      const model = inferWorkModel(job);
+      if (!model) return 'work model: not stated';
+      return allowedModels.has(model) ? undefined : `work model: ${model}`;
+    },
+    (job, now) => {
+      if (!job.postedAt) return undefined;
+      const posted = Date.parse(job.postedAt);
+      return !Number.isNaN(posted) && now.getTime() - posted > search.max_age_days * DAY_MS ? `age: older than ${search.max_age_days} days` : undefined;
+    },
+    (job) => checkEligibility(job, eligibility.accept_regions, eligibility.reject).reason,
+    (job) => {
+      const language = requiredLanguage(`${job.title}
+${job.description}`, eligibility.reject_languages);
+      return language ? `language: requires ${language}` : undefined;
+    },
+  ];
+
   return {
     worthDetails({ title, company, workModel }) {
       if (company && blockedCompany(company)) return false;
@@ -82,47 +142,16 @@ export function createFilter(config: Config): JobFilter {
     },
 
     check(job, now) {
-      const blocked = blockedCompany(job.company);
-      if (blocked) return { ok: false, reason: `excluded company: "${blocked}"` };
-
-      const { matched, excluded } = titleResult(job.title);
-      if (excluded) return { ok: false, reason: `excluded term: "${excluded}"` };
-      if (matched.length === 0) return { ok: false, reason: 'title: no search term matched' };
-
-      const onlyAmbiguous = matched.every((term) => ambiguous.has(normalizeText(term)));
-      if (onlyAmbiguous && search.ambiguous_requires.length > 0) {
-        const text = `${job.title} ${job.description}`;
-        if (!search.ambiguous_requires.some((word) => containsTerm(text, word))) {
-          return { ok: false, reason: 'title: ambiguous term without a confirming word' };
-        }
+      for (const rule of rules) {
+        const reason = rule(job, now);
+        if (reason) return { ok: false, reason };
       }
-
-      if (wantedSeniority.size > 0) {
-        const levels = detectSeniority(job);
-        if (levels.length === 0) return { ok: false, reason: 'seniority: not stated' };
-        if (!levels.some((level) => wantedSeniority.has(level))) {
-          return { ok: false, reason: `seniority: ${levels.join('/')}` };
-        }
-      }
-
-      const model = inferWorkModel(job);
-      if (!model) return { ok: false, reason: 'work model: not stated' };
-      if (!allowedModels.has(model)) return { ok: false, reason: `work model: ${model}` };
-
-      if (job.postedAt) {
-        const posted = Date.parse(job.postedAt);
-        if (!Number.isNaN(posted) && now.getTime() - posted > search.max_age_days * DAY_MS) {
-          return { ok: false, reason: `age: older than ${search.max_age_days} days` };
-        }
-      }
-
-      const geo = checkEligibility(job, eligibility.accept_regions, eligibility.reject);
-      if (!geo.ok) return { ok: false, reason: geo.reason };
-
-      const language = requiredLanguage(`${job.title}
-${job.description}`, eligibility.reject_languages);
-      if (language) return { ok: false, reason: `language: requires ${language}` };
       return { ok: true };
+    },
+
+    checkAll(job, now) {
+      const failures = rules.flatMap((rule) => rule(job, now) ?? []).map((reason) => ({ reason, soft: isSoft(reason, job) }));
+      return { ok: failures.length === 0, failures };
     },
   };
 }

@@ -1,3 +1,4 @@
+import { emptyByAts } from '../src/adapters/ats.js';
 import { describe, expect, it } from 'vitest';
 import type { AnySourceAdapter } from '../src/adapters/types.js';
 import { FOLLOW_UP_MARKER, metrics } from '../src/commands/metrics.js';
@@ -453,7 +454,7 @@ describe('revalidate', () => {
     normalize: (raw: Job) => raw,
   });
   const search: AnySourceAdapter = { id: 'himalayas', mode: 'search', fetch: async () => [], normalize: (raw: any) => raw };
-  const companies = { inhire: [], greenhouse: ['acme'], lever: [], ashby: [] };
+  const companies = { ...emptyByAts(), greenhouse: ['acme'] };
 
   function setup(issues: ReturnType<typeof issue>[]) {
     const fake = fakeContext({ existingIssues: issues });
@@ -506,6 +507,16 @@ describe('revalidate', () => {
     expect(empty.log.warn).toHaveBeenCalledWith(expect.stringContaining('outage'));
   });
 
+  it('closes nothing when the source only gives a partial view of the board', async () => {
+    const partial: AnySourceAdapter = { ...board([job({ id: 'greenhouse:acme:bbbbbbbb' })]), provesAbsence: () => false };
+    const { ctx, issues, log } = setup([issue(1, ['status:new'], marker('greenhouse:acme:aaaaaaaa'))]);
+    const result = await revalidate(ctx, { companies, adapters: { greenhouse: partial, himalayas: search } });
+
+    expect(result.closed).toBe(0);
+    expect(issues.update).not.toHaveBeenCalled();
+    expect(log.info).toHaveBeenCalledWith(expect.stringContaining('partial view'));
+  });
+
   it('only reports in a dry run', async () => {
     const { ctx, issues } = setup([issue(1, ['status:new'], marker('greenhouse:acme:aaaaaaaa'))]);
     const result = await revalidate(ctx, { dryRun: true, companies, adapters: { greenhouse: board([job({ id: 'greenhouse:acme:other' })]), himalayas: search } });
@@ -539,5 +550,41 @@ describe('last collect line', () => {
 
   it('shows nothing when the last run is unknown', () => {
     expect(renderReport([], THURSDAY, 60)).not.toContain('Last successful collect');
+  });
+});
+
+describe('sources section', () => {
+  const stats = {
+    greenhouse: { '2026-W42': { fetched: 10, passedFilters: 4, unique: 3, duplicateOf: { known: 20 } } },
+    himalayas: { '2026-W42': { fetched: 8, passedFilters: 3, unique: 1, duplicateOf: { greenhouse: 2, known: 9 } }, '2026-W20': { fetched: 1, passedFilters: 1, unique: 9, duplicateOf: {} } },
+  };
+
+  it('shows issues created in the last 4 weeks, their share, the main overlap and outcomes per source', () => {
+    const applied = analyzeIssue(facts({ labels: ['status:screening', 'found:greenhouse'], fields: { 'Applied on': '2026-10-01', 'Response date': '2026-10-05' } }));
+    const report = renderReport([applied], TODAY, 60, undefined, stats);
+    expect(report).toContain('| greenhouse | 3 | 75% | — | 1 | 1 |');
+    expect(report).toContain('| himalayas | 1 | 25% | greenhouse (2) | 0 | 0 |');
+  });
+
+  it('is left out without counters', () => {
+    expect(renderReport([], TODAY)).not.toContain('## Sources');
+  });
+});
+
+describe('near misses section', () => {
+  it('lists the last week of near misses in a collapsed block', () => {
+    const misses = [
+      { id: 'a:1', title: 'QA Engineer', company: 'Acme', link: 'https://x.test/1', reason: 'seniority: not stated', date: '2026-10-14T10:00:00Z' },
+      { id: 'a:2', title: 'Old QA', company: 'Old', link: 'https://x.test/2', reason: 'seniority: not stated', date: '2026-09-01T10:00:00Z' },
+    ];
+    const report = renderReport([], TODAY, 60, undefined, {}, misses);
+    expect(report).toContain('## Near misses this week');
+    expect(report).toContain('<details><summary>1 job(s) dropped by a single soft rule</summary>');
+    expect(report).toContain('- [Acme: QA Engineer](https://x.test/1) (seniority: not stated)');
+    expect(report).not.toContain('Old QA');
+  });
+
+  it('is left out when there are none', () => {
+    expect(renderReport([], TODAY)).not.toContain('Near misses');
   });
 });

@@ -1,4 +1,7 @@
 import { STAGES, STATUSES, STATUS_TITLES, isTerminalStatus, stageNumber, type Status } from '../domain/status.js';
+import type { SeenState } from '../state/seen.js';
+import { isoWeek } from '../state/seen.js';
+import { sanitizeForIssue } from '../pipeline/excerpt.js';
 import { daysBetween, isDiscarded, isUnanswered, type IssueMetrics } from './analyze.js';
 
 export const METRICS_MARKER = '<!-- job-radar:metrics -->';
@@ -86,6 +89,38 @@ function breakdown(all: IssueMetrics[], keys: (issue: IssueMetrics) => string[])
       const responded = applied.filter((issue) => issue.responseDate);
       return [key, issues.length, issues.filter(isDiscarded).length, applied.length, responded.length, pct(responded.length, applied.length)];
     });
+}
+
+const SOURCE_WINDOW_WEEKS = 4;
+
+/**
+ * What each source contributed over the last weeks: issues it created, its share of all unique jobs,
+ * the other source it most often duplicates, and the applications and responses on its issues.
+ * Duplicates of `known` are left out of the overlap, since a job stays on its board for weeks and
+ * is re-fetched, and re-recognized, on every run.
+ */
+function sourceContribution(all: IssueMetrics[], stats: SeenState['stats'], today: Date): Array<Array<string | number>> {
+  const weeks = new Set(Array.from({ length: SOURCE_WINDOW_WEEKS }, (_, index) => isoWeek(new Date(today.getTime() - index * 7 * 86_400_000))));
+  const rows = Object.entries(stats).map(([source, byWeek]) => {
+    const recent = Object.entries(byWeek).filter(([week]) => weeks.has(week)).map(([, counts]) => counts);
+    const overlap = new Map<string, number>();
+    for (const counts of recent) {
+      for (const [other, count] of Object.entries(counts.duplicateOf)) if (other !== 'known') overlap.set(other, (overlap.get(other) ?? 0) + count);
+    }
+    const top = [...overlap.entries()].sort(([, a], [, b]) => b - a)[0];
+    const applied = all.filter((issue) => issue.found === source && issue.appliedOn);
+    return {
+      source,
+      unique: recent.reduce((sum, counts) => sum + counts.unique, 0),
+      overlap: top ? `${top[0]} (${top[1]})` : '—',
+      applied: applied.length,
+      responded: applied.filter((issue) => issue.responseDate).length,
+    };
+  });
+  const total = rows.reduce((sum, row) => sum + row.unique, 0);
+  return rows
+    .sort((a, b) => b.unique - a.unique || a.source.localeCompare(b.source))
+    .map((row) => [row.source, row.unique, pct(row.unique, total), row.overlap, row.applied, row.responded]);
 }
 
 const MIN_CASES_FOR_RATE = 5;
@@ -185,6 +220,8 @@ export function renderReport(
   today: Date,
   noResponseAfterDays = DEFAULT_NO_RESPONSE_AFTER_DAYS,
   lastCollect?: Date,
+  sourceStats: SeenState['stats'] = {},
+  nearMisses: SeenState['nearMiss'] = [],
 ): string {
   const todayIso = today.toISOString().slice(0, 10);
   const total = totals(all, todayIso, noResponseAfterDays);
@@ -225,6 +262,9 @@ export function renderReport(
     .filter(({ days }) => days > STALLED_AFTER_DAYS)
     .sort((a, b) => b.days - a.days);
 
+  const weekAgo = today.getTime() - 7 * 86_400_000;
+  const recentMisses = nearMisses.filter((miss) => Date.parse(miss.date) >= weekAgo);
+
   const sections = [
     METRICS_MARKER,
     `_Updated ${todayIso} by job-radar. Edits to this issue are overwritten._`,
@@ -253,6 +293,13 @@ export function renderReport(
     '## Funnel',
     funnelChart(steps),
     table(['Step', 'From', 'To', 'Conversion'], conversions),
+    ...(Object.keys(sourceStats).length > 0
+      ? [
+          `## Sources (last ${SOURCE_WINDOW_WEEKS} weeks)`,
+          table(['Source', 'Issues created', 'Share of unique jobs', 'Overlaps most with', 'Applied', 'Responded'], sourceContribution(all, sourceStats, today)),
+          '_Overlap counts the jobs a source returned that another source already had in the same run._',
+        ]
+      : []),
     '## Where jobs come from',
     table(['Found on', 'Jobs', 'Discarded', 'Applied', 'Responded', 'Response rate'], breakdown(all, (issue) => (issue.found ? [issue.found] : []))),
     '### By ATS',
@@ -278,6 +325,19 @@ export function renderReport(
       : []),
     '## Salary',
     table(['Currency', 'Mean target', 'Targets', 'Mean offered', 'Offers'], salaries),
+    ...(recentMisses.length > 0
+      ? [
+          '## Near misses this week',
+          [
+            `<details><summary>${recentMisses.length} job(s) dropped by a single soft rule</summary>`,
+            '',
+            ...recentMisses.map((miss) => `- [${sanitizeForIssue(miss.company)}: ${sanitizeForIssue(miss.title)}](${miss.link}) (${miss.reason})`),
+            '',
+            '</details>',
+          ].join('\n'),
+          '_To follow one up, open an issue for it with the job form._',
+        ]
+      : []),
     `## Stalled applications (${STALLED_AFTER_DAYS} to ${noResponseAfterDays} days without a response)`,
     stalled.length === 0
       ? '_None._'

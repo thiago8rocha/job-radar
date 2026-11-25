@@ -3,13 +3,24 @@ import { http, HttpResponse } from 'msw';
 import { setupServer } from 'msw/node';
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { ashby } from '../src/adapters/ashby.js';
+import { Octokit } from 'octokit';
+import { githubRepos } from '../src/adapters/github-repos.js';
 import { freehire } from '../src/adapters/freehire.js';
 import { getonbrd } from '../src/adapters/getonbrd.js';
 import { greenhouse } from '../src/adapters/greenhouse.js';
 import { himalayas } from '../src/adapters/himalayas.js';
+import { hnHiring } from '../src/adapters/hn-hiring.js';
 import { inhire } from '../src/adapters/inhire.js';
+import { jobicy } from '../src/adapters/jobicy.js';
 import { lever } from '../src/adapters/lever.js';
 import { linkedin } from '../src/adapters/linkedin.js';
+import { quickin } from '../src/adapters/quickin.js';
+import { recruitee } from '../src/adapters/recruitee.js';
+import { smartrecruiters } from '../src/adapters/smartrecruiters.js';
+import { solides } from '../src/adapters/solides.js';
+import { teamtailor } from '../src/adapters/teamtailor.js';
+import { workday } from '../src/adapters/workday.js';
+import { workable } from '../src/adapters/workable.js';
 import { SchemaError, type FetchContext } from '../src/adapters/types.js';
 import { parseConfig } from '../src/config/load.js';
 import { checkEligibility } from '../src/pipeline/eligibility.js';
@@ -182,6 +193,477 @@ describe('ashby', () => {
     expect(paid.company).toBe('Ramp');
     expect(paid.applyUrl).toMatch(/^https:\/\/jobs\.ashbyhq\.com\/ramp\//);
     expect(jobs.every((job) => job.postedAt)).toBe(true);
+  });
+});
+
+describe('workable', () => {
+  it('reads the whole board in one request and maps locations and remote work', async () => {
+    let calls = 0;
+    server.use(
+      http.get('https://apply.workable.com/api/v1/widget/accounts/huggingface', ({ request }) => {
+        calls++;
+        expect(new URL(request.url).searchParams.get('details')).toBe('true');
+        return HttpResponse.json(fixture('workable.json'));
+      }),
+    );
+    const jobs = (await workable.fetch(context(['huggingface']).ctx)).map((raw) => workable.normalize(raw));
+
+    expect(calls).toBe(1);
+    expect(jobs).toHaveLength(3);
+    expect(jobs[0]!.company).toBe('Hugging Face');
+    expect(jobs[0]!.workModel).toBe('remote');
+    expect(jobs[0]!.locations).toEqual(['Paris, Île-de-France, France']);
+    expect(jobs[0]!.contracts).toEqual(['Full-time']);
+    expect(jobs[0]!.postedAt).toBe('2026-05-29');
+    expect(jobs[0]!.applyUrl).toMatch(/^https:\/\/apply\.workable\.com\/j\//);
+  });
+
+  it('reads a board listed by its URL', async () => {
+    let requested = '';
+    server.use(
+      http.get('https://apply.workable.com/api/v1/widget/accounts/:slug', ({ params }) => {
+        requested = String(params.slug);
+        return HttpResponse.json(fixture('workable.json'));
+      }),
+    );
+    const { ctx } = context([], { companies: [{ slug: 'hf', url: 'https://huggingface.workable.com/' }] });
+    await workable.fetch(ctx);
+    expect(requested).toBe('huggingface');
+  });
+
+  it('fails when the response has no jobs list', async () => {
+    server.use(http.get('https://apply.workable.com/api/v1/widget/accounts/huggingface', () => HttpResponse.json({ name: 'x' })));
+    await expect(workable.fetch(context(['huggingface']).ctx)).rejects.toBeInstanceOf(SchemaError);
+  });
+});
+
+describe('workday', () => {
+  const entry = { slug: 'https://nvidia.wd5.myworkdayjobs.com/en-US/NVIDIAExternalCareerSite', url: 'https://nvidia.wd5.myworkdayjobs.com/en-US/NVIDIAExternalCareerSite', name: 'NVIDIA' };
+
+  function mock() {
+    const searches: Array<{ searchText: string; offset: number; limit: number }> = [];
+    const detailCalls: string[] = [];
+    server.use(
+      http.post('https://nvidia.wd5.myworkdayjobs.com/wday/cxs/nvidia/NVIDIAExternalCareerSite/jobs', async ({ request }) => {
+        searches.push((await request.json()) as (typeof searches)[number]);
+        return HttpResponse.json(fixture('workday-list.json'));
+      }),
+      http.get('https://nvidia.wd5.myworkdayjobs.com/wday/cxs/nvidia/NVIDIAExternalCareerSite/job/*', ({ request }) => {
+        detailCalls.push(new URL(request.url).pathname);
+        return HttpResponse.json(fixture('workday-detail.json'));
+      }),
+    );
+    return { searches, detailCalls };
+  }
+
+  it('searches each include term and reads the detail only for postings that could pass the filters', async () => {
+    const { searches, detailCalls } = mock();
+    const { ctx } = context([], { companies: [entry], worthDetails: (candidate) => /Networking/.test(candidate.title) });
+    const jobs = (await workday.fetch(ctx)).map((raw) => workday.normalize(raw));
+
+    expect(searches.map((search) => [search.searchText, search.offset, search.limit])).toEqual([['QA', 0, 20], ['Quality', 0, 20]]);
+    expect(jobs).toHaveLength(3);
+    expect(detailCalls).toHaveLength(1);
+    const detailed = jobs.find((job) => /Networking SW QA/.test(job.title))!;
+    expect(detailed.company).toBe('NVIDIA');
+    expect(detailed.postedAt).toBe('2026-11-24');
+    expect(detailed.contracts).toEqual(['Full time']);
+    expect(detailed.applyUrl).toBe('https://nvidia.wd5.myworkdayjobs.com/NVIDIAExternalCareerSite/job/Israel-Tel-Hai/Networking-SW-QA-Engineer_JR2029939');
+    expect(detailed.description.length).toBeGreaterThan(0);
+  });
+
+  it('turns the relative posting date of the list into a date, and drops 30+ days', async () => {
+    mock();
+    const jobs = (await workday.fetch(context([], { companies: [entry], worthDetails: () => false }).ctx)).map((raw) => workday.normalize(raw));
+    const senior = jobs.find((job) => /Senior Software QA/.test(job.title))!;
+
+    expect(senior.postedAt).toBe(new Date(Date.parse('2026-10-15T12:00:00Z') - 22 * 86_400_000).toISOString());
+    expect(jobs.find((job) => /Intern/.test(job.title))!.postedAt).toBeUndefined();
+  });
+
+  it('fails the company when the entry has no career site URL', async () => {
+    const { ctx, warnings } = context(['nvidia']);
+    await expect(workday.fetch(ctx)).rejects.toThrow(/career site URL/);
+    expect(warnings[0]).toMatch(/workday\/nvidia/);
+  });
+
+  it('fails when the response has no postings list', async () => {
+    server.use(http.post('https://nvidia.wd5.myworkdayjobs.com/wday/cxs/nvidia/NVIDIAExternalCareerSite/jobs', () => HttpResponse.json({ errorCode: 'x' })));
+    await expect(workday.fetch(context([], { companies: [entry] }).ctx)).rejects.toBeInstanceOf(SchemaError);
+  });
+});
+
+describe('solides', () => {
+  it('reads the company vacancies in pages of 25 and links to the public vacancy page', async () => {
+    const pages: string[] = [];
+    server.use(
+      http.get('https://apigw.solides.com.br/jobs/v3/companies/solides/vacancies', ({ request }) => {
+        const url = new URL(request.url);
+        pages.push(`${url.searchParams.get('take')}|${url.searchParams.get('page')}`);
+        return HttpResponse.json(fixture('solides.json'));
+      }),
+    );
+    const jobs = (await solides.fetch(context(['solides']).ctx)).map((raw) => solides.normalize(raw));
+    const remote = jobs.find((job) => /CIBERN/.test(job.title))!;
+
+    expect(pages).toEqual(['25|1']);
+    expect(jobs).toHaveLength(3);
+    expect(remote.company).toBe('Sólides Tecnologia');
+    expect(remote.workModel).toBe('remote');
+    expect(remote.contracts).toEqual(['CLT']);
+    expect(remote.locations).toEqual(['Belo Horizonte, MG']);
+    expect(remote.applyUrl).toMatch(/^https:\/\/solides\.vagas\.solides\.com\.br\/vaga\/\d+$/);
+    expect(jobs.find((job) => /JOVEM/.test(job.title))!.workModel).toBe('onsite');
+  });
+
+  it('shows the pay range only when the posting makes it public', async () => {
+    const body = fixture('solides.json');
+    body.data[0].salary = { showRangeToApplicant: true, initialRange: 5000, finalRange: 7000 };
+    body.data[1].salary = { showRangeToApplicant: false, initialRange: 9000, finalRange: 9500 };
+    server.use(http.get('https://apigw.solides.com.br/jobs/v3/companies/solides/vacancies', () => HttpResponse.json(body)));
+    const jobs = (await solides.fetch(context(['solides']).ctx)).map((raw) => solides.normalize(raw));
+
+    expect(jobs[0]!.compensation).toBe('BRL 5,000 – 7,000');
+    expect(jobs[1]!.compensation).toBeUndefined();
+  });
+
+  it('fails when the response has no data list', async () => {
+    server.use(http.get('https://apigw.solides.com.br/jobs/v3/companies/solides/vacancies', () => HttpResponse.json({ message: 'x' })));
+    await expect(solides.fetch(context(['solides']).ctx)).rejects.toBeInstanceOf(SchemaError);
+  });
+});
+
+describe('quickin', () => {
+  const page = readFileSync(new URL('./fixtures/quickin-page.html', import.meta.url), 'utf8');
+  const ACCOUNT = '686d6f9812b3d7001359e95c';
+
+  it('resolves the account id from the career page once, then reads the jobs API', async () => {
+    let pageCalls = 0;
+    server.use(
+      http.get('https://jobs.quickin.io/quickin', () => (pageCalls++, HttpResponse.text(page))),
+      http.get(`https://api.quickin.io/public/${ACCOUNT}/jobs`, ({ request }) => {
+        expect(new URL(request.url).searchParams.get('sort')).toBe('-created_at');
+        return HttpResponse.json(fixture('quickin.json'));
+      }),
+    );
+    const resolved: Record<string, string> = {};
+    const first = (await quickin.fetch(context(['quickin'], { resolved }).ctx)).map((raw) => quickin.normalize(raw));
+    await quickin.fetch(context(['quickin'], { resolved }).ctx);
+
+    expect(pageCalls).toBe(1);
+    expect(resolved).toEqual({ 'quickin:quickin': ACCOUNT });
+    expect(first).toHaveLength(2);
+    expect(first[0]!.company).toBe('Quickin');
+    expect(first[0]!.workModel).toBe('hybrid');
+    expect(first[0]!.locations).toEqual(['São Paulo, SP, BR']);
+    expect(first[0]!.postedAt).toBe('2026-07-08T13:34:36.097Z');
+    expect(first[0]!.applyUrl).toBe('https://jobs.quickin.io/quickin/jobs/6a4e51ec02c66d001271132a');
+    expect(first[0]!.description).toContain('Sobre a vaga');
+  });
+
+  it('takes an account id written as the slug without loading the page', async () => {
+    server.use(http.get(`https://api.quickin.io/public/${ACCOUNT}/jobs`, () => HttpResponse.json(fixture('quickin.json'))));
+    expect(await quickin.fetch(context([ACCOUNT]).ctx)).toHaveLength(2);
+  });
+
+  it('fails when the career page does not carry an account id', async () => {
+    server.use(http.get('https://jobs.quickin.io/ghost', () => HttpResponse.text('<html></html>')));
+    await expect(quickin.fetch(context(['ghost']).ctx)).rejects.toBeInstanceOf(SchemaError);
+  });
+
+  it('reads the salary the posting states', async () => {
+    const body = fixture('quickin.json');
+    body.docs[0].remuneration = '8.000';
+    body.docs[0].currency = 'BRL';
+    server.use(http.get(`https://api.quickin.io/public/${ACCOUNT}/jobs`, () => HttpResponse.json(body)));
+    const jobs = (await quickin.fetch(context([ACCOUNT]).ctx)).map((raw) => quickin.normalize(raw));
+    expect(jobs[0]!.compensation).toBe('BRL 8,000');
+  });
+});
+
+describe('teamtailor', () => {
+  const rss = readFileSync(new URL('./fixtures/teamtailor.rss', import.meta.url), 'utf8');
+
+  it('reads the RSS feed: remote status, city and country, publication date', async () => {
+    server.use(http.get('https://career.teamtailor.com/jobs.rss', () => HttpResponse.text(rss, { headers: { 'content-type': 'application/rss+xml' } })));
+    const jobs = (await teamtailor.fetch(context(['career']).ctx)).map((raw) => teamtailor.normalize(raw));
+
+    expect(jobs).toHaveLength(3);
+    expect(jobs[0]!.company).toBe('Teamtailor');
+    expect(jobs[0]!.workModel).toBeUndefined();
+    expect(jobs[0]!.locations).toEqual(['Stockholm, Sweden']);
+    expect(jobs[1]!.workModel).toBe('hybrid');
+    expect(jobs[0]!.postedAt).toBe('2026-11-24T09:33:49.000Z');
+    expect(jobs[0]!.applyUrl).toBe('https://career.teamtailor.com/jobs/8786914-integration-success-specialist');
+  });
+
+  it('falls back to the JSON feed when there is no RSS feed, on a company domain too', async () => {
+    const requested: string[] = [];
+    server.use(
+      http.get('https://careers.hemnet.se/jobs.rss', () => (requested.push('rss'), new HttpResponse(null, { status: 404 }))),
+      http.get('https://careers.hemnet.se/jobs.json', () => (requested.push('json'), HttpResponse.json(fixture('teamtailor.json')))),
+    );
+    const { ctx, warnings } = context([], { companies: [{ slug: 'https://careers.hemnet.se', url: 'https://careers.hemnet.se' }] });
+    const jobs = (await teamtailor.fetch(ctx)).map((raw) => teamtailor.normalize(raw));
+
+    expect(requested).toEqual(['rss', 'json']);
+    expect(warnings.some((warning) => /jobs\.rss failed/.test(warning))).toBe(true);
+    expect(jobs).toHaveLength(2);
+    expect(jobs[0]!.company).toBe('Hemnet');
+    expect(jobs[0]!.locations).toEqual(['Stockholm, SE']);
+    expect(jobs[0]!.contracts).toEqual(['FULL_TIME']);
+  });
+
+  it('fails when neither feed has the expected shape', async () => {
+    server.use(
+      http.get('https://career.teamtailor.com/jobs.rss', () => HttpResponse.text('<html></html>')),
+      http.get('https://career.teamtailor.com/jobs.json', () => HttpResponse.json({ oops: true })),
+    );
+    await expect(teamtailor.fetch(context(['career']).ctx)).rejects.toBeInstanceOf(SchemaError);
+  });
+});
+
+describe('recruitee', () => {
+  it('reads the whole board from the public career site API', async () => {
+    let calls = 0;
+    server.use(
+      http.get('https://bunq.recruitee.com/api/offers/', () => {
+        calls++;
+        return HttpResponse.json(fixture('recruitee.json'));
+      }),
+    );
+    const jobs = (await recruitee.fetch(context(['bunq']).ctx)).map((raw) => recruitee.normalize(raw));
+
+    expect(calls).toBe(1);
+    expect(jobs).toHaveLength(2);
+    expect(jobs[0]!.company).toBe('bunq');
+    expect(jobs[0]!.workModel).toBe('remote');
+    expect(jobs[0]!.locations).toEqual(['Paris, France']);
+    expect(jobs[0]!.postedAt).toBe('2026-11-10T07:45:05.000Z');
+    expect(jobs[0]!.applyUrl).toBe('https://careers.bunq.com/o/reporting-agent-france-3');
+    expect(jobs[1]!.workModel).toBe('hybrid');
+    expect(jobs[1]!.locations).toEqual(['Amsterdam, Noord-Holland, Netherlands']);
+  });
+
+  it('shows the salary when the offer publishes one and skips offers that are not published', async () => {
+    const body = fixture('recruitee.json');
+    body.offers[0].salary = { min: '4000', max: '5000', currency: 'EUR', period: 'month' };
+    body.offers[1].status = 'archived';
+    server.use(http.get('https://bunq.recruitee.com/api/offers/', () => HttpResponse.json(body)));
+    const jobs = (await recruitee.fetch(context(['bunq']).ctx)).map((raw) => recruitee.normalize(raw));
+
+    expect(jobs).toHaveLength(1);
+    expect(jobs[0]!.compensation).toBe('EUR 4,000 – 5,000 / month');
+  });
+
+  it('fails when the response has no offers list', async () => {
+    server.use(http.get('https://bunq.recruitee.com/api/offers/', () => HttpResponse.json({ error: 'Not Found' })));
+    await expect(recruitee.fetch(context(['bunq']).ctx)).rejects.toBeInstanceOf(SchemaError);
+  });
+});
+
+describe('smartrecruiters', () => {
+  function mock(onList?: (url: URL) => void) {
+    const detailCalls: string[] = [];
+    server.use(
+      http.get('https://api.smartrecruiters.com/v1/companies/BoschGroup/postings', ({ request }) => {
+        onList?.(new URL(request.url));
+        return HttpResponse.json(fixture('smartrecruiters-list.json'));
+      }),
+      http.get('https://api.smartrecruiters.com/v1/companies/BoschGroup/postings/:id', ({ params }) => {
+        detailCalls.push(String(params.id));
+        return HttpResponse.json(fixture('smartrecruiters-detail.json'));
+      }),
+    );
+    return detailCalls;
+  }
+
+  it('searches each include term with the case-sensitive company id and reads detail only for likely matches', async () => {
+    const queries: string[] = [];
+    const detailCalls = mock((url) => queries.push(`${url.searchParams.get('q')}|${url.searchParams.get('limit')}|${url.searchParams.get('offset')}`));
+    const raws = await smartrecruiters.fetch(context(['BoschGroup']).ctx);
+    const jobs = raws.map((raw) => smartrecruiters.normalize(raw));
+
+    expect(queries).toEqual(['QA|100|0', 'Quality|100|0']);
+    expect(jobs).toHaveLength(3);
+    expect(detailCalls).toEqual(['744000162542319', '744000162238119']);
+    const qa = jobs.find((job) => /QA Engineer/.test(job.title))!;
+    expect(qa.company).toBe('Bosch Group');
+    expect(qa.applyUrl).toBe('https://jobs.smartrecruiters.com/BoschGroup/744000162238119-qa-engineer-tester-servicenow-platform');
+    expect(qa.contracts).toEqual(['Full-time']);
+    expect(qa.description.length).toBeGreaterThan(0);
+    const skipped = jobs.find((job) => /Android/.test(job.title))!;
+    expect(skipped.applyUrl).toMatch(/^https:\/\/jobs\.smartrecruiters\.com\/BoschGroup\/744000162493309$/);
+  });
+
+  it('pages with offset until totalFound', async () => {
+    const offsets: number[] = [];
+    const one = fixture('smartrecruiters-list.json').content.slice(0, 1);
+    server.use(
+      http.get('https://api.smartrecruiters.com/v1/companies/BoschGroup/postings', ({ request }) => {
+        const offset = Number(new URL(request.url).searchParams.get('offset'));
+        offsets.push(offset);
+        return HttpResponse.json({ offset, limit: 100, totalFound: 150, content: one });
+      }),
+    );
+    const config = parseConfig('search:\n  include: ["QA"]\n');
+    await smartrecruiters.fetch(context(['BoschGroup'], { config, worthDetails: () => false }).ctx);
+    expect(offsets).toEqual([0, 100]);
+  });
+
+  it('fails when the response has no content list', async () => {
+    server.use(http.get('https://api.smartrecruiters.com/v1/companies/BoschGroup/postings', () => HttpResponse.json({ error: 'x' })));
+    await expect(smartrecruiters.fetch(context(['BoschGroup']).ctx)).rejects.toBeInstanceOf(SchemaError);
+  });
+});
+
+describe('hn_hiring', () => {
+  function mock(comments: unknown = fixture('hn-hiring-comments.json')) {
+    const searches: Array<Record<string, string>> = [];
+    server.use(
+      http.get('https://hn.algolia.com/api/v1/search_by_date', ({ request }) => {
+        const params = Object.fromEntries(new URL(request.url).searchParams);
+        searches.push(params);
+        return HttpResponse.json(params.tags === 'story,author_whoishiring' ? fixture('hn-hiring-threads.json') : comments);
+      }),
+    );
+    return searches;
+  }
+
+  it('finds the latest hiring thread and keeps its top-level comments as postings', async () => {
+    const searches = mock();
+    const jobs = (await hnHiring.fetch(context().ctx)).map((raw) => hnHiring.normalize(raw));
+
+    expect(searches.map((search) => search.tags)).toEqual(['story,author_whoishiring', 'comment,story_50338728']);
+    expect(jobs).toHaveLength(3);
+    const radar = jobs.find((job) => job.company === 'Radar Labs')!;
+    expect(radar.title).toMatch(/QA\)$/);
+    expect(radar.workModel).toBe('remote');
+    expect(radar.locations.join()).toContain('Remote (US)');
+    expect(radar.applyUrl).toBe('https://news.ycombinator.com/item?id=50357486');
+    expect(radar.postedAt).toBe('2026-11-03T20:09:59Z');
+    const hybrid = jobs.find((job) => job.company === 'outGoing')!;
+    expect(hybrid.workModel).toBe('hybrid');
+    expect(hybrid.locations).toContain('Lisbon, Portugal');
+    expect(hybrid.description).toContain("Lisbon's local events scene");
+  });
+
+  it('fails when no hiring thread is found or the response changed', async () => {
+    server.use(http.get('https://hn.algolia.com/api/v1/search_by_date', () => HttpResponse.json({ hits: [{ objectID: '1', title: 'Ask HN: Who wants to be hired? (November 2026)' }] })));
+    await expect(hnHiring.fetch(context().ctx)).rejects.toBeInstanceOf(SchemaError);
+    server.use(http.get('https://hn.algolia.com/api/v1/search_by_date', () => HttpResponse.json({ oops: true })));
+    await expect(hnHiring.fetch(context().ctx)).rejects.toBeInstanceOf(SchemaError);
+  });
+});
+
+describe('github_repos', () => {
+  const github = () => new Octokit({ request: { fetch } });
+  const config = parseConfig('search:\n  include: ["QA"]\n  max_age_days: 30\nsources:\n  github_repos: { enabled: true, repos: ["backend-br/vagas"] }\n');
+
+  it('reads open issues since the age limit and maps title, labels and company', async () => {
+    let since: string | null = null;
+    server.use(
+      http.get('https://api.github.com/repos/backend-br/vagas/issues', ({ request }) => {
+        since = new URL(request.url).searchParams.get('since');
+        return HttpResponse.json([...fixture('github-issues.json'), { number: 1, html_url: 'https://github.com/backend-br/vagas/pull/1', title: 'A pull request', created_at: '2026-10-01T00:00:00Z', pull_request: {} }]);
+      }),
+    );
+    const { ctx } = context([], { config, github: github() });
+    const jobs = (await githubRepos.fetch(ctx)).map((raw) => githubRepos.normalize(raw));
+
+    expect(since).toBe('2026-09-15T12:00:00.000Z');
+    expect(jobs).toHaveLength(3);
+    const remote = jobs.find((job) => /Product Engineer/.test(job.title))!;
+    expect(remote).toMatchObject({ company: 'JotPsych', workModel: 'remote', seniority: ['senior'], contracts: ['PJ'], applyUrl: 'https://github.com/backend-br/vagas/issues/12495' });
+    const pleno = jobs.find((job) => /Backend Pleno/.test(job.title))!;
+    expect(pleno).toMatchObject({ company: 'Mimix AI', title: 'Desenvolvedor(a) Backend Pleno - White Label e Plataforma', seniority: ['mid'] });
+    const hybrid = jobs.find((job) => /Joinville/.test(job.locations.join()))!;
+    expect(hybrid.locations).toEqual(['Joinville/SC']);
+    expect(hybrid.workModel).toBe('hybrid');
+    expect(hybrid.company).not.toBe('Unknown');
+  });
+
+  it('drops issues marked as closed jobs and warns about a repository that is not owner/name', async () => {
+    server.use(
+      http.get('https://api.github.com/repos/backend-br/vagas/issues', () =>
+        HttpResponse.json([{ number: 5, html_url: 'https://github.com/backend-br/vagas/issues/5', title: '[VAGA FECHADA] QA na Acme', created_at: '2026-10-10T00:00:00Z' }]),
+      ),
+    );
+    const { ctx, warnings } = context([], { config: parseConfig('sources:\n  github_repos: { enabled: true, repos: ["backend-br/vagas", "nonsense"] }\n'), github: github() });
+
+    expect(await githubRepos.fetch(ctx)).toEqual([]);
+    expect(warnings[0]).toMatch(/nonsense/);
+  });
+
+  it('fails without a GitHub client', async () => {
+    await expect(githubRepos.fetch(context([], { config }).ctx)).rejects.toBeInstanceOf(SchemaError);
+  });
+});
+
+describe('jobicy', () => {
+  function mock(onJobs?: (url: URL) => void) {
+    server.use(
+      http.get('https://jobicy.com/api/v2/remote-jobs', ({ request }) => {
+        const url = new URL(request.url);
+        if (url.searchParams.get('get') === 'locations') return HttpResponse.json(fixture('jobicy-locations.json'));
+        onJobs?.(url);
+        return HttpResponse.json(fixture('jobicy.json'));
+      }),
+    );
+  }
+
+  it('asks once per accepted region and include term, only for regions Jobicy lists', async () => {
+    const queries: string[] = [];
+    mock((url) => queries.push(`${url.searchParams.get('geo')}|${url.searchParams.get('tag')}|${url.searchParams.get('count')}`));
+    const raws = await jobicy.fetch(context().ctx);
+
+    expect(queries).toEqual(['anywhere|QA|100', 'anywhere|Quality|100', 'brazil|QA|100', 'brazil|Quality|100', 'latam|QA|100', 'latam|Quality|100']);
+    expect(raws).toHaveLength(5);
+  });
+
+  it('keeps the posting page as the apply link and reads region, level and pay', async () => {
+    mock();
+    const jobs = (await jobicy.fetch(context().ctx)).map((raw) => jobicy.normalize(raw));
+    const qa = jobs.find((job) => /^Semi Sr/.test(job.title))!;
+    const manager = jobs.find((job) => /^Manager, Production/.test(job.title))!;
+    const anywhere = jobs.find((job) => /Finnish/.test(job.title))!;
+
+    expect(qa.applyUrl).toMatch(/^https:\/\/jobicy\.com\/jobs\/\d+-/);
+    expect(qa.locations).toEqual(['Brazil']);
+    expect(qa.seniority).toEqual(['senior']);
+    expect(qa.workModel).toBe('remote');
+    expect(manager.restrictions).toEqual(['LATAM', 'USA']);
+    expect(manager.compensation).toBe('USD 3,000 / monthly');
+    expect(manager.contracts).toEqual(['Contract']);
+    expect(anywhere.restrictions).toEqual([]);
+    expect(anywhere.locations).toEqual(['Worldwide']);
+    expect(anywhere.seniority).toEqual(['junior']);
+  });
+
+  it('still searches when the list of locations cannot be read', async () => {
+    const queries: string[] = [];
+    server.use(
+      http.get('https://jobicy.com/api/v2/remote-jobs', ({ request }) => {
+        const url = new URL(request.url);
+        if (url.searchParams.get('get') === 'locations') return new HttpResponse(null, { status: 404 });
+        queries.push(String(url.searchParams.get('geo')));
+        return HttpResponse.json(fixture('jobicy.json'));
+      }),
+    );
+    const { ctx, warnings } = context();
+    await jobicy.fetch(ctx);
+
+    expect(new Set(queries)).toEqual(new Set(['brazil', 'latam', 'anywhere']));
+    expect(warnings[0]).toMatch(/list of locations/);
+  });
+
+  it('fails when the response has no jobs list', async () => {
+    server.use(
+      http.get('https://jobicy.com/api/v2/remote-jobs', ({ request }) =>
+        new URL(request.url).searchParams.get('get') ? HttpResponse.json(fixture('jobicy-locations.json')) : HttpResponse.json({ success: false }),
+      ),
+    );
+    await expect(jobicy.fetch(context().ctx)).rejects.toBeInstanceOf(SchemaError);
   });
 });
 
@@ -493,5 +975,54 @@ describe('http client', () => {
     );
     const body = (await createHttpClient().getJson('https://example.test/ua')) as { ua: string };
     expect(body.ua).toContain('job-radar');
+  });
+});
+
+describe('lever EU region', () => {
+  it('reads boards written as an EU url from api.eu.lever.co', async () => {
+    server.use(http.get('https://api.eu.lever.co/v0/postings/lever', () => HttpResponse.json(fixture('lever-eu.json'))));
+    const { ctx } = context([], { companies: [{ slug: 'https://jobs.eu.lever.co/lever', url: 'https://jobs.eu.lever.co/lever' }] });
+    const raws = await lever.fetch(ctx);
+    const job = lever.normalize(raws[0]!);
+    expect(raws).toHaveLength(2);
+    expect(job.applyUrl).toMatch(/^https:\/\/jobs\.eu\.lever\.co\/lever\//);
+    expect(job.id).toMatch(/^lever:lever:/);
+    expect(job.company).toBe('Lever');
+  });
+});
+
+describe('greenhouse light mode', () => {
+  const list = fixture('greenhouse-list.json');
+  const detail = fixture('greenhouse-detail.json');
+
+  it('lists titles first and fetches the detail, with pay ranges, only for postings that could pass', async () => {
+    const details: string[] = [];
+    const [first, second, third] = list.jobs;
+    server.use(
+      http.get('https://boards-api.greenhouse.io/v1/boards/gitlab/jobs', ({ request }) => {
+        expect(new URL(request.url).searchParams.has('content')).toBe(false);
+        return HttpResponse.json({ jobs: [{ ...first, title: 'Senior QA Engineer' }, { ...second, title: 'Baker' }, { ...third, title: 'QA Lead' }] });
+      }),
+      http.get('https://boards-api.greenhouse.io/v1/boards/gitlab/jobs/:id', ({ params, request }) => {
+        expect(new URL(request.url).searchParams.get('pay_transparency')).toBe('true');
+        details.push(String(params.id));
+        return HttpResponse.json({ ...detail, id: Number(params.id), title: 'Senior QA Engineer' });
+      }),
+    );
+    const { ctx } = context([], { companies: [{ slug: 'gitlab', light: true }], isKnownUrl: (url) => url === third.absolute_url });
+    const raws = await greenhouse.fetch(ctx);
+    expect(raws).toHaveLength(3);
+    expect(details).toEqual([String(first.id)]);
+    expect(greenhouse.normalize(raws[0]!).compensation).toBe('USD 90,000 – 130,000');
+  });
+
+  it('keeps content=true for companies from companies.yml', async () => {
+    server.use(
+      http.get('https://boards-api.greenhouse.io/v1/boards/gitlab/jobs', ({ request }) => {
+        expect(new URL(request.url).searchParams.get('content')).toBe('true');
+        return HttpResponse.json(list);
+      }),
+    );
+    expect(await greenhouse.fetch(context(['gitlab']).ctx)).toHaveLength(list.jobs.length);
   });
 });

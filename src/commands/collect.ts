@@ -4,35 +4,47 @@ import { ADAPTERS } from '../adapters/index.js';
 import type { AnySourceAdapter, FetchContext } from '../adapters/types.js';
 import { analyzeJob, type JobInsight } from '../ai/insight.js';
 import { AiQuotaError, type ChatClient } from '../ai/models.js';
+import { ATS, emptyByAts } from '../adapters/ats.js';
+import { isRelevantPosting } from '../adapters/common.js';
 import { companyRefs, type Companies } from '../config/schema.js';
 import { FIELD } from '../domain/fields.js';
 import type { Job } from '../domain/job.js';
-import { dynamicLabel, type LabelDef } from '../domain/labels.js';
+import { dynamicLabel, LABEL, type LabelDef } from '../domain/labels.js';
 import { STATUS_TITLES, statusLabel } from '../domain/status.js';
 import { issueTitle, renderIssueBody } from '../github/issue-body.js';
-import { ensureLabels } from '../github/labels.js';
+import { addLabels, ensureLabels, removeLabel } from '../github/labels.js';
 import { addIssueToProject, setFieldValue, type Project } from '../github/project.js';
-import { dedupe, knownFromIssues } from '../pipeline/dedup.js';
+import { companiesFromLinks } from '../discovery/links.js';
+import { dedupe, KNOWN_SOURCE, knownFromIssues, type Duplicate, type KnownJobs } from '../pipeline/dedup.js';
+import { priorIssuesByKey, repostAction, repostMarker, type PriorIssue } from '../pipeline/repost.js';
 import { regionsOf } from '../pipeline/eligibility.js';
 import { canonicalUrl } from '../pipeline/url.js';
 import { buildExcerpt, sanitizeForIssue } from '../pipeline/excerpt.js';
-import { createFilter, inferWorkModel } from '../pipeline/filter.js';
+import { createFilter, inferWorkModel, type JobFilter } from '../pipeline/filter.js';
 import { detectSignals, type Signal } from '../pipeline/signals.js';
 import { brasiliaHours } from '../pipeline/timezone.js';
-import { DEFAULT_STATE_PATH, loadState, saveState, type SeenState } from '../state/seen.js';
+import { DEFAULT_COMPANIES_STATE_PATH, harvestCandidates, healthKey, hotDirectory, loadCompaniesState, recordOutcome, saveCompaniesState } from '../state/companies.js';
+import { BACKLOG_LIMIT, DEFAULT_STATE_PATH, loadState, saveState, weekStats, type SeenState } from '../state/seen.js';
 import { createHttpClient, type HttpClient } from '../util/http.js';
 import { truncate } from '../util/text.js';
 import { loadProject, type Context } from './context.js';
 
 /** A source that returns nothing this many runs in a row, without an error, is probably broken. */
 const ZERO_RUN_ALERT = 3;
-const SOURCE_TIMEOUT_MS = 5 * 60 * 1000;
+const DEFAULT_SOURCE_TIMEOUT_MINUTES = 5;
+/** A source that ignores its deadline is cut off this long after it. */
+const DEADLINE_GRACE_MS = 30_000;
+const MINUTE_MS = 60_000;
+const DAY_MS = 24 * 60 * MINUTE_MS;
 
 export interface CollectOptions {
   /** Run the whole pipeline but write nothing: no issues and no state file. */
   dryRun?: boolean;
   statePath?: string;
   companies?: Companies;
+  /** The cold list (`companies.directory.yml`): its companies join the run once a `sweep` finds them relevant. */
+  directory?: Companies;
+  companiesStatePath?: string;
   /** Adapters to run; defaults to every adapter in this version. Tests inject their own. */
   adapters?: Record<string, AnySourceAdapter>;
   http?: HttpClient;
@@ -49,7 +61,10 @@ export interface SourceReport {
   source: string;
   fetched: number;
   discarded: Record<string, number>;
+  passedFilters: number;
   duplicates: number;
+  /** Duplicates by the source they matched, or `known` for an existing issue. */
+  duplicateOf: Record<string, number>;
   created: number;
   error?: string;
 }
@@ -116,6 +131,9 @@ export async function collect(ctx: Context, options: CollectOptions = {}): Promi
   const filter = createFilter(ctx.config);
 
   const state = await loadState(statePath);
+  const companiesStatePath = options.companiesStatePath ?? DEFAULT_COMPANIES_STATE_PATH;
+  const companiesState = await loadCompaniesState(companiesStatePath);
+  const hotDirectoryCompanies = options.directory ? hotDirectory(options.directory, companiesState, ctx.config.directory.hot_days, now) : emptyByAts<never>();
   const issues = await ctx.octokit.paginate(ctx.octokit.rest.issues.listForRepo, {
     ...ctx.repo,
     state: 'all',
@@ -124,9 +142,12 @@ export async function collect(ctx: Context, options: CollectOptions = {}): Promi
   const known = knownFromIssues(issues.filter((issue) => !issue.pull_request));
   for (const id of Object.keys(state.jobs)) known.ids.add(id);
 
-  // 1-3. Collection, validation and normalization, one source at a time.
+  // 1-3. Collection (sources run side by side: they hit different hosts), validation and normalization.
   const reports: SourceReport[] = [];
   const candidates: Job[] = [];
+  const startedAt = Date.now();
+  const budgetEnd = startedAt + ctx.config.run.budget_minutes * MINUTE_MS;
+  const running: Array<{ id: string; adapter: AnySourceAdapter; report: SourceReport; outcome: Promise<{ raws?: unknown[]; error?: Error }> }> = [];
   for (const [id, toggle] of Object.entries(ctx.config.sources)) {
     if (!toggle.enabled) continue;
     const adapter = adapters[id];
@@ -134,8 +155,14 @@ export async function collect(ctx: Context, options: CollectOptions = {}): Promi
       ctx.log.info(`${id}: no adapter in this version yet; skipped`);
       continue;
     }
-    const entries = companies[id as keyof Companies] as Companies['inhire'] | undefined;
-    const refs = companyRefs(entries);
+    const entries = (companies as Partial<Record<string, Companies['inhire']>>)[id];
+    const listed = new Set(companyRefs(entries).map((ref) => healthKey(id, ref.slug)));
+    const refs = [
+      ...companyRefs(entries),
+      ...companyRefs((hotDirectoryCompanies as Partial<Record<string, Companies['inhire']>>)[id])
+        .filter((ref) => !listed.has(healthKey(id, ref.slug)))
+        .map((ref) => ({ ...ref, light: true })),
+    ];
     if (adapter.mode === 'company' && refs.length === 0) {
       ctx.log.info(`${id}: no companies listed in companies.yml; skipped`);
       continue;
@@ -147,7 +174,7 @@ export async function collect(ctx: Context, options: CollectOptions = {}): Promi
       continue;
     }
 
-    const report: SourceReport = { source: id, fetched: 0, discarded: {}, duplicates: 0, created: 0 };
+    const report: SourceReport = { source: id, fetched: 0, discarded: {}, passedFilters: 0, duplicates: 0, duplicateOf: {}, created: 0 };
     reports.push(report);
     const fetchContext: FetchContext = {
       http,
@@ -157,12 +184,36 @@ export async function collect(ctx: Context, options: CollectOptions = {}): Promi
       apiKey,
       worthDetails: (candidate) => filter.worthDetails(candidate),
       isKnownUrl: (url) => known.urls.has(canonicalUrl(url) ?? url),
+      resolved: companiesState.resolved,
+      github: ctx.octokit,
       warn: (message) => ctx.log.warn(message),
+      onCompany: ({ company, items, error }) =>
+        recordOutcome(
+          companiesState,
+          healthKey(id, company.slug),
+          { error, postings: items.length, relevant: items.some((raw) => isRelevantPosting(adapter, filter, raw)) },
+          now,
+        ),
+      deadline: Math.min(budgetEnd, startedAt + (toggle.timeout_minutes ?? DEFAULT_SOURCE_TIMEOUT_MINUTES) * MINUTE_MS),
     };
+    const hardLimit = Math.max(fetchContext.deadline! + DEADLINE_GRACE_MS - Date.now(), DEADLINE_GRACE_MS);
+    running.push({
+      id,
+      adapter,
+      report,
+      outcome: withTimeout(adapter.fetch(fetchContext), hardLimit, id).then(
+        (raws) => ({ raws }),
+        (error: Error) => ({ error }),
+      ),
+    });
+  }
+
+  for (const { id, adapter, report, outcome } of running) {
+    const { raws, error } = await outcome;
     try {
-      const raws = await withTimeout(adapter.fetch(fetchContext), SOURCE_TIMEOUT_MS, id);
+      if (error) throw error;
       let broken = 0;
-      for (const raw of raws) {
+      for (const raw of raws!) {
         try {
           const job = adapter.normalize(raw);
           candidates.push({
@@ -176,12 +227,17 @@ export async function collect(ctx: Context, options: CollectOptions = {}): Promi
         }
       }
       if (broken > 0) ctx.log.warn(`${id}: ${broken} postings could not be normalized and were skipped`);
-      report.fetched = raws.length - broken;
-    } catch (error) {
-      report.error = (error as Error).message;
+      report.fetched = raws!.length - broken;
+    } catch (failure) {
+      report.error = (failure as Error).message;
       ctx.log.warn(`${id}: failed, other sources carry on (${report.error})`);
     }
     updateHealth(ctx, state, report);
+  }
+
+  if (!dryRun) {
+    const listed = new Set([companies, options.directory ?? emptyByAts<never>()].flatMap(listedKeys));
+    for (const job of candidates) harvestCandidates(companiesState, companiesFromLinks([job.applyUrl]), listed, now);
   }
 
   // 4. Filter.
@@ -191,6 +247,7 @@ export async function collect(ctx: Context, options: CollectOptions = {}): Promi
     const result = filter.check(job, now);
     if (result.ok) {
       passed.push(job);
+      bySource.get(job.source)!.passedFilters++;
     } else {
       const discarded = bySource.get(job.source)!.discarded;
       const stage = stageOf(result.reason ?? 'filter');
@@ -198,14 +255,41 @@ export async function collect(ctx: Context, options: CollectOptions = {}): Promi
     }
   }
 
+  if (!dryRun) recordNearMisses(state, candidates, passed, filter, known, now);
+
   // 5. Deduplication.
   const { fresh, duplicates } = dedupe(passed, known);
-  for (const duplicate of duplicates) bySource.get(duplicate.job.source)!.duplicates++;
+  const reposts = repostsOf(duplicates, priorIssuesByKey(issues.filter((issue) => !issue.pull_request)));
+  for (const duplicate of duplicates) {
+    const report = bySource.get(duplicate.job.source)!;
+    report.duplicates++;
+    report.duplicateOf[duplicate.of] = (report.duplicateOf[duplicate.of] ?? 0) + 1;
+  }
+  if (!dryRun) {
+    recordStats(state, reports, now);
+    await saveCompaniesState(companiesStatePath, companiesState);
+  }
 
-  // 6. Writing: newest first, capped per run so a first run cannot flood the board.
-  const ordered = fresh.sort((a, b) => Date.parse(b.postedAt ?? '') - Date.parse(a.postedAt ?? '') || 0);
+  if (reposts.length > 0) await signalReposts(ctx, state, reposts, now, dryRun);
+
+  // 6. Writing, capped per run so a first run cannot flood the board. What did not fit waits in the backlog and goes first next time.
+  const ai = { calls: 0, stopped: false };
+  const insights = new Map<string, JobInsight>();
+  const pool = poolOf(fresh, state, known, ctx.config.search.max_age_days, now, adapters);
+  if (options.ai && !dryRun) {
+    for (const job of pool) {
+      const insight = await insightFor(ctx, options.ai, ai, job);
+      if (insight) insights.set(job.id, insight);
+      if (ai.stopped) break;
+    }
+  }
+  const ordered = insights.size > 0 ? [...pool].sort((a, b) => (insights.get(b.id)?.fit ?? 0) - (insights.get(a.id)?.fit ?? 0)) : pool;
   const batch = ordered.slice(0, ctx.config.issues.max_per_run);
   const deferred = ordered.length - batch.length;
+  if (!dryRun) {
+    const since = new Map(state.backlog.map((entry) => [entry.job.id, entry.queuedAt]));
+    state.backlog = ordered.slice(0, BACKLOG_LIMIT).map((job) => ({ job: { ...job, description: truncate(job.description, 8000) }, queuedAt: since.get(job.id) ?? now.toISOString() }));
+  }
 
   let created = 0;
   if (dryRun) {
@@ -221,12 +305,12 @@ export async function collect(ctx: Context, options: CollectOptions = {}): Promi
         (label) => label.name,
       ),
     );
-    const ai = { calls: 0, stopped: false };
     try {
       for (const [index, job] of batch.entries()) {
-        const insight = await insightFor(ctx, options.ai, ai, job);
-        const issue = await writeIssue(ctx, project, labelNames, job, now, insight);
+        const issue = await writeIssue(ctx, project, labelNames, job, now, insights.get(job.id));
         state.jobs[job.id] = { issue, seenAt: now.toISOString() };
+        state.backlog = state.backlog.filter((entry) => entry.job.id !== job.id);
+        weekStats(state, job.source, now).unique++;
         bySource.get(job.source)!.created++;
         created++;
         ctx.log.info(`Created #${issue} ${issueTitle(job.company, job.title)} (${job.source})`);
@@ -246,8 +330,99 @@ export async function collect(ctx: Context, options: CollectOptions = {}): Promi
   return { sources: reports, created, deferred };
 }
 
+interface Repost {
+  job: Job;
+  prior: PriorIssue;
+}
+
+/** Duplicates that are the same job posted again (new id, new link) under an issue that is closed or has no answer. */
+function repostsOf(duplicates: Duplicate[], prior: Map<string, PriorIssue>): Repost[] {
+  return duplicates.flatMap((duplicate) => {
+    const issue = duplicate.key && duplicate.of === KNOWN_SOURCE ? prior.get(duplicate.key) : undefined;
+    return issue && repostAction(issue) ? [{ job: duplicate.job, prior: issue }] : [];
+  });
+}
+
+/**
+ * Tells the earlier issue about a repost instead of creating a second one: a comment and `signal:reposted`,
+ * and an issue closed by `revalidate` is reopened at `status:new`. Once per issue per run; each new id is
+ * recorded as seen, so the next run does not comment again.
+ */
+async function signalReposts(ctx: Context, state: SeenState, reposts: Repost[], now: Date, dryRun: boolean): Promise<void> {
+  const label = dynamicLabel('signal', 'reposted');
+  const handled = new Set<number>();
+  let labelReady = false;
+  for (const { job, prior } of reposts) {
+    const action = repostAction(prior)!;
+    if (!dryRun) state.jobs[job.id] = { issue: prior.number, seenAt: now.toISOString() };
+    if (handled.has(prior.number)) continue;
+    handled.add(prior.number);
+
+    ctx.log.info(`${dryRun ? '[dry-run] ' : ''}Reposted: #${prior.number} ${issueTitle(job.company, job.title)} (${action === 'reopen' ? 'reopened' : 'commented'})`);
+    if (dryRun) continue;
+    if (label && !labelReady) {
+      await ensureLabels(ctx.octokit, ctx.repo, [label]);
+      labelReady = true;
+    }
+    const target = { ...ctx.repo, issue_number: prior.number };
+    const body = `Reposted on ${now.toISOString().slice(0, 10)}: ${job.applyUrl}${action === 'reopen' ? '\n\nThe posting had disappeared from its source and is listed again, so this issue is back at `status:new`.' : ''}\n\n${repostMarker(job.id)}`;
+    await addLabels(ctx.octokit, ctx.repo, prior.number, [label!.name, ...(action === 'reopen' ? [statusLabel('new')] : [])]);
+    if (action === 'reopen') {
+      await removeLabel(ctx.octokit, ctx.repo, prior.number, LABEL.closedAtSource);
+      await removeLabel(ctx.octokit, ctx.repo, prior.number, statusLabel('discarded'));
+      await ctx.octokit.rest.issues.update({ ...target, state: 'open' });
+    }
+    await ctx.octokit.rest.issues.createComment({ ...target, body });
+  }
+}
+
+/**
+ * The jobs this run may write: the backlog from earlier runs still inside the age limit and not known by now,
+ * then the new ones. Each group is ordered with the company's own ATS link first, then jobs read from a
+ * company's board before aggregators, then newest first.
+ */
+function poolOf(fresh: Job[], state: SeenState, known: KnownJobs, maxAgeDays: number, now: Date, adapters: Record<string, AnySourceAdapter>): Job[] {
+  const oldest = now.getTime() - maxAgeDays * DAY_MS;
+  const direct = (job: Job) => Number(adapters[job.source]?.mode === 'company');
+  const byPriority = (a: Job, b: Job) =>
+    Number(b.atsApply) - Number(a.atsApply) || direct(b) - direct(a) || Date.parse(b.postedAt ?? '') - Date.parse(a.postedAt ?? '') || 0;
+  const waiting = state.backlog.filter((entry) => Date.parse(entry.job.postedAt ?? entry.queuedAt) >= oldest).map((entry) => entry.job);
+  const freshIds = new Set(fresh.map((job) => job.id));
+  const queued = dedupe(waiting.filter((job) => !freshIds.has(job.id)), known).fresh;
+  return [...queued.sort(byPriority), ...[...fresh].sort(byPriority)];
+}
+
 function companyRefsFromEmpty(): Companies {
-  return { inhire: [], greenhouse: [], lever: [], ashby: [] };
+  return emptyByAts();
+}
+
+/** Jobs that fail exactly one soft rule and are not already known; they never become issues. */
+function recordNearMisses(state: SeenState, candidates: Job[], passed: Job[], filter: JobFilter, known: KnownJobs, now: Date): void {
+  const passedIds = new Set(passed.map((job) => job.id));
+  const misses = new Map<string, string>();
+  for (const job of candidates) {
+    if (passedIds.has(job.id) || state.nearMiss.some((entry) => entry.id === job.id)) continue;
+    const { failures } = filter.checkAll(job, now);
+    if (failures.length === 1 && failures[0]!.soft) misses.set(job.id, failures[0]!.reason);
+  }
+  const unknown = dedupe(candidates.filter((job) => misses.has(job.id)), known).fresh;
+  for (const job of unknown) {
+    state.nearMiss.push({ id: job.id, title: job.title, company: job.company, link: job.applyUrl, reason: misses.get(job.id)!, date: now.toISOString() });
+  }
+}
+
+function listedKeys(companies: Companies): string[] {
+  return ATS.flatMap((def) => companyRefs(companies[def.id]).map((ref) => healthKey(def.id, ref.slug)));
+}
+
+function recordStats(state: SeenState, reports: SourceReport[], now: Date): void {
+  for (const report of reports) {
+    if (report.error) continue;
+    const week = weekStats(state, report.source, now);
+    week.fetched += report.fetched;
+    week.passedFilters += report.passedFilters;
+    for (const [source, count] of Object.entries(report.duplicateOf)) week.duplicateOf[source] = (week.duplicateOf[source] ?? 0) + count;
+  }
 }
 
 function updateHealth(ctx: Context, state: SeenState, report: SourceReport): void {
@@ -353,7 +528,7 @@ ${job.description}`);
       location: describeLocation(job, today),
       postedOn: job.postedAt?.slice(0, 10),
       compensation: job.compensation ?? aiCompensation,
-      source: job.source,
+      source: job.foundBy ? `${job.source} (${job.foundBy})` : job.source,
       extraLines: [...(insight ? insightLines(insight, today) : []), ...signals.map(signalLine)],
       excerpt: buildExcerpt(job.description, ctx.config.search.highlight),
       fullDescription: sanitizeForIssue(truncate(job.description, 8000)),
@@ -377,6 +552,13 @@ ${job.description}`);
   return issue.number;
 }
 
+function describeOverlap(duplicateOf: Record<string, number>): string {
+  const parts = Object.entries(duplicateOf)
+    .sort(([, a], [, b]) => b - a)
+    .map(([source, count]) => `${source} ${count}`);
+  return parts.length > 0 ? ` (${parts.join(', ')})` : '';
+}
+
 function summarize(
   ctx: Context,
   reports: SourceReport[],
@@ -394,7 +576,7 @@ function summarize(
       .join(', ');
     ctx.log.info(
       `${report.source}: ${report.fetched} fetched, ${discardedTotal} discarded${reasons ? ` (${reasons})` : ''}, ` +
-        `${report.duplicates} already known, ${report.created} new`,
+        `${report.duplicates} already known${describeOverlap(report.duplicateOf)}, ${report.created} new`,
     );
   }
   ctx.log.info(
