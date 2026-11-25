@@ -44,12 +44,14 @@ describe('company links', () => {
         'https://huggingface.workable.com/',
         'https://apply.workable.com/j/81B46579FE',
         'https://www.workable.com/pricing',
+        'https://bunq.recruitee.com/o/security-engineer',
+        'https://www.recruitee.com/pricing',
         'https://jobs.smartrecruiters.com/BoschGroup/744000162238119-qa-engineer',
         'https://jobs.smartrecruiters.com/oneclick-ui/company/Visa/publication/abc',
         'https://acme.inhire.app/vagas/456',
         'https://example.com/careers',
       ]),
-    ).toEqual({ ...emptyByAts(), inhire: ['acme'], greenhouse: ['gitlab'], lever: ['palantir'], ashby: ['ramp'], workable: ['huggingface'], smartrecruiters: ['BoschGroup', 'Visa'] });
+    ).toEqual({ ...emptyByAts(), inhire: ['acme'], greenhouse: ['gitlab'], lever: ['palantir'], ashby: ['ramp'], workable: ['huggingface'], smartrecruiters: ['BoschGroup', 'Visa'], recruitee: ['bunq'] });
   });
 });
 
