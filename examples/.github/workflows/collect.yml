@@ -58,6 +58,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5          # reads the config, companies.yml and state/seen.json
+        with:
+          ref: ${{ github.ref_name }}   # the branch tip, not the commit that queued this run, which may predate another run's state commit
       - uses: thiago8rocha/job-radar@v1
         with:
           command: collect
