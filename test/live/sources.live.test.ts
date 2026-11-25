@@ -13,6 +13,7 @@ import { greenhouse } from '../../src/adapters/greenhouse.js';
 import { gupy } from '../../src/adapters/gupy.js';
 import { himalayas } from '../../src/adapters/himalayas.js';
 import { inhire } from '../../src/adapters/inhire.js';
+import { jobicy } from '../../src/adapters/jobicy.js';
 import { lever } from '../../src/adapters/lever.js';
 import { parseCards, parseDetail } from '../../src/adapters/linkedin.js';
 import { remoteok } from '../../src/adapters/remoteok.js';
@@ -76,6 +77,7 @@ describe('live sources', () => {
   it('himalayas', () => check(himalayas, []));
   it('freehire', () => check(freehire, []));
   it('gupy', () => check(gupy, []));
+  it('jobicy', () => check(jobicy, []));
   it('remoteok', () => check(remoteok, []));
   it('weworkremotely', () => check(weworkremotely, []));
   // LinkedIn answers 429 to shared IPs, so a rate limit skips the check instead of failing it; a changed page still fails.

@@ -1,0 +1,117 @@
+{
+  "apiVersion": "2.2.22",
+  "documentationUrl": "https://jobi.cy/apidocs",
+  "friendlyNotice": "Thanks for using Jobicy API! Please ensure Jobicy is clearly credited with a direct link to the source, and all application buttons redirect to the original job URL provided in this feed. That’s all! You might be building something amazing, we wish you the best of luck!",
+  "jobCount": 5,
+  "lastUpdate": "2026-11-25T03:10:08+00:00",
+  "nextCursor": null,
+  "hasMore": false,
+  "appliedFilters": {
+    "count": 20,
+    "geo": "latam",
+    "tag": "qa"
+  },
+  "jobs": [
+    {
+      "id": 164036,
+      "url": "https://jobicy.com/jobs/164036-semi-sr-qa-engineer-data-e-learning",
+      "jobSlug": "164036-semi-sr-qa-engineer-data-e-learning",
+      "jobTitle": "Semi Sr. - QA Engineer (Data) – E-Learning",
+      "companyName": "Truelogic",
+      "companyLogo": "https://jobicy.com/data/server-nyc0409/galaxy/mercury/2025/06/e7ae6cb6-221-1.png",
+      "jobIndustry": [
+        "QA & Testing"
+      ],
+      "jobType": [
+        "Full-Time"
+      ],
+      "jobGeo": "Brazil",
+      "jobLevel": "Senior",
+      "jobExcerpt": "About Truelogic At Truelogic we are a leading provider of nearshore staff augmentation services headquartered in New York. For over two decades, we’ve been delivering top-tier technology solutions to ",
+      "jobDescription": "<h3><strong>About <a href=\"https://jobicy.com/company/truelogic\" target=\"_blank\" rel=\"noopener\">Truelogic</a></strong></h3>\n<p>At Truelogic we are a leading provider of nearshore staff augmentation services headquartered in New York. For over two decades, we’ve been delivering top-tier technology solutions to companies of all sizes, from innovative startups to industry leaders, helping them achieve their digital transformation goals.</p>\n<p>Our team of 600+ highly skilled tech professionals, bas",
+      "pubDate": "2026-11-24T08:06:12+00:00"
+    },
+    {
+      "id": 164032,
+      "url": "https://jobicy.com/jobs/164032-jr-semi-sr-qa-engineer-data-e-learning",
+      "jobSlug": "164032-jr-semi-sr-qa-engineer-data-e-learning",
+      "jobTitle": "Jr. Semi Sr. - QA Engineer (Data) – E-Learning",
+      "companyName": "Truelogic",
+      "companyLogo": "https://jobicy.com/data/server-nyc0409/galaxy/mercury/2025/06/e7ae6cb6-221-1.png",
+      "jobIndustry": [
+        "QA & Testing"
+      ],
+      "jobType": [
+        "Full-Time"
+      ],
+      "jobGeo": "Brazil",
+      "jobLevel": "Senior",
+      "jobExcerpt": "About Truelogic At Truelogic we are a leading provider of nearshore staff augmentation services headquartered in New York. For over two decades, we’ve been delivering top-tier technology solutions to ",
+      "jobDescription": "<h3><strong>About <a href=\"https://jobicy.com/company/truelogic\" target=\"_blank\" rel=\"noopener\">Truelogic</a></strong></h3>\n<p>At Truelogic we are a leading provider of nearshore staff augmentation services headquartered in New York. For over two decades, we’ve been delivering top-tier technology solutions to companies of all sizes, from innovative startups to industry leaders, helping them achieve their digital transformation goals.</p>\n<p>Our team of 600+ highly skilled tech professionals, bas",
+      "pubDate": "2026-11-24T08:06:02+00:00"
+    },
+    {
+      "id": 163798,
+      "url": "https://jobicy.com/jobs/163798-english-to-belarusian-review-lead-for-ui-marketing-product-content",
+      "jobSlug": "163798-english-to-belarusian-review-lead-for-ui-marketing-product-content",
+      "jobTitle": "English to Belarusian Review Lead for UI, Marketing & Product Content",
+      "companyName": "Welo Global",
+      "companyLogo": "https://jobicy.com/data/server-nyc0409/galaxy/mercury/2026/06/83c40f94-221.webp",
+      "jobIndustry": [
+        "QA & Testing"
+      ],
+      "jobType": [
+        "Contract"
+      ],
+      "jobGeo": "Argentina,  Australia,  Austria,  Belgium,  Brazil,  Bulgaria,  Canada,  China,  Costa Rica,  Croatia,  Czechia,  Denmark,  Finland,  France,  Germany,  Greece,  Hong Kong,  Hungary,  Ireland,  Israel,  Italy,  Japan,  Lithuania,  Malaysia,  Mexico,  Netherlands,  New Zealand,  Norway,  Philippines,  Poland,  Portugal,  Romania,  Singapore,  South Korea,  Spain,  Sweden,  Switzerland,  Thailand,  Türkiye,  UAE,  UK,  USA,  Vietnam",
+      "jobLevel": "Senior",
+      "jobExcerpt": "About Welo Global Welo Global is a leader in multilingual AI, technology, and content solutions serving over 2,000 clients in 300 languages. The company combines globally scaled multilingual infrastru",
+      "jobDescription": "<p><strong>About <a href=\"https://jobicy.com/company/welo-global\" target=\"_blank\" rel=\"noopener\">Welo Global</a></strong> </p>\n<p>Welo Global is a leader in multilingual AI, technology, and content solutions serving over 2,000 clients in 300 languages. The company combines globally scaled multilingual infrastructure, including a network of over 500,000 linguists and domain experts, with advanced NLP, computational linguistics, and best-in-class compliance backed by seven ISO certifications. Welo",
+      "pubDate": "2026-11-22T05:51:46+00:00"
+    },
+    {
+      "id": 146757,
+      "url": "https://jobicy.com/jobs/146757-finnish-tech-linguistic-tester",
+      "jobSlug": "146757-finnish-tech-linguistic-tester",
+      "jobTitle": "Finnish Tech Linguistic Tester",
+      "companyName": "Welo Global",
+      "companyLogo": "https://jobicy.com/data/server-nyc0409/galaxy/mercury/2026/06/83c40f94-221.webp",
+      "jobIndustry": [
+        "QA & Testing"
+      ],
+      "jobType": [
+        "Full-Time"
+      ],
+      "jobGeo": "Anywhere",
+      "jobLevel": "Entry-Level, Junior",
+      "jobExcerpt": "As a trusted global transformation partner, Welocalize accelerates the global business journey by enabling brands and companies to reach, engage, and grow international audiences. Welocalize delivers ",
+      "jobDescription": "<div>As a trusted global transformation partner, Welocalize accelerates the global business journey by enabling brands and companies to reach, engage, and grow international audiences. Welocalize delivers multilingual content transformation services in translation, localization, and adaptation for over 250 languages with a growing network of over 400,000 in-country linguistic resources. Driving innovation in language services, Welocalize delivers high-quality training data transformation solutio",
+      "pubDate": "2026-11-21T03:05:34+00:00"
+    },
+    {
+      "id": 163343,
+      "url": "https://jobicy.com/jobs/163343-manager-production-quality",
+      "jobSlug": "163343-manager-production-quality",
+      "jobTitle": "Manager, Production Quality",
+      "companyName": "Luxury Presence",
+      "companyLogo": "https://jobicy.com/data/server-nyc0409/galaxy/mercury/2022/05/f2b241fb769140fff2f70e8efaf5c0ff.jpg",
+      "jobIndustry": [
+        "QA & Testing"
+      ],
+      "jobType": [
+        "Contract"
+      ],
+      "jobGeo": "LATAM,  USA",
+      "jobLevel": "Senior",
+      "jobExcerpt": "Luxury Presence is building the AI growth platform for real estate. Backed by Bessemer Venture Partners and other top investors, we're a Series C company that has hit $100M in annual recurring revenue",
+      "jobDescription": "<p><strong><a href=\"https://jobicy.com/company/luxury-presence\" target=\"_blank\" rel=\"noopener\">Luxury Presence</a> </strong>is building the AI growth platform for real estate. Backed by Bessemer Venture Partners and other top investors, we're a Series C company that has hit $100M in annual recurring revenue. More than 100,000 real estate professionals, including over 30% of the WSJ Real Trends top 100 agents in the United States, use us to run and grow their business.</p>\n\n<h3>Manager, Productio",
+      "pubDate": "2026-11-19T15:33:29+00:00",
+      "salaryMin": 3000,
+      "salaryMax": 3000,
+      "salaryCurrency": "USD",
+      "salaryPeriod": "monthly"
+    }
+  ],
+  "statusCode": 200,
+  "success": true
+}
