@@ -7,6 +7,7 @@ export function companiesFromLinks(links: string[], table: AtsTable = ATS): Disc
   const found: DiscoveredCompanies = emptyByAts<string>(table);
   for (const link of links) {
     for (const def of table) {
+      if ('urlOnly' in def && def.urlOnly) continue;
       for (const { pattern, ignore = [] } of def.urls) {
         const raw = pattern.exec(link)?.[1];
         if (!raw) continue;

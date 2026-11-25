@@ -44,6 +44,7 @@ describe('company links', () => {
         'https://huggingface.workable.com/',
         'https://apply.workable.com/j/81B46579FE',
         'https://www.workable.com/pricing',
+        'https://nvidia.wd5.myworkdayjobs.com/NVIDIAExternalCareerSite/job/x',
         'https://solides.vagas.solides.com.br/vaga/957225',
         'https://vagas.solides.com.br/empresa/acme-ltda/vaga',
         'https://www.vagas.solides.com.br/',

@@ -29,6 +29,7 @@ sources:
   teamtailor: { enabled: true }
   quickin: { enabled: true }
   solides: { enabled: true }
+  workday: { enabled: true }
   inhire: { enabled: true }
   gupy: { enabled: false }            # Brazilian portal; needs no key
   freehire: { enabled: false }        # aggregator of ~50 ATS; needs no key

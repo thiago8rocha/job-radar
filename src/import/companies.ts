@@ -93,7 +93,7 @@ export interface ImportCompaniesResult {
   added: number;
   /** Already in `companies.yml` or the directory, or repeated in the input. */
   skipped: number;
-  /** ATS names no adapter handles, with how many rows each had. */
+  /** ATS names no adapter can read from a slug, with how many rows each had. */
   unknownAts: Record<string, number>;
   /** Rows with no slug. */
   empty: number;
@@ -110,7 +110,7 @@ export function mergeIntoDirectory(directoryText: string, companiesText: string,
 
   for (const row of rows) {
     const def = table.find((entry) => entry.id === row.ats);
-    if (!def) {
+    if (!def || def.urlOnly) {
       result.unknownAts[row.ats || '(blank)'] = (result.unknownAts[row.ats || '(blank)'] ?? 0) + 1;
       continue;
     }

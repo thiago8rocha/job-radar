@@ -5,6 +5,7 @@ import { recruitee } from '../../src/adapters/recruitee.js';
 import { smartrecruiters } from '../../src/adapters/smartrecruiters.js';
 import { solides } from '../../src/adapters/solides.js';
 import { teamtailor } from '../../src/adapters/teamtailor.js';
+import { workday } from '../../src/adapters/workday.js';
 import { workable } from '../../src/adapters/workable.js';
 import { freehire } from '../../src/adapters/freehire.js';
 import { greenhouse } from '../../src/adapters/greenhouse.js';
@@ -16,6 +17,7 @@ import { parseCards, parseDetail } from '../../src/adapters/linkedin.js';
 import { remoteok } from '../../src/adapters/remoteok.js';
 import type { FetchContext, SourceAdapter } from '../../src/adapters/types.js';
 import { weworkremotely } from '../../src/adapters/weworkremotely.js';
+import type { CompanyRef } from '../../src/config/schema.js';
 import { parseConfig } from '../../src/config/load.js';
 import { createHttpClient, HttpError } from '../../src/util/http.js';
 
@@ -27,18 +29,18 @@ import { createHttpClient, HttpError } from '../../src/util/http.js';
 const config = parseConfig('search: { include: ["QA"], max_age_days: 30 }');
 const http = createHttpClient({ hostDelayMs: 500 });
 
-function context(slugs: string[]): FetchContext {
+function context(slugs: Array<string | CompanyRef>): FetchContext {
   return {
     http,
     config,
-    companies: slugs.map((slug) => ({ slug })),
+    companies: slugs.map((entry) => (typeof entry === 'string' ? { slug: entry } : entry)),
     now: new Date(),
     worthDetails: () => false, // skip the per-job detail requests; the list endpoint is the contract
     warn: (message) => console.warn(message),
   };
 }
 
-async function check<Raw>(adapter: SourceAdapter<Raw>, slugs: string[]): Promise<void> {
+async function check<Raw>(adapter: SourceAdapter<Raw>, slugs: Array<string | CompanyRef>): Promise<void> {
   const raws = await adapter.fetch(context(slugs));
   expect(raws.length, `${adapter.id} returned no postings`).toBeGreaterThan(0);
   for (const raw of raws.slice(0, 25)) {
@@ -55,6 +57,7 @@ describe('live sources', () => {
   it('greenhouse', () => check(greenhouse, ['airbnb']));
   it('lever', () => check(lever, ['palantir']));
   it('ashby', () => check(ashby, ['ramp']));
+  it('workday', () => check(workday, [{ slug: 'https://nvidia.wd5.myworkdayjobs.com/NVIDIAExternalCareerSite', url: 'https://nvidia.wd5.myworkdayjobs.com/NVIDIAExternalCareerSite' }]));
   it('solides', () => check(solides, ['solides']));
   it('quickin', () => check(quickin, ['quickin']));
   it('teamtailor', () => check(teamtailor, ['career']));

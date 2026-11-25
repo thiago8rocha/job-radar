@@ -2,7 +2,7 @@
 
 Collects job postings, opens one GitHub issue per relevant job, and tracks each hiring process to the end, using GitHub Issues and Projects as the tracker. It runs entirely on GitHub Actions: no server, no database, no cost beyond free Actions minutes.
 
-- **Collector.** Every business day it reads InHire, Greenhouse, Lever, Ashby, Workable, SmartRecruiters, Recruitee, Teamtailor, Quickin, Sólides, Gupy, Himalayas, freehire, Get on Board, LinkedIn, Remote OK and We Work Remotely (and Google Jobs, optionally), filters by title, seniority, remote work and region, removes duplicates, and opens one issue per new job.
+- **Collector.** Every business day it reads InHire, Greenhouse, Lever, Ashby, Workable, SmartRecruiters, Recruitee, Teamtailor, Quickin, Sólides, Workday, Gupy, Himalayas, freehire, Get on Board, LinkedIn, Remote OK and We Work Remotely (and Google Jobs, optionally), filters by title, seniority, remote work and region, removes duplicates, and opens one issue per new job.
 - **Tracker.** You move a job along by changing its `status:*` label. The Project board, the open/closed state and the dates follow.
 - **Metrics.** After every collect and every week, a job rewrites a pinned "Metrics" issue (funnel, response rate, time to response, by source and contract) and fills the calculated Project fields.
 - **Manual jobs.** An issue form covers recruiters and referrals. A spreadsheet importer brings in history.
@@ -113,6 +113,7 @@ When a posting states working hours with a time zone (`9am–5pm ET`), the issue
 | Greenhouse | per company | Documented public API. |
 | Lever | per company | Documented public API. |
 | Ashby | per company | Public job board API. |
+| Workday | per company | Large employers, including banks hiring in Brazil. Entries are the career site URL, `{ url: https://<tenant>.wd5.myworkdayjobs.com/<site>, name: Acme }`, because a slug cannot address a Workday site. One search per `search.include` term, then the detail of each posting that could pass the filters. The list only says "Posted 6 Days Ago", so older postings have no date until the detail is read. |
 | Sólides | per company | Brazilian ATS. The vacancies API its company career pages call (`apigw.solides.com.br/jobs/v3/companies/{slug}/vacancies`), 25 per page. Not a documented API, so the daily live test watches it. The portal-wide search is not used. |
 | Quickin | per company | Brazilian ATS. Public jobs API keyed by account id; job-radar reads the id once from the career page (`jobs.quickin.io/<slug>`) and keeps it in `state/companies.json`. You can also write the 24-character id as the slug. |
 | Teamtailor | per company | Public RSS feed of the career site (`/jobs.rss`, which states remote and hybrid jobs), with `/jobs.json` as a fallback. Works on `{slug}.teamtailor.com` and, as `{ url: https://careers.acme.com }`, on the company's own domain. |
