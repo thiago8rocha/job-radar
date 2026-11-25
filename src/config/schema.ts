@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { ATS, type AtsId, type AtsTable } from '../adapters/ats.js';
 
 const sourceToggle = z.object({
   enabled: z.boolean().default(false),
@@ -108,24 +109,35 @@ export const configSchema = z.object({
 
 export type Config = z.infer<typeof configSchema>;
 
-/** A company slug, optionally with the display name to use in issue titles. */
-const company = z.union([z.string(), z.object({ slug: z.string(), name: z.string().optional() })]);
+/** A slug, a slug with the display name used in issue titles, or the board URL for ATS keyed by more than a slug. */
+const company = z.union([
+  z.string(),
+  z.object({ slug: z.string(), name: z.string().optional() }),
+  z.object({ url: z.string().url(), name: z.string().optional() }),
+]);
 
-export const companiesSchema = z.object({
-  inhire: z.array(company).default([]),
-  greenhouse: z.array(company).default([]),
-  lever: z.array(company).default([]),
-  ashby: z.array(company).default([]),
-});
+export type CompanyEntry = z.infer<typeof company>;
 
-export type Companies = z.infer<typeof companiesSchema>;
+export type Companies = Record<AtsId, CompanyEntry[]>;
+
+export function buildCompaniesSchema(table: AtsTable = ATS): z.ZodType<Companies> {
+  const shape = Object.fromEntries(table.map((def) => [def.id, z.array(company).default([])]));
+  return z.object(shape) as unknown as z.ZodType<Companies>;
+}
+
+export const companiesSchema = buildCompaniesSchema();
 
 export interface CompanyRef {
   slug: string;
   /** Display name when the config gives one; adapters fall back to what the source returns. */
   name?: string;
+  /** Board URL, for entries written as `{ url }`; `slug` then holds the same URL. */
+  url?: string;
 }
 
-export function companyRefs(entries: Companies[keyof Companies] | undefined): CompanyRef[] {
-  return (entries ?? []).map((entry) => (typeof entry === 'string' ? { slug: entry } : entry));
+export function companyRefs(entries: CompanyEntry[] | undefined): CompanyRef[] {
+  return (entries ?? []).map((entry) => {
+    if (typeof entry === 'string') return { slug: entry };
+    return 'url' in entry ? { slug: entry.url, url: entry.url, name: entry.name } : entry;
+  });
 }

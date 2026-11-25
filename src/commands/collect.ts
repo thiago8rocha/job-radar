@@ -4,6 +4,7 @@ import { ADAPTERS } from '../adapters/index.js';
 import type { AnySourceAdapter, FetchContext } from '../adapters/types.js';
 import { analyzeJob, type JobInsight } from '../ai/insight.js';
 import { AiQuotaError, type ChatClient } from '../ai/models.js';
+import { emptyByAts } from '../adapters/ats.js';
 import { companyRefs, type Companies } from '../config/schema.js';
 import { FIELD } from '../domain/fields.js';
 import type { Job } from '../domain/job.js';
@@ -137,7 +138,7 @@ export async function collect(ctx: Context, options: CollectOptions = {}): Promi
       ctx.log.info(`${id}: no adapter in this version yet; skipped`);
       continue;
     }
-    const entries = companies[id as keyof Companies] as Companies['inhire'] | undefined;
+    const entries = (companies as Partial<Record<string, Companies['inhire']>>)[id];
     const refs = companyRefs(entries);
     if (adapter.mode === 'company' && refs.length === 0) {
       ctx.log.info(`${id}: no companies listed in companies.yml; skipped`);
@@ -259,7 +260,7 @@ export async function collect(ctx: Context, options: CollectOptions = {}): Promi
 }
 
 function companyRefsFromEmpty(): Companies {
-  return { inhire: [], greenhouse: [], lever: [], ashby: [] };
+  return emptyByAts();
 }
 
 /** Jobs that fail exactly one soft rule and are not already known; they never become issues. */

@@ -56,6 +56,8 @@ job-radar/
 
 Each source is an independent adapter, switched on or off by the config. There are three access modes: global search by term, per-company lookup, and discovery of new companies.
 
+**ATS registry.** The per-company ATS are listed once, in `src/adapters/ats.ts`: id, the URL patterns that identify a board (including regional hosts such as the EU ones) and whether the slug is case-sensitive. The `companies.yml` schema, the listed-slug check, discovery from links and the empty defaults are all derived from that table, so a new ATS is one table entry plus one adapter. A `companies.yml` entry is a `slug`, `{ slug, name }` or `{ url, name }`; the URL form is for ATS keyed by more than a slug (Workday) and for the generic careers adapter.
+
 | Source | Mode | Access | Priority | Notes |
 | --- | --- | --- | --- | --- |
 | InHire | Per company | JSON behind `company.inhire.app/vagas` via GET api.inhire.app/job-posts/public/pages, with headers X-Tenant: {company} and X-Inhire-Client: web-inhire, no authentication. Company name from GET api.inhire.app/tenants/public/config/{company}. The response returns all jobs in a `jobsPage` array, without pagination, with displayName, jobId, status, workplaceType (Remote, Hybrid) and location. Details come from GET api.inhire.app/job-posts/public/pages/{jobId}, with the same headers: publishedAt, contractType, salaryCurrency, the description in HTML and the fields the application form requires. It is only called for jobs that pass the title and remote filters, and entries such as "Banco de Talentos" (talent pool) are discarded | v1 | 9 of the 22 applications in the spreadsheet came from here; no aggregator of its own |

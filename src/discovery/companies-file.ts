@@ -1,10 +1,12 @@
 import { isSeq, parseDocument } from 'yaml';
+import { ATS, slugKey, type AtsId, type AtsTable } from '../adapters/ats.js';
 import { companiesSchema, companyRefs, type Companies } from '../config/schema.js';
 
 /** Slugs already listed per ATS (lower case), whether written as `slug` or `{ slug, name }`. */
-export function listedSlugs(companies: Companies): Record<keyof Companies, Set<string>> {
-  const slugs = (key: keyof Companies) => new Set(companyRefs(companies[key]).map((ref) => ref.slug.toLowerCase()));
-  return { inhire: slugs('inhire'), greenhouse: slugs('greenhouse'), lever: slugs('lever'), ashby: slugs('ashby') };
+export function listedSlugs(companies: Companies, table: AtsTable = ATS): Record<AtsId, Set<string>> {
+  return Object.fromEntries(
+    table.map((def) => [def.id, new Set(companyRefs(companies[def.id as AtsId]).map((ref) => slugKey(def, ref.slug)))]),
+  ) as Record<AtsId, Set<string>>;
 }
 
 export function parseCompaniesText(text: string): Companies {
@@ -17,7 +19,7 @@ export function parseCompaniesText(text: string): Companies {
  * Adds slugs to `companies.yml` keeping everything else as it was: comments, order and the
  * `[a, b]` list style the file already uses.
  */
-export function addCompanies(text: string, additions: Partial<Record<keyof Companies, string[]>>): string {
+export function addCompanies(text: string, additions: Partial<Record<AtsId, string[]>>): string {
   const doc = parseDocument(text || '{}\n');
   for (const [ats, slugs] of Object.entries(additions)) {
     if (!slugs || slugs.length === 0) continue;

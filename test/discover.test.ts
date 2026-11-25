@@ -3,6 +3,8 @@ import { setupServer } from 'msw/node';
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { discover } from '../src/commands/discover.js';
 import { parseConfig } from '../src/config/load.js';
+import { ATS, emptyByAts } from '../src/adapters/ats.js';
+import { buildCompaniesSchema, companyRefs } from '../src/config/schema.js';
 import { addCompanies, listedSlugs, parseCompaniesText } from '../src/discovery/companies-file.js';
 import { companiesFromLinks } from '../src/discovery/links.js';
 import { createHttpClient } from '../src/util/http.js';
@@ -181,5 +183,30 @@ discovery:
     const commit = rest.repos.createOrUpdateFileContents.mock.calls[0]![0];
     expect(commit.sha).toBeUndefined();
     expect(parseCompaniesText(Buffer.from(commit.content, 'base64').toString()).ashby).toEqual(['ramp']);
+  });
+});
+
+describe('ATS registry', () => {
+  const table = [
+    ...ATS,
+    { id: 'fakeats', urls: [{ pattern: /^https:\/\/jobs\.fake\.test\/([A-Za-z0-9]+)/ }], caseSensitive: true },
+  ];
+
+  it('makes a table entry enough for the schema, the listed slugs, link discovery and the defaults', () => {
+    const companies = buildCompaniesSchema(table).parse({ fakeats: ['AcmeCo', { slug: 'Beta' }] }) as Record<string, unknown[]>;
+    expect(companies.fakeats).toEqual(['AcmeCo', { slug: 'Beta' }]);
+    expect((buildCompaniesSchema(table).parse({}) as Record<string, unknown>).fakeats).toEqual([]);
+    expect([...(listedSlugs(companies as never, table) as Record<string, Set<string>>).fakeats!]).toEqual(['AcmeCo', 'Beta']);
+    expect((companiesFromLinks(['https://jobs.fake.test/AcmeCo/1'], table) as Record<string, string[]>).fakeats).toEqual(['AcmeCo']);
+    expect(emptyByAts(table)).toHaveProperty('fakeats', []);
+  });
+
+  it('accepts slug, slug with name and url entries', () => {
+    const companies = parseCompaniesText('greenhouse:\n  - acme\n  - { slug: beta, name: Beta Inc }\n  - { url: "https://boards.eu.greenhouse.io/gamma", name: Gamma }\n');
+    expect(companyRefs(companies.greenhouse)).toEqual([
+      { slug: 'acme' },
+      { slug: 'beta', name: 'Beta Inc' },
+      { slug: 'https://boards.eu.greenhouse.io/gamma', url: 'https://boards.eu.greenhouse.io/gamma', name: 'Gamma' },
+    ]);
   });
 });
