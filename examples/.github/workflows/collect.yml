@@ -1,15 +1,25 @@
 # Collects new jobs every business day and opens one issue per job.
 name: collect
 on:
+  # Fallback only. GitHub delays scheduled runs by hours before 08:00 UTC, so the README suggests an
+  # external scheduler calling workflow_dispatch as the primary trigger.
   schedule:
-    - cron: "23 5 * * 1-5"   # 2:23 a.m. in Brasília, off the top-of-the-hour peak
-    - cron: "41 8 * * 1-5"   # backup 5:41 a.m. in Brasília, only runs if no collect succeeded in the last 6 h
+    - cron: "17 10 * * 1-5"   # 7:17 a.m. in Brasília
+    - cron: "47 16 * * 1-5"   # 1:47 p.m. in Brasília
   workflow_dispatch:
     inputs:
       dry-run:
         description: "List what would be created, without writing anything"
         type: boolean
         default: false
+      force:
+        description: "Run even if a collect succeeded recently"
+        type: boolean
+        default: false
+      min-interval-hours:
+        description: "Skip this run when a collect succeeded in the last N hours"
+        type: string
+        default: "4"
 
 # Runs never overlap, so two of them cannot create the same issue.
 concurrency:
@@ -31,10 +41,12 @@ jobs:
       - id: check
         env:
           GH_TOKEN: ${{ github.token }}
+          FORCE: ${{ inputs.force || false }}
+          MIN_INTERVAL_HOURS: ${{ inputs.min-interval-hours || '4' }}
         run: |
           run=true
-          if [ "${{ github.event.schedule }}" = "41 8 * * 1-5" ]; then
-            since=$(date -u -d '6 hours ago' +%FT%TZ)
+          if [ "$FORCE" != "true" ]; then
+            since=$(date -u -d "$MIN_INTERVAL_HOURS hours ago" +%FT%TZ)
             n=$(gh api -X GET "repos/$GITHUB_REPOSITORY/actions/workflows/collect.yml/runs" -f status=success -f created=">=$since" --jq .total_count)
             [ "$n" -gt 0 ] && run=false
           fi

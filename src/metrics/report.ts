@@ -5,6 +5,8 @@ export const METRICS_MARKER = '<!-- job-radar:metrics -->';
 export const IGNORE_MARKER = '<!-- job-radar:ignore -->';
 
 const STALLED_AFTER_DAYS = 30;
+const STALE_COLLECT_AFTER_HOURS = 30;
+const BRASILIA_OFFSET_MS = -3 * 3_600_000;
 export const DEFAULT_NO_RESPONSE_AFTER_DAYS = 60;
 
 function pct(part: number, whole: number): string {
@@ -153,8 +155,37 @@ function funnelChart(steps: { stage: Status; reached: number }[]): string {
   ].join('\n');
 }
 
-/** The body of the pinned "Metrics" issue. */
-export function renderReport(all: IssueMetrics[], today: Date, noResponseAfterDays = DEFAULT_NO_RESPONSE_AFTER_DAYS): string {
+function isWeekendInBrasilia(at: Date): boolean {
+  const day = new Date(at.getTime() + BRASILIA_OFFSET_MS).getUTCDay();
+  return day === 0 || day === 6;
+}
+
+/** Hours between two instants, skipping Saturdays and Sundays in Brasília time. */
+export function businessHoursBetween(from: Date, to: Date): number {
+  let hours = 0;
+  for (let at = from.getTime(); at < to.getTime(); at += 3_600_000) {
+    if (!isWeekendInBrasilia(new Date(at))) hours++;
+  }
+  return hours;
+}
+
+function lastCollectLine(lastCollect: Date, now: Date): string {
+  const stamp = new Date(lastCollect.getTime() + BRASILIA_OFFSET_MS).toISOString().slice(0, 16).replace('T', ' ');
+  const line = `_Last successful collect: ${stamp} (Brasília)._`;
+  const stale = !isWeekendInBrasilia(now) && businessHoursBetween(lastCollect, now) > STALE_COLLECT_AFTER_HOURS;
+  return stale ? `${line}
+
+> [!WARNING]
+> The last successful collect is older than ${STALE_COLLECT_AFTER_HOURS} hours. Check the schedule of the collect workflow.` : line;
+}
+
+/** The body of the pinned "Metrics" issue. `lastCollect` is left out when the Actions API could not be read. */
+export function renderReport(
+  all: IssueMetrics[],
+  today: Date,
+  noResponseAfterDays = DEFAULT_NO_RESPONSE_AFTER_DAYS,
+  lastCollect?: Date,
+): string {
   const todayIso = today.toISOString().slice(0, 10);
   const total = totals(all, todayIso, noResponseAfterDays);
   const applications = all.filter((issue) => issue.appliedOn);
@@ -197,6 +228,7 @@ export function renderReport(all: IssueMetrics[], today: Date, noResponseAfterDa
   const sections = [
     METRICS_MARKER,
     `_Updated ${todayIso} by job-radar. Edits to this issue are overwritten._`,
+    ...(lastCollect ? [lastCollectLine(lastCollect, today)] : []),
     '## Overview',
     table(
       ['Indicator', 'Value'],
