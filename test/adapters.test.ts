@@ -8,6 +8,7 @@ import { getonbrd } from '../src/adapters/getonbrd.js';
 import { greenhouse } from '../src/adapters/greenhouse.js';
 import { himalayas } from '../src/adapters/himalayas.js';
 import { inhire } from '../src/adapters/inhire.js';
+import { jobicy } from '../src/adapters/jobicy.js';
 import { lever } from '../src/adapters/lever.js';
 import { linkedin } from '../src/adapters/linkedin.js';
 import { quickin } from '../src/adapters/quickin.js';
@@ -510,6 +511,73 @@ describe('smartrecruiters', () => {
   it('fails when the response has no content list', async () => {
     server.use(http.get('https://api.smartrecruiters.com/v1/companies/BoschGroup/postings', () => HttpResponse.json({ error: 'x' })));
     await expect(smartrecruiters.fetch(context(['BoschGroup']).ctx)).rejects.toBeInstanceOf(SchemaError);
+  });
+});
+
+describe('jobicy', () => {
+  function mock(onJobs?: (url: URL) => void) {
+    server.use(
+      http.get('https://jobicy.com/api/v2/remote-jobs', ({ request }) => {
+        const url = new URL(request.url);
+        if (url.searchParams.get('get') === 'locations') return HttpResponse.json(fixture('jobicy-locations.json'));
+        onJobs?.(url);
+        return HttpResponse.json(fixture('jobicy.json'));
+      }),
+    );
+  }
+
+  it('asks once per accepted region and include term, only for regions Jobicy lists', async () => {
+    const queries: string[] = [];
+    mock((url) => queries.push(`${url.searchParams.get('geo')}|${url.searchParams.get('tag')}|${url.searchParams.get('count')}`));
+    const raws = await jobicy.fetch(context().ctx);
+
+    expect(queries).toEqual(['anywhere|QA|100', 'anywhere|Quality|100', 'brazil|QA|100', 'brazil|Quality|100', 'latam|QA|100', 'latam|Quality|100']);
+    expect(raws).toHaveLength(5);
+  });
+
+  it('keeps the posting page as the apply link and reads region, level and pay', async () => {
+    mock();
+    const jobs = (await jobicy.fetch(context().ctx)).map((raw) => jobicy.normalize(raw));
+    const qa = jobs.find((job) => /^Semi Sr/.test(job.title))!;
+    const manager = jobs.find((job) => /^Manager, Production/.test(job.title))!;
+    const anywhere = jobs.find((job) => /Finnish/.test(job.title))!;
+
+    expect(qa.applyUrl).toMatch(/^https:\/\/jobicy\.com\/jobs\/\d+-/);
+    expect(qa.locations).toEqual(['Brazil']);
+    expect(qa.seniority).toEqual(['senior']);
+    expect(qa.workModel).toBe('remote');
+    expect(manager.restrictions).toEqual(['LATAM', 'USA']);
+    expect(manager.compensation).toBe('USD 3,000 / monthly');
+    expect(manager.contracts).toEqual(['Contract']);
+    expect(anywhere.restrictions).toEqual([]);
+    expect(anywhere.locations).toEqual(['Worldwide']);
+    expect(anywhere.seniority).toEqual(['junior']);
+  });
+
+  it('still searches when the list of locations cannot be read', async () => {
+    const queries: string[] = [];
+    server.use(
+      http.get('https://jobicy.com/api/v2/remote-jobs', ({ request }) => {
+        const url = new URL(request.url);
+        if (url.searchParams.get('get') === 'locations') return new HttpResponse(null, { status: 404 });
+        queries.push(String(url.searchParams.get('geo')));
+        return HttpResponse.json(fixture('jobicy.json'));
+      }),
+    );
+    const { ctx, warnings } = context();
+    await jobicy.fetch(ctx);
+
+    expect(new Set(queries)).toEqual(new Set(['brazil', 'latam', 'anywhere']));
+    expect(warnings[0]).toMatch(/list of locations/);
+  });
+
+  it('fails when the response has no jobs list', async () => {
+    server.use(
+      http.get('https://jobicy.com/api/v2/remote-jobs', ({ request }) =>
+        new URL(request.url).searchParams.get('get') ? HttpResponse.json(fixture('jobicy-locations.json')) : HttpResponse.json({ success: false }),
+      ),
+    );
+    await expect(jobicy.fetch(context().ctx)).rejects.toBeInstanceOf(SchemaError);
   });
 });
 

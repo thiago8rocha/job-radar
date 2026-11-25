@@ -75,6 +75,7 @@ Each source is an independent adapter, switched on or off by the config. There a
 | Greenhouse | Per company | `boards-api.greenhouse.io/v1/boards/{company}/jobs` | v1 | Documented public API |
 | Lever | Per company | `api.lever.co/v0/postings/{company}` | v1 | Documented public API |
 | Ashby | Per company | Public per-company job board API | v1 | Common in startups that hire remotely |
+| Jobicy | Global search | `jobicy.com/api/v2/remote-jobs?geo=<region>&tag=<term>`, public, no key | v2 | Verified live. `geo` is one of the slugs from `?get=locations`, loaded once; the accepted regions map to `brazil`, `latam` and `anywhere`. Its notice asks for a credit with a direct link and for application buttons to use the feed's job URL, so that URL is the apply link and the source line names Jobicy. Levels map to `senior`, `mid` and `junior`; `Director` and `Any` are left to the title |
 | Career pages | Per company | Generic reader for a company's own site: ATS link, `JobPosting` JSON-LD, job sitemap | v2 | See "Career pages on company sites" below |
 | Workday | Per company | `POST {origin}/wday/cxs/{tenant}/{site}/jobs`, detail at `.../wday/cxs/{tenant}/{site}{externalPath}` | v2 | Verified live; the site's `robots.txt` allows `/{site}/`. Page size is 20. Searched per include term (5 pages at most) because employers like NVIDIA have thousands of postings. The list gives only `Posted N Days Ago`, so the date is approximate until the detail is read, and `30+` has none. The company name comes from the config entry: `hiringOrganization` is a legal entity. Entries must be URLs, so link discovery skips Workday (`urlOnly` in the registry) |
 | Sólides | Per company | `apigw.solides.com.br/jobs/v3/companies/{slug}/vacancies?take=25&page=N` | v2 | Verified live. Per-company only: other projects report the portal-wide search stopped answering after the portal moved to Next.js, and reading the page's embedded data would depend on markup, so neither is used. `take` above 25 is rejected. The `redirectLink` field is broken (`https://solides./...`), so the apply link is built as `https://{slug}.vagas.solides.com.br/vaga/{id}`. The pay range is shown only when the posting makes it public. Seniority is left to the title because the API's names (`Especialista`) do not map to the filter's levels |
@@ -96,6 +97,8 @@ Each source is an independent adapter, switched on or off by the config. There a
 - `site:boards.greenhouse.io "QA" remote`
 - `site:jobs.lever.co "quality assurance"`
 - `site:jobs.ashbyhq.com QA`
+
+**Considered and not added.** Remotive: its public API reportedly ignores the category and search parameters and returns a small feed delayed by 24 hours. Torre: no documented public API. Vagas.com.br and Jobbol: behind Cloudflare. Catho and Indeed: their `robots.txt` forbids it. Programathor, Coodesh, Remotar and 99jobs: other projects found no usable public endpoint.
 
 **Off the table:** direct scraping of LinkedIn, Indeed and Glassdoor. Their terms of use forbid it and blocks are frequent.
 

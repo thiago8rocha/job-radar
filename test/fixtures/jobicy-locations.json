@@ -1,0 +1,32 @@
+{
+  "locations": [
+    {
+      "geoID": 6467,
+      "geoName": "Anywhere",
+      "geoSlug": "anywhere"
+    },
+    {
+      "geoID": 449,
+      "geoName": "EMEA",
+      "geoSlug": "emea"
+    },
+    {
+      "geoID": 572,
+      "geoName": "LATAM",
+      "geoSlug": "latam"
+    },
+    {
+      "geoID": 1664,
+      "geoName": "Brazil",
+      "geoSlug": "brazil"
+    },
+    {
+      "geoID": 445,
+      "geoName": "USA",
+      "geoSlug": "usa"
+    }
+  ],
+  "appliedFilters": {
+    "get": "locations"
+  }
+}
