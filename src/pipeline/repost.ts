@@ -6,6 +6,8 @@ export interface PriorIssue {
   number: number;
   state: 'open' | 'closed';
   labels: string[];
+  /** When the issue was opened: a repost is a posting published after it. */
+  createdAt?: string;
 }
 
 export type RepostAction = 'comment' | 'reopen';
@@ -13,7 +15,7 @@ export type RepostAction = 'comment' | 'reopen';
 const TITLE = /^\[([^\]]+)\]\s*(.+)$/;
 
 /** The issue each company + title key points at; when several share a key, the newest one. */
-export function priorIssuesByKey(issues: Array<{ number: number; title: string; state: string; labels?: Array<string | { name?: string | null }> }>): Map<string, PriorIssue> {
+export function priorIssuesByKey(issues: Array<{ number: number; title: string; state: string; created_at?: string; labels?: Array<string | { name?: string | null }> }>): Map<string, PriorIssue> {
   const byKey = new Map<string, PriorIssue>();
   for (const issue of issues) {
     const title = TITLE.exec(issue.title);
@@ -21,6 +23,7 @@ export function priorIssuesByKey(issues: Array<{ number: number; title: string; 
     const prior: PriorIssue = {
       number: issue.number,
       state: issue.state === 'closed' ? 'closed' : 'open',
+      createdAt: issue.created_at,
       labels: (issue.labels ?? []).map((label) => (typeof label === 'string' ? label : label.name ?? '')).filter(Boolean),
     };
     for (const key of jobKeys(title[1]!, title[2]!)) {
@@ -44,6 +47,17 @@ export function repostAction(issue: PriorIssue): RepostAction | undefined {
     return neverWorked ? 'reopen' : 'comment';
   }
   return statuses.includes('applied') || issue.labels.includes(LABEL.noResponse) ? 'comment' : undefined;
+}
+
+/**
+ * True when the job was published after the issue was opened. The same posting seen through another
+ * source has the old date, and is only a duplicate; a job with no date cannot be told apart, so it is not
+ * counted as a repost.
+ */
+export function isNewerThan(job: { postedAt?: string }, issue: PriorIssue): boolean {
+  const posted = Date.parse(job.postedAt ?? '');
+  const opened = Date.parse(issue.createdAt ?? '');
+  return !Number.isNaN(posted) && !Number.isNaN(opened) && posted > opened;
 }
 
 export function repostMarker(jobId: string): string {
