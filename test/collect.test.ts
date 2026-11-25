@@ -314,3 +314,40 @@ describe('near misses', () => {
     expect((await loadState(statePath)).nearMiss).toEqual([]);
   });
 });
+
+describe('run budget', () => {
+  it('runs the enabled sources side by side and keeps the report order', async () => {
+    const slow = (id: string, ms: number): AnySourceAdapter => ({
+      id,
+      mode: 'search',
+      fetch: async () => {
+        await new Promise((resolve) => setTimeout(resolve, ms));
+        return [job({ id: `${id}:1`, source: id, company: id, applyUrl: `https://${id}.test/1` })];
+      },
+      normalize: (raw: Job) => raw,
+    });
+    const started = Date.now();
+    const result = await run(setup(), { alpha: slow('alpha', 150), beta: slow('beta', 150) });
+    expect(Date.now() - started).toBeLessThan(290);
+    expect(result.sources.map((report) => report.source)).toEqual(['alpha', 'beta']);
+  });
+
+  it('passes the earlier of the source timeout and the run budget as the deadline', async () => {
+    const deadlines: Record<string, number | undefined> = {};
+    const probe = (id: string): AnySourceAdapter => ({
+      id,
+      mode: 'search',
+      fetch: async (ctx) => {
+        deadlines[id] = ctx.deadline;
+        return [];
+      },
+      normalize: (raw: Job) => raw,
+    });
+    const config = CONFIG.replace('alpha: { enabled: true }', 'alpha: { enabled: true, timeout_minutes: 1 }') + 'run:\n  budget_minutes: 3\n';
+    const before = Date.now();
+    await run(setup(config.replace('beta: { enabled: true }', 'beta: { enabled: true, timeout_minutes: 10 }')), { alpha: probe('alpha'), beta: probe('beta') });
+    expect(deadlines.alpha! - before).toBeLessThan(61_000);
+    expect(deadlines.beta! - before).toBeGreaterThan(170_000);
+    expect(deadlines.beta! - before).toBeLessThan(181_000);
+  });
+});
