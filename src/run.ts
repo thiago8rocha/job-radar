@@ -109,7 +109,12 @@ export async function run(options: RunOptions): Promise<void> {
       await metrics(ctx, { dryRun: options.dryRun, statePath: options.statePath });
       return;
     case 'discover':
-      await discover(ctx, { dryRun: options.dryRun, companiesPath: options.companiesPath, serpapiKey: options.serpapiKey });
+      await discover(ctx, {
+        dryRun: options.dryRun,
+        companiesPath: options.companiesPath,
+        companiesStatePath: options.companiesStatePath,
+        serpapiKey: options.serpapiKey,
+      });
       return;
     case 'sweep':
       await sweep(ctx, {

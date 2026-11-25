@@ -9,7 +9,7 @@ import { prune } from '../src/commands/prune.js';
 import { sweep } from '../src/commands/sweep.js';
 import { parseConfig } from '../src/config/load.js';
 import { parseCompaniesText, removeCompanies } from '../src/discovery/companies-file.js';
-import { emptyCompaniesState, hotDirectory, loadCompaniesState, recordOutcome, saveCompaniesState } from '../src/state/companies.js';
+import { emptyCompaniesState, harvestCandidates, hotDirectory, loadCompaniesState, recordOutcome, saveCompaniesState } from '../src/state/companies.js';
 import { HttpError } from '../src/util/http.js';
 import { fakeContext } from './fake-github.js';
 import { job } from './helpers.js';
@@ -217,5 +217,50 @@ describe('removeCompanies', () => {
   it('drops slugs in any entry form and keeps the rest', () => {
     const text = removeCompanies('greenhouse: [a, B, c]\nlever:\n  - { slug: x, name: X }\n  - y\n', { greenhouse: ['b'], lever: ['x'] });
     expect(parseCompaniesText(text)).toMatchObject({ greenhouse: ['a', 'c'], lever: ['y'] });
+  });
+});
+
+describe('candidate harvesting', () => {
+  const CONFIG_WITH_LISTS = CONFIG;
+  const fromLinks = (links: Record<string, string>) =>
+    ({
+      id: 'freehire',
+      mode: 'search',
+      fetch: async () => Object.keys(links),
+      normalize: (id: string) => job({ id: `freehire:x:${id}`, source: 'freehire', company: id, title: 'Senior QA Engineer', applyUrl: links[id]! }),
+    }) as AnySourceAdapter;
+
+  it('keeps the boards that fetched jobs link to, minus the ones already listed', async () => {
+    const { ctx } = fakeContext();
+    ctx.config = parseConfig(`${CONFIG_WITH_LISTS}`.replace('sources: { greenhouse: { enabled: true } }', 'sources: { freehire: { enabled: true } }'));
+    const links = {
+      a: 'https://boards.greenhouse.io/newco/jobs/1',
+      b: 'https://boards.greenhouse.io/newco/jobs/2',
+      c: 'https://boards.greenhouse.io/listed/jobs/3',
+      d: 'https://boards.greenhouse.io/indirectory/jobs/4',
+      e: 'https://jobs.lever.co/Other/5',
+      f: 'https://example.com/careers/6',
+    };
+    await collect(ctx, {
+      adapters: { freehire: fromLinks(links) },
+      companies: parseCompaniesText('greenhouse: [listed]'),
+      directory: directoryOf(['indirectory']),
+      companiesStatePath,
+      statePath,
+      now: NOW,
+      delayMs: 0,
+    });
+    const { candidates } = await loadCompaniesState(companiesStatePath);
+    expect(Object.keys(candidates).sort()).toEqual(['greenhouse:newco', 'lever:other']);
+    expect(candidates['greenhouse:newco']).toMatchObject({ count: 2, firstSeen: NOW.toISOString() });
+  });
+
+  it('forgets candidates that were not seen for 60 days or got listed', () => {
+    const state = emptyCompaniesState();
+    state.candidates['greenhouse:old'] = { firstSeen: '2026-06-01T00:00:00Z', lastSeen: '2026-07-01T00:00:00Z', count: 5 };
+    state.candidates['greenhouse:nowlisted'] = { firstSeen: '2026-10-01T00:00:00Z', lastSeen: '2026-10-10T00:00:00Z', count: 1 };
+    state.candidates['greenhouse:keep'] = { firstSeen: '2026-10-01T00:00:00Z', lastSeen: '2026-10-10T00:00:00Z', count: 1 };
+    harvestCandidates(state, {}, new Set(['greenhouse:nowlisted']), NOW);
+    expect(Object.keys(state.candidates)).toEqual(['greenhouse:keep']);
   });
 });

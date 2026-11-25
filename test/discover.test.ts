@@ -1,3 +1,7 @@
+import { mkdtemp, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { emptyCompaniesState, saveCompaniesState } from '../src/state/companies.js';
 import { http, HttpResponse } from 'msw';
 import { setupServer } from 'msw/node';
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
@@ -164,11 +168,35 @@ discovery:
     const noKey = setup();
     await discover(noKey.ctx, options({ serpapiKey: undefined }));
     expect(noKey.rest.repos.get).not.toHaveBeenCalled();
-    expect(noKey.log.info).toHaveBeenCalledWith(expect.stringContaining('needs a SerpAPI key'));
+    expect(noKey.log.info).toHaveBeenCalledWith(expect.stringContaining('No SerpAPI key'));
 
     const noQueries = setup('discovery: { enabled: true }');
     await discover(noQueries.ctx, options());
     expect(noQueries.log.warn).toHaveBeenCalledWith(expect.stringContaining('queries is empty'));
+  });
+
+  it('proposes boards harvested from collected jobs even without a SerpAPI key', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'job-radar-harvest-'));
+    try {
+      const statePath = join(dir, 'companies.json');
+      const state = emptyCompaniesState();
+      const stamp = '2026-10-14T00:00:00.000Z';
+      state.candidates['greenhouse:acme'] = { firstSeen: stamp, lastSeen: stamp, count: 3 };
+      state.candidates['greenhouse:airbnb'] = { firstSeen: stamp, lastSeen: stamp, count: 9 };
+      state.candidates['greenhouse:ghost'] = { firstSeen: stamp, lastSeen: stamp, count: 1 };
+      await saveCompaniesState(statePath, state);
+      server.use(
+        http.get('https://boards-api.greenhouse.io/v1/boards/acme/jobs', () => board(2)),
+        http.get('https://boards-api.greenhouse.io/v1/boards/ghost/jobs', () => new HttpResponse(null, { status: 404 })),
+      );
+      const { ctx, rest } = setup();
+      const result = await discover(ctx, options({ serpapiKey: undefined, companiesStatePath: statePath }));
+      expect(result.found.greenhouse).toEqual(['acme']);
+      expect(result.pullRequest).toBe(7);
+      expect(rest.pulls.create).toHaveBeenCalled();
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
   });
 
   it('creates companies.yml when the repository has none', async () => {

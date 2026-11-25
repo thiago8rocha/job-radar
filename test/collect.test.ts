@@ -57,7 +57,7 @@ function setup(configText = CONFIG, overrides: Parameters<typeof fakeContext>[0]
 }
 
 const run = (fake: ReturnType<typeof setup>, adapters: Record<string, AnySourceAdapter>, extra = {}) =>
-  collect(fake.ctx, { adapters, statePath, now: NOW, delayMs: 0, ...extra });
+  collect(fake.ctx, { adapters, statePath, companiesStatePath: join(dir, 'state', 'companies.json'), now: NOW, delayMs: 0, ...extra });
 
 describe('collect', () => {
   it('writes one issue per new job with labels, body, Project fields and state', async () => {
