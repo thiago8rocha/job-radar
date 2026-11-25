@@ -296,9 +296,10 @@ describe('backlog', () => {
 });
 
 describe('reposts', () => {
-  const issue = (number: number, state: 'open' | 'closed', labels: string[]) => ({
+  const issue = (number: number, state: 'open' | 'closed', labels: string[], created_at = '2026-09-01T00:00:00Z') => ({
     number,
     state,
+    created_at,
     title: '[Acme] Senior QA Engineer',
     body: '**Apply:** https://acme.test/old\n<!-- job-radar:id=alpha:acme:oldoldol -->',
     labels: labels.map((name) => ({ name })),
@@ -341,6 +342,16 @@ describe('reposts', () => {
     expect(fake.issues.removeLabel.mock.calls.map((call) => (call[0] as any).name)).toEqual(['closed-at-source', 'status:discarded']);
     expect(fake.issues.update).toHaveBeenCalledWith(expect.objectContaining({ issue_number: 9, state: 'open' }));
     expect((fake.issues.createComment.mock.calls[0]![0] as any).body).toContain('back at `status:new`');
+  });
+
+  it('does not treat the same posting seen through another source as a repost', async () => {
+    const fake = await repost(issue(13, 'closed', ['status:discarded']), [reposted()].map((entry) => ({ ...entry, postedAt: '2026-08-20T00:00:00Z' })));
+    expect(fake.issues.create).not.toHaveBeenCalled();
+    expect(fake.issues.createComment).not.toHaveBeenCalled();
+    expect(fake.issues.addLabels).not.toHaveBeenCalled();
+
+    const undated = await repost(issue(14, 'open', ['status:applied']), [{ ...reposted(), postedAt: undefined }]);
+    expect(undated.issues.createComment).not.toHaveBeenCalled();
   });
 
   it('does nothing for an issue that is still open and not applied to', async () => {
