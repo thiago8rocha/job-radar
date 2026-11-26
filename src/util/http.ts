@@ -26,6 +26,8 @@ export interface HttpClient {
   getJson(url: string, options?: RequestOptions): Promise<unknown>;
   /** The response body as text, for sources that publish XML or HTML. */
   getText(url: string, options?: RequestOptions): Promise<string>;
+  /** Where a redirect link points to, without requesting the target; undefined when the link does not redirect. */
+  getRedirect(url: string): Promise<string | undefined>;
 }
 
 export interface HttpClientOptions {
@@ -63,7 +65,7 @@ export function createHttpClient(options: HttpClientOptions = {}): HttpClient {
     if (wait > 0) await sleep(wait);
   }
 
-  async function send(url: string, request: RequestOptions, accept: string): Promise<Response> {
+  async function send(url: string, request: RequestOptions & { redirect?: 'manual' }, accept: string): Promise<Response> {
     for (let attempt = 0; ; attempt++) {
       await throttle(url);
       const response = await fetch(url, {
@@ -76,9 +78,10 @@ export function createHttpClient(options: HttpClientOptions = {}): HttpClient {
         },
         body: request.body !== undefined ? JSON.stringify(request.body) : undefined,
         signal: AbortSignal.timeout(request.timeoutMs ?? timeoutMs),
+        redirect: request.redirect,
       });
 
-      if (response.ok) return response;
+      if (response.ok || (request.redirect === 'manual' && response.status >= 300 && response.status < 400)) return response;
       const retryable = response.status === 429 || response.status >= 500;
       if (!retryable || attempt >= retries) throw new HttpError(response.status, url);
       await sleep(Math.min(retryAfterMs(response.headers.get('retry-after')) ?? backoffMs * 2 ** attempt, MAX_WAIT_MS));
@@ -88,5 +91,9 @@ export function createHttpClient(options: HttpClientOptions = {}): HttpClient {
   return {
     getJson: async (url, request = {}) => (await send(url, request, 'application/json')).json(),
     getText: async (url, request = {}) => (await send(url, request, 'application/xml, text/xml, */*')).text(),
+    getRedirect: async (url) => {
+      const location = (await send(url, { redirect: 'manual' }, '*/*')).headers.get('location');
+      return location ? new URL(location, url).toString() : undefined;
+    },
   };
 }
