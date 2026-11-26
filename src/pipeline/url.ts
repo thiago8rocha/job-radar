@@ -41,11 +41,17 @@ export function canonicalUrl(value: string): string | undefined {
 // Aggregators that charge the candidate a subscription before letting them apply.
 const PAYWALLED_HOSTS = ['jobleads.com', 'jobleads.io'];
 
-export function isPaywalled(link: string): boolean {
+/** True when the link is on the domain or one of its subdomains. */
+export function isOnDomain(link: string, domain: string): boolean {
   try {
     const host = new URL(link).hostname.toLowerCase();
-    return PAYWALLED_HOSTS.some((blocked) => host === blocked || host.endsWith(`.${blocked}`));
+    const wanted = domain.toLowerCase();
+    return host === wanted || host.endsWith(`.${wanted}`);
   } catch {
     return false;
   }
+}
+
+export function isPaywalled(link: string): boolean {
+  return PAYWALLED_HOSTS.some((domain) => isOnDomain(link, domain));
 }

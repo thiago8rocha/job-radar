@@ -277,6 +277,23 @@ work_model: [remote]
     }
   });
 
+  it('drops a job whose apply link is on a listed domain, whatever company it names', () => {
+    const byDomain = createFilter(parseConfig(`
+search:
+  include: ["QA"]
+  exclude_companies: ["Lever", "jobtogether.com"]
+eligibility:
+  accept_regions: [worldwide]
+work_model: [remote]
+`));
+    const check = (applyUrl: string) => byDomain.check(job({ ...base, company: 'Verity Group', applyUrl }), NOW);
+    for (const applyUrl of ['https://jobtogether.com/offer/1', 'https://www.JobTogether.com/offer/1']) {
+      expect(check(applyUrl).reason).toBe('excluded company: "jobtogether.com"');
+    }
+    expect(check('https://notjobtogether.com/offer/1?via=jobtogether.com').ok).toBe(true);
+    expect(check('https://jobs.lever.co/verity/1').ok).toBe(true);
+  });
+
   it('keeps jobs from other companies', () => {
     expect(filter.check(job({ ...base, company: 'Together Labs' }), NOW).ok).toBe(true);
   });
