@@ -3,7 +3,7 @@ import type { Job, WorkModel } from '../domain/job.js';
 import { containsTerm, normalizeText } from '../util/text.js';
 import { checkEligibility } from './eligibility.js';
 import { requiredLanguage } from './language.js';
-import { isPaywalled } from './url.js';
+import { isOnDomain, isPaywalled } from './url.js';
 import { detectWorkModel } from './work-model.js';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -88,6 +88,10 @@ export function createFilter(config: Config): JobFilter {
   const blockedCompany = (company: string): string | undefined =>
     search.exclude_companies.find((name) => containsTerm(company, name) || (compactText(name) !== '' && compactText(company) === compactText(name)));
 
+  // Only entries written as a domain match links, so a company called "Lever" cannot block every job hosted on lever.co.
+  const blockedDomain = (link: string): string | undefined =>
+    search.exclude_companies.find((entry) => entry.includes('.') && isOnDomain(link, entry));
+
   const titleResult = (title: string): { matched: string[]; excluded?: string } => ({
     matched: search.include.filter((term) => containsTerm(title, term)),
     excluded: search.exclude.find((term) => containsTerm(title, term)),
@@ -96,7 +100,7 @@ export function createFilter(config: Config): JobFilter {
   const rules: Array<(job: Job, now: Date) => string | undefined> = [
     (job) => (isPaywalled(job.applyUrl) ? 'paywalled: applying needs a paid subscription' : undefined),
     (job) => {
-      const blocked = blockedCompany(job.company);
+      const blocked = blockedCompany(job.company) ?? blockedDomain(job.applyUrl);
       return blocked ? `excluded company: "${blocked}"` : undefined;
     },
     (job) => {
