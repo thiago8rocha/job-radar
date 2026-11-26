@@ -940,6 +940,20 @@ sources:
     expect(warnings.some((warning) => warning.includes('rate limited'))).toBe(true);
   });
 
+  it('retries once after a 429 and keeps the details read before a later search is refused', async () => {
+    let searches = 0;
+    server.use(
+      http.get(SEARCH, () => (++searches === 1 ? new HttpResponse(text('linkedin-search.html')) : new HttpResponse(null, { status: 429 }))),
+      http.get(DETAIL, () => new HttpResponse(text('linkedin-detail.html'))),
+    );
+    const config = { ...linkedinConfig, sources: { linkedin: { enabled: true, delay_ms: 0, locations: ['Brazil', 'Worldwide'], queries: ['QA'] } } };
+    const { ctx } = linkedinContext({ config, http: createHttpClient({ retries: 0 }) });
+    const raws = await linkedin.fetch(ctx);
+
+    expect(searches).toBe(3);
+    expect(raws.map((raw) => raw.id)).toEqual(['4400000001', '4400000004']);
+  });
+
   it('fails the source when the cards change shape', async () => {
     server.use(http.get(SEARCH, () => new HttpResponse('<li data-entity-urn="urn:li:jobPosting:4400000009"></li>')));
     await expect(linkedin.fetch(linkedinContext().ctx)).rejects.toBeInstanceOf(SchemaError);

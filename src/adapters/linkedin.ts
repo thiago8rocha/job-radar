@@ -18,6 +18,7 @@ const DEFAULT_WINDOW_DAYS = 2;
 const MAX_TERMS = 6;
 const MAX_DETAILS = 40;
 const BUDGET_MS = 4 * 60 * 1000; // the collect gives a source 5 minutes
+const COOLDOWN_PAUSES = 20; // one minute at the default delay
 const DAY_SECONDS = 24 * 60 * 60;
 
 const cardSchema = z.object({
@@ -110,38 +111,48 @@ export const linkedin: SourceAdapter<LinkedInPosting> = {
     const searches = terms.flatMap((term) => locations.map((location) => ({ term, location }))).slice(0, toggle?.max_searches ?? DEFAULT_MAX_SEARCHES);
 
     const started = Date.now();
-    const pause = () => sleep(delayMs <= 0 ? 0 : delayMs + Math.random() * (delayMs / 2));
-    const cards = new Map<string, z.infer<typeof cardSchema>>();
+    const delay = Math.max(delayMs, 0);
+    const pause = () => sleep(delay + Math.random() * (delay / 2));
+    const seen = new Set<string>();
     const found: LinkedInPosting[] = [];
+    let cooledDown = false;
 
+    const get = async (url: string): Promise<string> => {
+      try {
+        return await ctx.http.getText(url);
+      } catch (error) {
+        if (cooledDown || !(error instanceof HttpError && error.status === 429)) throw error;
+        cooledDown = true;
+        await sleep(delay * COOLDOWN_PAUSES);
+        return ctx.http.getText(url);
+      }
+    };
+    const done = () => found.length >= MAX_DETAILS || Date.now() - started > BUDGET_MS;
+
+    // Each search's details are read before the next search, so a 429 only costs what was not asked yet.
     try {
       for (const { term, location } of searches) {
+        if (done()) break;
         const params = new URLSearchParams({ keywords: term, location, f_WT: '2', f_TPR: `r${windowSeconds}`, f_E: '4', start: '0' });
-        const html = await ctx.http.getText(`${SEARCH}?${params}`);
-        const items = parseCards(html);
-        if (items.length > 0) {
-          for (const card of parseItems('linkedin', cardSchema, items, ctx)) {
-            const url = `${VIEW}${card.id}`;
-            if (cards.has(card.id) || ctx.isKnownUrl?.(url)) continue;
-            if (ctx.worthDetails({ title: card.title, company: card.company, workModel: 'remote' })) cards.set(card.id, card);
-          }
-        }
+        const items = parseCards(await get(`${SEARCH}?${params}`));
         await pause();
-      }
+        if (items.length === 0) continue;
 
-      for (const card of [...cards.values()].slice(0, MAX_DETAILS)) {
-        if (Date.now() - started > BUDGET_MS) {
-          ctx.warn('linkedin: out of time, the rest waits for the next run');
-          break;
+        for (const card of parseItems('linkedin', cardSchema, items, ctx)) {
+          if (done()) break;
+          if (seen.has(card.id) || ctx.isKnownUrl?.(`${VIEW}${card.id}`)) continue;
+          if (!ctx.worthDetails({ title: card.title, company: card.company, workModel: 'remote' })) continue;
+          seen.add(card.id);
+          try {
+            found.push({ ...card, ...parseDetail(await get(`${DETAIL}${card.id}`)) });
+          } catch (error) {
+            if (error instanceof HttpError && error.status === 429) throw error;
+            ctx.warn(`linkedin: could not read job ${card.id} (${(error as Error).message})`);
+          }
+          await pause();
         }
-        try {
-          found.push({ ...card, ...parseDetail(await ctx.http.getText(`${DETAIL}${card.id}`)) });
-        } catch (error) {
-          if (error instanceof HttpError && error.status === 429) throw error;
-          ctx.warn(`linkedin: could not read job ${card.id} (${(error as Error).message})`);
-        }
-        await pause();
       }
+      if (Date.now() - started > BUDGET_MS) ctx.warn('linkedin: out of time, the rest waits for the next run');
     } catch (error) {
       if (!(error instanceof HttpError && error.status === 429)) throw error;
       ctx.warn(`linkedin: rate limited (HTTP 429), keeping the ${found.length} job(s) read so far`);
