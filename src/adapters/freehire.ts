@@ -21,7 +21,8 @@ const postingSchema = z.object({
   title: z.string(),
   company: z.string(),
   company_slug: z.string().nullish(),
-  url: z.string().url(),
+  url: z.string().nullish(),
+  apply_url: z.string().nullish(),
   location: z.string().nullish(),
   description: z.string().nullish(),
   countries: z.array(z.string()).nullish(),
@@ -40,7 +41,7 @@ const postingSchema = z.object({
     .nullish(),
 });
 
-export type FreehirePosting = z.infer<typeof postingSchema>;
+export type FreehirePosting = Omit<z.infer<typeof postingSchema>, 'url' | 'apply_url'> & { url: string };
 
 /** The `search.accept_regions` values freehire can filter on; `americas` has no equivalent without pulling in the US. */
 const REGION_FACETS: Record<string, string> = { worldwide: 'global', latam: 'latam' };
@@ -52,6 +53,10 @@ function isTelegram(url: string): boolean {
   } catch {
     return false;
   }
+}
+
+function isLink(value: string | null | undefined): value is string {
+  return Boolean(value && canonicalUrl(value));
 }
 
 function searchTerms(include: string[]): string[] {
@@ -89,7 +94,7 @@ export const freehire: SourceAdapter<FreehirePosting> = {
     const { accept_regions: accepted } = ctx.config.eligibility;
     const regions = accepted.map((region) => REGION_FACETS[region]).filter((facet): facet is string => Boolean(facet));
     const remoteOnly = ctx.config.work_model.length === 1 && ctx.config.work_model[0] === 'remote';
-    const bySlug = new Map<string, FreehirePosting>();
+    const bySlug = new Map<string, z.infer<typeof postingSchema>>();
 
     for (const q of queries(ctx.config.search.include)) {
       for (let page = 0; page < MAX_PAGES; page++) {
@@ -106,12 +111,25 @@ export const freehire: SourceAdapter<FreehirePosting> = {
 
         const { data, meta } = parseEnvelope('freehire', envelopeSchema, await ctx.http.getJson(`${SEARCH}?${params}`));
         for (const posting of parseItems('freehire', postingSchema, data, ctx)) {
-          if (!isTelegram(posting.url)) bySlug.set(posting.public_slug, posting);
+          bySlug.set(posting.public_slug, posting);
         }
         if (data.length === 0 || (page + 1) * PAGE_SIZE >= (meta?.total ?? 0)) break;
       }
     }
-    return [...bySlug.values()];
+    const found: FreehirePosting[] = [];
+    let unresolved = 0;
+    for (const { url, apply_url: redirect, ...posting } of bySlug.values()) {
+      let link = isLink(url) ? url : undefined;
+      if (!link && isLink(redirect)) {
+        // Only postings that could become an issue are worth a request; the rest keep the redirect link.
+        if (!ctx.worthDetails({ title: posting.title, company: posting.company, workModel: workModelFrom(posting.work_mode) })) link = redirect;
+        else if (ctx.deadline === undefined || Date.now() < ctx.deadline) link = await ctx.http.getRedirect(redirect).catch(() => undefined);
+      }
+      if (!link) unresolved++;
+      else if (!isTelegram(link)) found.push({ ...posting, url: link });
+    }
+    if (unresolved > 0) ctx.warn(`freehire: ${unresolved} postings skipped (no apply link)`);
+    return found;
   },
 
   normalize(posting): Job {

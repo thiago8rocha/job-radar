@@ -743,6 +743,30 @@ describe('freehire', () => {
     expect(raws.some((raw) => raw.public_slug === 'tg-1')).toBe(false);
   });
 
+  it('follows the redirect of a posting without a url, only when it could become an issue', async () => {
+    const [first] = fixture('freehire.json').data;
+    const gated = (slug: string, title: string) => ({ ...first, public_slug: slug, title, url: '', apply_url: `https://freehire.me/api/v1/go/${slug}` });
+    const followed: string[] = [];
+    server.use(
+      http.get(SEARCH, () => HttpResponse.json({ data: [gated('real', 'Senior QA'), gated('tg', 'QA Lead'), gated('broken', 'QA'), gated('other', 'Designer')] })),
+      http.get('https://freehire.me/api/v1/go/:slug', ({ params }) => {
+        followed.push(params.slug as string);
+        if (params.slug === 'broken') return new HttpResponse(null, { status: 404 });
+        const location = params.slug === 'tg' ? 'https://t.me/channel/1' : 'https://jobs.lever.co/acme/1';
+        return new HttpResponse(null, { status: 302, headers: { location } });
+      }),
+    );
+    const { ctx, warnings } = context([], { worthDetails: ({ title }) => title.includes('QA') });
+    const raws = await freehire.fetch(ctx);
+
+    expect(followed).toEqual(['real', 'tg', 'broken']);
+    expect(raws.map((raw) => [raw.public_slug, raw.url])).toEqual([
+      ['real', 'https://jobs.lever.co/acme/1'],
+      ['other', 'https://freehire.me/api/v1/go/other'],
+    ]);
+    expect(warnings).toEqual(['freehire: 1 postings skipped (no apply link)']);
+  });
+
   it('splits more than five include terms into several queries and pages until the total', async () => {
     const queries: string[] = [];
     const offsets: string[] = [];
